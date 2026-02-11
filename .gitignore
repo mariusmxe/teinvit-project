@@ -1,0 +1,9 @@
+# Node
+teinvit-pdf/node_modules/
+teinvit-pdf/logs/
+teinvit-pdf/pdf/
+teinvit-pdf/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
