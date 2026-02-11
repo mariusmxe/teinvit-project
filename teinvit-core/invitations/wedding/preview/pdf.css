@@ -1,0 +1,170 @@
+/* =====================================================
+   TEINVIT – PDF HTML VIEW (/pdf/{token})
+   SCOP: 1:1 cu preview.css
+   ⚠️ NU este PDF-ul final generat de Puppeteer
+===================================================== */
+
+@import url('./themes.css');
+
+/* =====================================================
+   PAGE SETUP (folosit DOAR la print / Puppeteer)
+===================================================== */
+@page {
+    size: 148mm 210mm;
+    margin: 0;
+}
+
+/* =====================================================
+   RESET DE BAZĂ
+===================================================== */
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+}
+
+/* =====================================================
+   RESET IDENTIC CU PREVIEW
+===================================================== */
+.teinvit-wedding,
+.teinvit-wedding * {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+}
+
+/* =====================================================
+   SCREEN CONTEXT – ARTBOARD EXPLICIT (CA ÎN /i/{token})
+===================================================== */
+@media screen {
+    .teinvit-wedding {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 2.5em 0;
+    }
+
+    .teinvit-page {
+        display: flex;
+        justify-content: center;
+    }
+
+    .teinvit-container {
+        width: 100%;
+        max-width: 1200px;
+        padding: 40px 24px;
+        box-sizing: border-box;
+    }
+
+    .teinvit-preview {
+        position: relative;
+        width: 559px;      /* 148mm @ 96dpi */
+        height: 794px;     /* 210mm @ 96dpi */
+        overflow: hidden;
+
+        /* 🔑 CRITIC: IDENTIC CU preview.css */
+        font-size: 17.25px;
+    }
+}
+
+/* =====================================================
+   PRINT CONTEXT – FULL BLEED
+===================================================== */
+@media print {
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .teinvit-wedding,
+    .teinvit-page,
+    .teinvit-container {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .teinvit-page {
+        display: block;
+    }
+
+    .teinvit-preview {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+
+        /* 🔑 CRITIC: IDENTIC CU preview.css */
+        font-size: 17.25px;
+    }
+}
+
+/* =====================================================
+   BACKGROUND
+===================================================== */
+.teinvit-preview .teinvit-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+/* =====================================================
+   CANVAS – SAFE AREA
+   IDENTIC PREVIEW
+===================================================== */
+.teinvit-preview .teinvit-canvas {
+    position: absolute;
+
+    top: 14%;
+    left: 8%;
+    right: 8%;
+    bottom: 4%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* =====================================================
+   STRUCTURĂ – PĂRINȚI & NAȘI (layout only)
+===================================================== */
+.inv-parents-grid {
+    display: flex;
+    justify-content: space-between;
+}
+
+.inv-parent-mireasa,
+.inv-parent-mire,
+.nasi-row {
+    width: 48%;
+}
+
+.inv-parent-mireasa { text-align: left; }
+.inv-parent-mire     { text-align: right; }
+
+/* =====================================================
+   STRUCTURĂ – EVENIMENTE (layout only)
+===================================================== */
+.events-row {
+    display: flex;
+    justify-content: center;
+}
+
+.inv-event {
+    max-width: 48%;
+}
+
+.events-row.top .inv-event:only-child {
+    max-width: 100%;
+}

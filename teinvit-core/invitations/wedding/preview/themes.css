@@ -1,0 +1,155 @@
+/* =====================================================
+   TEINVIT – THEMES (SURSĂ UNICĂ DE ADEVĂR)
+   Folosit de PREVIEW și PDF
+   ⚠️ FĂRĂ layout, FĂRĂ spacing, FĂRĂ responsive
+===================================================== */
+
+/* =========================
+   EDITORIAL
+========================= */
+.teinvit-canvas.theme-editorial {
+    font-family: 'Playfair Display', serif;
+    color: #5c5c5c;
+}
+
+/* =========================
+   ROMANTIC
+========================= */
+.teinvit-canvas.theme-romantic {
+    font-family: 'Cormorant Garamond', serif;
+    color: #5f5f5f;
+}
+
+.teinvit-canvas.theme-romantic .inv-names {
+    font-family: 'Great Vibes', cursive;
+    color: #c06a7a;
+}
+
+/* =========================
+   MODERN
+========================= */
+.teinvit-canvas.theme-modern {
+    font-family: 'Inter', sans-serif;
+    color: #1a1a1a;
+}
+
+/* =========================
+   CLASSIC
+========================= */
+.teinvit-canvas.theme-classic {
+    font-family: 'Cormorant Garamond', serif;
+    color: #5a5044;
+}
+
+/* =====================================================
+   TIPOGRAFIE – SURSA UNICĂ DE ADEVĂR
+===================================================== */
+.teinvit-canvas {
+    font-size: 1em;
+    line-height: 1.35;
+}
+
+.inv-names {
+    margin-bottom: 0.6em;
+    font-size: 1.75em;
+    line-height: 1.2;
+}
+
+.section-title {
+    margin-top: 0.9em;
+    margin-bottom: 0.4em;
+    font-size: 0.85em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.inv-message {
+    margin-top: 0.8em;
+    font-size: 1em;
+    line-height: 1.55;
+}
+
+.inv-parents-wrapper,
+.inv-nasi {
+    margin-top: 0.8em;
+}
+
+.inv-parents-grid {
+    gap: 1.5em;
+    margin-top: 0.5em;
+}
+
+.inv-parent-mireasa,
+.inv-parent-mire,
+.nasi-row {
+    font-size: 1em;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.events-row {
+    gap: 1.5em;
+    margin-top: 1em;
+}
+
+.inv-event {
+    font-size: 0.95em;
+    line-height: 1.45;
+}
+
+.inv-event strong {
+    font-weight: 600;
+}
+
+/* Romantic – nume mai mare, cursiv */
+.teinvit-canvas.theme-romantic .inv-names {
+    font-size: 2.3em;
+    line-height: 1.15;
+}
+
+/* Modern – spațiere diferită mesaj */
+.teinvit-canvas.theme-modern .inv-message {
+    margin-bottom: 1.4em;
+}
+
+/* ==================================================
+   TEINVIT – CONTRACT TIPOGRAFIC GLOBAL (FINAL)
+================================================== */
+.teinvit-canvas .inv-names {
+    font-size: 1.75em;
+    line-height: 1.25;
+    margin-bottom: 1.2em;
+}
+
+.teinvit-canvas .section-title {
+    font-size: 0.6em;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.6em;
+}
+
+.teinvit-canvas .inv-parents,
+.teinvit-canvas .inv-nasi {
+    font-size: 0.78em;
+    line-height: 1.4;
+    margin-bottom: 1em;
+}
+
+.teinvit-canvas .inv-message {
+    font-size: 0.88em;
+    line-height: 1.5;
+    margin: 1.4em 0;
+}
+
+.teinvit-canvas .inv-events {
+    font-size: 0.8em;
+    line-height: 1.45;
+    margin-top: 1.2em;
+}
+
+.teinvit-canvas .inv-event strong {
+    font-size: 1em;
+}
+
+.teinvit-canvas .inv-event a {
+    font-size: 0.9em;
+}
