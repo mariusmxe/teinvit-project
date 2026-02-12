@@ -444,9 +444,88 @@ applyAutoFit(canvas);
 
     }
 
+    /* ==================================================
+       PRODUCT PREVIEW – FINAL PASS (WAPF STABLE STATE)
+    ================================================== */
+
+    var FINAL_PASS_DEBOUNCE_MS = 320;
+    var finalPassTimer = null;
+    var lastStableSignature = '';
+    var finalizedSignature = '';
+
+    function isProductWAPFContext() {
+        return hasWAPF() && !window.TEINVIT_INVITATION_DATA && !window.__TEINVIT_PDF_MODE__;
+    }
+
+    function hasRequiredWAPFFields() {
+        return !!(
+            qs('[name="wapf[field_6967752ab511b]"]') &&
+            qs('[name="wapf[field_6963a95e66425]"]') &&
+            qs('[name="wapf[field_6963aa37412e4]"]') &&
+            qs('[name="wapf[field_6963aa782092d]"]')
+        );
+    }
+
+    function getProductSnapshotSignature() {
+        if (!isProductWAPFContext() || !hasRequiredWAPFFields()) {
+            return '';
+        }
+
+        var data = getInvitationData();
+        if (!data) return '';
+
+        var themeSelect = qs('[name="wapf[field_6967752ab511b]"]');
+        var selectedLabel = '';
+        if (themeSelect && themeSelect.options && themeSelect.selectedIndex >= 0) {
+            selectedLabel = (themeSelect.options[themeSelect.selectedIndex].text || '').trim().toLowerCase();
+        }
+
+        return JSON.stringify({
+            themeLabel: selectedLabel,
+            names: data.names || '',
+            message: data.message || '',
+            show_parents: !!data.show_parents,
+            show_nasi: !!data.show_nasi,
+            parents: data.parents || {},
+            nasi: data.nasi || '',
+            events: data.events || []
+        });
+    }
+
+    function scheduleFinalProductPass() {
+        if (!isProductWAPFContext()) return;
+
+        if (finalPassTimer) {
+            clearTimeout(finalPassTimer);
+        }
+
+        finalPassTimer = setTimeout(function () {
+            var signature = getProductSnapshotSignature();
+            if (!signature || signature === finalizedSignature) {
+                return;
+            }
+
+            // confirmăm stabilitatea pe 2 ferestre consecutive de debounce
+            if (signature !== lastStableSignature) {
+                lastStableSignature = signature;
+                scheduleFinalProductPass();
+                return;
+            }
+
+            finalizedSignature = signature;
+            render();
+        }, FINAL_PASS_DEBOUNCE_MS);
+    }
+
+    function onPreviewDataChange() {
+        render();
+        scheduleFinalProductPass();
+    }
+
     render();
-    document.addEventListener('input', render);
-    document.addEventListener('change', render);
+    scheduleFinalProductPass();
+    document.addEventListener('input', onPreviewDataChange);
+    document.addEventListener('change', onPreviewDataChange);
 
 });
 
