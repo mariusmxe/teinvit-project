@@ -1,6 +1,6 @@
 /**
- * TeInvit – PDF Service (Puppeteer Core)
- * CANONIC – FINAL (WP decides filename, Node only renders)
+const PDF_BASE_URL = 'https://www.teinvit.com';
+    const targetUrl = `${PDF_BASE_URL}/pdf/${token}/`;
  */
 
 const express = require('express');
