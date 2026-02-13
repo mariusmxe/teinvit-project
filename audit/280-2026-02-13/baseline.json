@@ -1,0 +1,5365 @@
+{
+  "runAt": "2026-02-13T22:04:35.567Z",
+  "config": {
+    "PRODUCT_URL": "https://www.teinvit.com/product/invitatie-digitala-personalizata/",
+    "I_URL": "https://www.teinvit.com/i/280-e245bbbb3b2a72f7003e",
+    "PDF_URL": "https://www.teinvit.com/pdf/280-e245bbbb3b2a72f7003e/",
+    "OUTPUT_DIR": "/home/marius/teinvit-pdf/baseline-output-280-2026-02-13-2204",
+    "THEMES": [
+      "editorial",
+      "romantic",
+      "modern",
+      "classic"
+    ]
+  },
+  "themes": {
+    "editorial": {
+      "preview-prod": {
+        "context": "preview-prod",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:38.827Z",
+          "domContentLoadedIso": "2026-02-13T22:04:39.459Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/product/invitatie-digitala-personalizata/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "26.7375px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 686.094,
+                "y": 1586.828,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 730.813,
+                "y": 1697.984,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line; display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": []
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/editorial__preview-prod.png"
+      },
+      "i-html": {
+        "context": "i-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:43.572Z",
+          "domContentLoadedIso": "2026-02-13T22:04:43.615Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/i/280-e245bbbb3b2a72f7003e"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 48,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 159.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 630.313,
+                "y": 159.156,
+                "width": 139.375,
+                "height": 113.203,
+                "clientWidth": 139,
+                "clientHeight": 113,
+                "scrollWidth": 139,
+                "scrollHeight": 114
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 472.328,
+                "width": 469.563,
+                "height": 91.125,
+                "clientWidth": 470,
+                "clientHeight": 91,
+                "scrollWidth": 470,
+                "scrollHeight": 91
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 4,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 584.406,
+                "y": 331.688,
+                "width": 231.172,
+                "height": 13.953,
+                "clientWidth": 231,
+                "clientHeight": 14,
+                "scrollWidth": 231,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 656.797,
+                "y": 402.656,
+                "width": 86.406,
+                "height": 11.297,
+                "clientWidth": 86,
+                "clientHeight": 11,
+                "scrollWidth": 86,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 520.656,
+                "y": 601.25,
+                "width": 358.688,
+                "height": 198.594,
+                "clientWidth": 359,
+                "clientHeight": 199,
+                "scrollWidth": 359,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 520.656,
+                "y": 615.047,
+                "width": 358.688,
+                "height": 95,
+                "clientWidth": 359,
+                "clientHeight": 95,
+                "scrollWidth": 359,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 520.656,
+                "y": 723.844,
+                "width": 358.688,
+                "height": 76,
+                "clientWidth": 359,
+                "clientHeight": 76,
+                "scrollWidth": 359,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 584.406,
+                "y": 322.375,
+                "width": 231.172,
+                "height": 62.266,
+                "clientWidth": 231,
+                "clientHeight": 62,
+                "scrollWidth": 231,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 656.797,
+                "y": 395.391,
+                "width": 86.406,
+                "height": 42.234,
+                "clientWidth": 86,
+                "clientHeight": 42,
+                "scrollWidth": 86,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 541.516,
+                "y": 615.047,
+                "width": 124.109,
+                "height": 95,
+                "clientWidth": 124,
+                "clientHeight": 95,
+                "scrollWidth": 124,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 686.313,
+                "y": 615.047,
+                "width": 172.156,
+                "height": 95,
+                "clientWidth": 172,
+                "clientHeight": 95,
+                "scrollWidth": 172,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 636.25,
+                "y": 723.844,
+                "width": 127.5,
+                "height": 76,
+                "clientWidth": 128,
+                "clientHeight": 76,
+                "scrollWidth": 128,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/editorial__i-html.png"
+      },
+      "pdf-html": {
+        "context": "pdf-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:45.501Z",
+          "domContentLoadedIso": "2026-02-13T22:04:45.550Z",
+          "pdfReadyIso": "2026-02-13T22:04:45.567Z",
+          "deltaDomToPdfReadyMs": 17
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": true,
+          "hasPdfReadyFlag": true,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "isPdfReady": true,
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/pdf/280-e245bbbb3b2a72f7003e/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 80,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 191.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 630.313,
+                "y": 191.156,
+                "width": 139.375,
+                "height": 113.203,
+                "clientWidth": 139,
+                "clientHeight": 113,
+                "scrollWidth": 139,
+                "scrollHeight": 114
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 504.328,
+                "width": 469.563,
+                "height": 91.125,
+                "clientWidth": 470,
+                "clientHeight": 91,
+                "scrollWidth": 470,
+                "scrollHeight": 91
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 4,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 584.406,
+                "y": 363.688,
+                "width": 231.172,
+                "height": 13.953,
+                "clientWidth": 231,
+                "clientHeight": 14,
+                "scrollWidth": 231,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 656.797,
+                "y": 434.656,
+                "width": 86.406,
+                "height": 11.297,
+                "clientWidth": 86,
+                "clientHeight": 11,
+                "scrollWidth": 86,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 520.656,
+                "y": 633.25,
+                "width": 358.688,
+                "height": 198.594,
+                "clientWidth": 359,
+                "clientHeight": 199,
+                "scrollWidth": 359,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 520.656,
+                "y": 647.047,
+                "width": 358.688,
+                "height": 95,
+                "clientWidth": 359,
+                "clientHeight": 95,
+                "scrollWidth": 359,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 520.656,
+                "y": 755.844,
+                "width": 358.688,
+                "height": 76,
+                "clientWidth": 359,
+                "clientHeight": 76,
+                "scrollWidth": 359,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 584.406,
+                "y": 354.375,
+                "width": 231.172,
+                "height": 62.266,
+                "clientWidth": 231,
+                "clientHeight": 62,
+                "scrollWidth": 231,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 656.797,
+                "y": 427.391,
+                "width": 86.406,
+                "height": 42.234,
+                "clientWidth": 86,
+                "clientHeight": 42,
+                "scrollWidth": 86,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 541.516,
+                "y": 647.047,
+                "width": 124.109,
+                "height": 95,
+                "clientWidth": 124,
+                "clientHeight": 95,
+                "scrollWidth": 124,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 686.313,
+                "y": 647.047,
+                "width": 172.156,
+                "height": 95,
+                "clientWidth": 172,
+                "clientHeight": 95,
+                "scrollWidth": 172,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Playfair Display\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 636.25,
+                "y": 755.844,
+                "width": 127.5,
+                "height": 76,
+                "clientWidth": 128,
+                "clientHeight": 76,
+                "scrollWidth": 128,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/editorial__pdf-html.png"
+      }
+    },
+    "romantic": {
+      "preview-prod": {
+        "context": "preview-prod",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:47.449Z",
+          "domContentLoadedIso": "2026-02-13T22:04:47.793Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/product/invitatie-digitala-personalizata/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "26.7375px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 686.094,
+                "y": 1586.828,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 730.813,
+                "y": 1697.984,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Great Vibes\", cursive",
+                "fontSize": "39.675px",
+                "lineHeight": "45.6263px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "47.61px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line; display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": []
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/romantic__preview-prod.png"
+      },
+      "i-html": {
+        "context": "i-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:50.598Z",
+          "domContentLoadedIso": "2026-02-13T22:04:50.635Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/i/280-e245bbbb3b2a72f7003e"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 48,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 159.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 676
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Great Vibes\", cursive",
+                "fontSize": "39.675px",
+                "lineHeight": "45.6263px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "47.61px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 632.516,
+                "y": 159.156,
+                "width": 134.953,
+                "height": 136.828,
+                "clientWidth": 135,
+                "clientHeight": 137,
+                "scrollWidth": 135,
+                "scrollHeight": 138
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 507.344,
+                "width": 469.563,
+                "height": 91.125,
+                "clientWidth": 470,
+                "clientHeight": 91,
+                "scrollWidth": 470,
+                "scrollHeight": 91
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 4,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 366.703,
+                "width": 205.547,
+                "height": 13.953,
+                "clientWidth": 206,
+                "clientHeight": 14,
+                "scrollWidth": 206,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 437.672,
+                "width": 78.109,
+                "height": 11.297,
+                "clientWidth": 78,
+                "clientHeight": 11,
+                "scrollWidth": 78,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 636.266,
+                "width": 320.563,
+                "height": 198.781,
+                "clientWidth": 321,
+                "clientHeight": 199,
+                "scrollWidth": 321,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 650.063,
+                "width": 320.563,
+                "height": 95.094,
+                "clientWidth": 321,
+                "clientHeight": 95,
+                "scrollWidth": 321,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 758.953,
+                "width": 320.563,
+                "height": 76.094,
+                "clientWidth": 321,
+                "clientHeight": 76,
+                "scrollWidth": 321,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 357.391,
+                "width": 205.547,
+                "height": 62.266,
+                "clientWidth": 206,
+                "clientHeight": 62,
+                "scrollWidth": 206,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 430.406,
+                "width": 78.109,
+                "height": 42.234,
+                "clientWidth": 78,
+                "clientHeight": 42,
+                "scrollWidth": 78,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 557.547,
+                "y": 650.063,
+                "width": 110.344,
+                "height": 95.094,
+                "clientWidth": 110,
+                "clientHeight": 95,
+                "scrollWidth": 110,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 688.578,
+                "y": 650.063,
+                "width": 153.859,
+                "height": 95.094,
+                "clientWidth": 154,
+                "clientHeight": 95,
+                "scrollWidth": 154,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 648.344,
+                "y": 758.953,
+                "width": 103.313,
+                "height": 76.094,
+                "clientWidth": 103,
+                "clientHeight": 76,
+                "scrollWidth": 103,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/romantic__i-html.png"
+      },
+      "pdf-html": {
+        "context": "pdf-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:52.520Z",
+          "domContentLoadedIso": "2026-02-13T22:04:52.548Z",
+          "pdfReadyIso": "2026-02-13T22:04:52.571Z",
+          "deltaDomToPdfReadyMs": 23
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": true,
+          "hasPdfReadyFlag": true,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "isPdfReady": true,
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/pdf/280-e245bbbb3b2a72f7003e/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 80,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 191.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 676
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Great Vibes\", cursive",
+                "fontSize": "39.675px",
+                "lineHeight": "45.6263px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "47.61px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 632.516,
+                "y": 191.156,
+                "width": 134.953,
+                "height": 136.828,
+                "clientWidth": 135,
+                "clientHeight": 137,
+                "scrollWidth": 135,
+                "scrollHeight": 138
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 539.344,
+                "width": 469.563,
+                "height": 91.125,
+                "clientWidth": 470,
+                "clientHeight": 91,
+                "scrollWidth": 470,
+                "scrollHeight": 91
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 4,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 398.703,
+                "width": 205.547,
+                "height": 13.953,
+                "clientWidth": 206,
+                "clientHeight": 14,
+                "scrollWidth": 206,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 469.672,
+                "width": 78.109,
+                "height": 11.297,
+                "clientWidth": 78,
+                "clientHeight": 11,
+                "scrollWidth": 78,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 668.266,
+                "width": 320.563,
+                "height": 198.781,
+                "clientWidth": 321,
+                "clientHeight": 199,
+                "scrollWidth": 321,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 682.063,
+                "width": 320.563,
+                "height": 95.094,
+                "clientWidth": 321,
+                "clientHeight": 95,
+                "scrollWidth": 321,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 790.953,
+                "width": 320.563,
+                "height": 76.094,
+                "clientWidth": 321,
+                "clientHeight": 76,
+                "scrollWidth": 321,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 389.391,
+                "width": 205.547,
+                "height": 62.266,
+                "clientWidth": 206,
+                "clientHeight": 62,
+                "scrollWidth": 206,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 462.406,
+                "width": 78.109,
+                "height": 42.234,
+                "clientWidth": 78,
+                "clientHeight": 42,
+                "scrollWidth": 78,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 557.547,
+                "y": 682.063,
+                "width": 110.344,
+                "height": 95.094,
+                "clientWidth": 110,
+                "clientHeight": 95,
+                "scrollWidth": 110,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 688.578,
+                "y": 682.063,
+                "width": 153.859,
+                "height": 95.094,
+                "clientWidth": 154,
+                "clientHeight": 95,
+                "scrollWidth": 154,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 648.344,
+                "y": 790.953,
+                "width": 103.313,
+                "height": 76.094,
+                "clientWidth": 103,
+                "clientHeight": 76,
+                "scrollWidth": 103,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/romantic__pdf-html.png"
+      }
+    },
+    "modern": {
+      "preview-prod": {
+        "context": "preview-prod",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:54.490Z",
+          "domContentLoadedIso": "2026-02-13T22:04:54.812Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/product/invitatie-digitala-personalizata/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "26.7375px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 686.094,
+                "y": 1586.828,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 730.813,
+                "y": 1697.984,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line; display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": []
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/modern__preview-prod.png"
+      },
+      "i-html": {
+        "context": "i-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:57.598Z",
+          "domContentLoadedIso": "2026-02-13T22:04:57.650Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/i/280-e245bbbb3b2a72f7003e"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 48,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 159.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 663
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 628.016,
+                "y": 159.156,
+                "width": 143.953,
+                "height": 113.203,
+                "clientWidth": 144,
+                "clientHeight": 113,
+                "scrollWidth": 144,
+                "scrollHeight": 113
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 472.328,
+                "width": 469.563,
+                "height": 113.906,
+                "clientWidth": 470,
+                "clientHeight": 114,
+                "scrollWidth": 470,
+                "scrollHeight": 114
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 5,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 582.172,
+                "y": 331.688,
+                "width": 235.656,
+                "height": 13.953,
+                "clientWidth": 236,
+                "clientHeight": 14,
+                "scrollWidth": 236,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 655.719,
+                "y": 402.656,
+                "width": 88.563,
+                "height": 11.297,
+                "clientWidth": 89,
+                "clientHeight": 11,
+                "scrollWidth": 89,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 512.5,
+                "y": 624.031,
+                "width": 374.984,
+                "height": 198.594,
+                "clientWidth": 375,
+                "clientHeight": 199,
+                "scrollWidth": 375,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 512.5,
+                "y": 637.828,
+                "width": 374.984,
+                "height": 95,
+                "clientWidth": 375,
+                "clientHeight": 95,
+                "scrollWidth": 375,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 512.5,
+                "y": 746.625,
+                "width": 374.984,
+                "height": 76,
+                "clientWidth": 375,
+                "clientHeight": 76,
+                "scrollWidth": 375,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 582.172,
+                "y": 322.375,
+                "width": 235.656,
+                "height": 62.266,
+                "clientWidth": 236,
+                "clientHeight": 62,
+                "scrollWidth": 236,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 655.719,
+                "y": 395.391,
+                "width": 88.563,
+                "height": 42.234,
+                "clientWidth": 89,
+                "clientHeight": 42,
+                "scrollWidth": 89,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 532.406,
+                "y": 637.828,
+                "width": 134.5,
+                "height": 95,
+                "clientWidth": 135,
+                "clientHeight": 95,
+                "scrollWidth": 135,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 687.594,
+                "y": 637.828,
+                "width": 179.984,
+                "height": 95,
+                "clientWidth": 180,
+                "clientHeight": 95,
+                "scrollWidth": 180,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 629.609,
+                "y": 746.625,
+                "width": 140.766,
+                "height": 76,
+                "clientWidth": 141,
+                "clientHeight": 76,
+                "scrollWidth": 141,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/modern__i-html.png"
+      },
+      "pdf-html": {
+        "context": "pdf-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:04:59.427Z",
+          "domContentLoadedIso": "2026-02-13T22:04:59.473Z",
+          "pdfReadyIso": "2026-02-13T22:04:59.501Z",
+          "deltaDomToPdfReadyMs": 28
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": true,
+          "hasPdfReadyFlag": true,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "isPdfReady": true,
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/pdf/280-e245bbbb3b2a72f7003e/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 80,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 191.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 663
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 628.016,
+                "y": 191.156,
+                "width": 143.953,
+                "height": 113.203,
+                "clientWidth": 144,
+                "clientHeight": 113,
+                "scrollWidth": 144,
+                "scrollHeight": 113
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 504.328,
+                "width": 469.563,
+                "height": 113.906,
+                "clientWidth": 470,
+                "clientHeight": 114,
+                "scrollWidth": 470,
+                "scrollHeight": 114
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 5,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 582.172,
+                "y": 363.688,
+                "width": 235.656,
+                "height": 13.953,
+                "clientWidth": 236,
+                "clientHeight": 14,
+                "scrollWidth": 236,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 655.719,
+                "y": 434.656,
+                "width": 88.563,
+                "height": 11.297,
+                "clientWidth": 89,
+                "clientHeight": 11,
+                "scrollWidth": 89,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 512.5,
+                "y": 656.031,
+                "width": 374.984,
+                "height": 198.594,
+                "clientWidth": 375,
+                "clientHeight": 199,
+                "scrollWidth": 375,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 512.5,
+                "y": 669.828,
+                "width": 374.984,
+                "height": 95,
+                "clientWidth": 375,
+                "clientHeight": 95,
+                "scrollWidth": 375,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 512.5,
+                "y": 778.625,
+                "width": 374.984,
+                "height": 76,
+                "clientWidth": 375,
+                "clientHeight": 76,
+                "scrollWidth": 375,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 582.172,
+                "y": 354.375,
+                "width": 235.656,
+                "height": 62.266,
+                "clientWidth": 236,
+                "clientHeight": 62,
+                "scrollWidth": 236,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 655.719,
+                "y": 427.391,
+                "width": 88.563,
+                "height": 42.234,
+                "clientWidth": 89,
+                "clientHeight": 42,
+                "scrollWidth": 89,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 532.406,
+                "y": 669.828,
+                "width": 134.5,
+                "height": 95,
+                "clientWidth": 135,
+                "clientHeight": 95,
+                "scrollWidth": 135,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 687.594,
+                "y": 669.828,
+                "width": 179.984,
+                "height": 95,
+                "clientWidth": 180,
+                "clientHeight": 95,
+                "scrollWidth": 180,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 629.609,
+                "y": 778.625,
+                "width": 140.766,
+                "height": 76,
+                "clientWidth": 141,
+                "clientHeight": 76,
+                "scrollWidth": 141,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/modern__pdf-html.png"
+      }
+    },
+    "classic": {
+      "preview-prod": {
+        "context": "preview-prod",
+        "timing": {
+          "navStartIso": "2026-02-13T22:05:01.415Z",
+          "domContentLoadedIso": "2026-02-13T22:05:01.831Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/product/invitatie-digitala-personalizata/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "Inter, sans-serif",
+                "fontSize": "17.25px",
+                "lineHeight": "26.7375px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 686.094,
+                "y": 1586.828,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 730.813,
+                "y": 1697.984,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line; display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display: none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 0,
+                "textContentTrim": ""
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "clientWidth": 0,
+                "clientHeight": 0,
+                "scrollWidth": 0,
+                "scrollHeight": 0
+              },
+              "inline": {
+                "styleAttr": "display:none;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": []
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/classic__preview-prod.png"
+      },
+      "i-html": {
+        "context": "i-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:05:04.377Z",
+          "domContentLoadedIso": "2026-02-13T22:05:04.411Z",
+          "pdfReadyIso": null,
+          "deltaDomToPdfReadyMs": null
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": false,
+          "hasPdfReadyFlag": false,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/i/280-e245bbbb3b2a72f7003e"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 48,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 159.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 637.953,
+                "y": 159.156,
+                "width": 124.078,
+                "height": 113.203,
+                "clientWidth": 124,
+                "clientHeight": 113,
+                "scrollWidth": 124,
+                "scrollHeight": 113
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 472.328,
+                "width": 469.563,
+                "height": 91.125,
+                "clientWidth": 470,
+                "clientHeight": 91,
+                "scrollWidth": 470,
+                "scrollHeight": 91
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 4,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 331.688,
+                "width": 205.547,
+                "height": 13.953,
+                "clientWidth": 206,
+                "clientHeight": 14,
+                "scrollWidth": 206,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 402.656,
+                "width": 78.109,
+                "height": 11.297,
+                "clientWidth": 78,
+                "clientHeight": 11,
+                "scrollWidth": 78,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 601.25,
+                "width": 320.563,
+                "height": 198.781,
+                "clientWidth": 321,
+                "clientHeight": 199,
+                "scrollWidth": 321,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 615.047,
+                "width": 320.563,
+                "height": 95.094,
+                "clientWidth": 321,
+                "clientHeight": 95,
+                "scrollWidth": 321,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 723.938,
+                "width": 320.563,
+                "height": 76.094,
+                "clientWidth": 321,
+                "clientHeight": 76,
+                "scrollWidth": 321,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 322.375,
+                "width": 205.547,
+                "height": 62.266,
+                "clientWidth": 206,
+                "clientHeight": 62,
+                "scrollWidth": 206,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 395.391,
+                "width": 78.109,
+                "height": 42.234,
+                "clientWidth": 78,
+                "clientHeight": 42,
+                "scrollWidth": 78,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 557.547,
+                "y": 615.047,
+                "width": 110.344,
+                "height": 95.094,
+                "clientWidth": 110,
+                "clientHeight": 95,
+                "scrollWidth": 110,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 688.578,
+                "y": 615.047,
+                "width": 153.859,
+                "height": 95.094,
+                "clientWidth": 154,
+                "clientHeight": 95,
+                "scrollWidth": 154,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 648.344,
+                "y": 723.938,
+                "width": 103.313,
+                "height": 76.094,
+                "clientWidth": 103,
+                "clientHeight": 76,
+                "scrollWidth": 103,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/classic__i-html.png"
+      },
+      "pdf-html": {
+        "context": "pdf-html",
+        "timing": {
+          "navStartIso": "2026-02-13T22:05:06.097Z",
+          "domContentLoadedIso": "2026-02-13T22:05:06.143Z",
+          "pdfReadyIso": "2026-02-13T22:05:06.157Z",
+          "deltaDomToPdfReadyMs": 14
+        },
+        "diagnostics": {
+          "hasPdfModeFlag": true,
+          "hasPdfReadyFlag": true,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+          "isPdfReady": true,
+          "stable": true,
+          "probesUsed": 4,
+          "url": "https://www.teinvit.com/pdf/280-e245bbbb3b2a72f7003e/"
+        },
+        "safeArea": {
+          "topPx": 111.156,
+          "leftPx": 44.719,
+          "rightPx": 44.719,
+          "bottomPx": 31.75,
+          "previewWidth": 559,
+          "previewHeight": 794,
+          "canvasWidth": 469.563,
+          "canvasHeight": 651.094
+        },
+        "selectors": {
+          ".teinvit-preview": [
+            {
+              "computed": {
+                "fontFamily": "\"Times New Roman\"",
+                "fontSize": "17.25px",
+                "lineHeight": "normal",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 420.5,
+                "y": 80,
+                "width": 559,
+                "height": 794,
+                "clientWidth": 559,
+                "clientHeight": 794,
+                "scrollWidth": 559,
+                "scrollHeight": 794
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".teinvit-canvas": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 191.156,
+                "width": 469.563,
+                "height": 651.094,
+                "clientWidth": 470,
+                "clientHeight": 651,
+                "scrollWidth": 470,
+                "scrollHeight": 651
+              },
+              "inline": {
+                "styleAttr": "font-size: 1em;",
+                "styleFontSize": "1em",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-names": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "30.1875px",
+                "lineHeight": "37.7344px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "36.225px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 637.953,
+                "y": 191.156,
+                "width": 124.078,
+                "height": 113.203,
+                "clientWidth": 124,
+                "clientHeight": 113,
+                "scrollWidth": 124,
+                "scrollHeight": 113
+              },
+              "inline": {
+                "styleAttr": "white-space: pre-line;",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 3,
+                "textContentTrim": "Ruxandra\n&\nAlexandru"
+              }
+            }
+          ],
+          ".inv-message": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "15.18px",
+                "lineHeight": "22.77px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "21.252px",
+                "marginBottom": "21.252px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 465.219,
+                "y": 504.328,
+                "width": 469.563,
+                "height": 91.125,
+                "clientWidth": 470,
+                "clientHeight": 91,
+                "scrollWidth": 470,
+                "scrollHeight": 91
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 4,
+                "textContentTrim": "Vă invităm cu drag să ne fiți alături în una dintre cele mai frumoase zile din viața noastră, când vom spune „DA” în fața lui Dumnezeu și a celor dragi. Prezența voastră va însemna enorm pentru noi și va transforma acest moment într-o amintire de neuitat."
+              }
+            }
+          ],
+          ".section-title": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "10.35px",
+                "lineHeight": "13.9725px",
+                "letterSpacing": "1.242px",
+                "textTransform": "uppercase",
+                "marginTop": "9.315px",
+                "marginBottom": "6.21px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 363.688,
+                "width": 205.547,
+                "height": 13.953,
+                "clientWidth": 206,
+                "clientHeight": 14,
+                "scrollWidth": 206,
+                "scrollHeight": 14
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "8.073px",
+                "lineHeight": "11.3022px",
+                "letterSpacing": "0.96876px",
+                "textTransform": "uppercase",
+                "marginTop": "7.2657px",
+                "marginBottom": "4.8438px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 434.656,
+                "width": 78.109,
+                "height": 11.297,
+                "clientWidth": 78,
+                "clientHeight": 11,
+                "scrollWidth": 78,
+                "scrollHeight": 11
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-events": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "16.56px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 633.25,
+                "width": 320.563,
+                "height": 198.781,
+                "clientWidth": 321,
+                "clientHeight": 199,
+                "scrollWidth": 321,
+                "scrollHeight": 199
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.top": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 647.047,
+                "width": 320.563,
+                "height": 95.094,
+                "clientWidth": 321,
+                "clientHeight": 95,
+                "scrollWidth": 321,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".events-row.bottom": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.8px",
+                "lineHeight": "20.01px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 539.719,
+                "y": 755.938,
+                "width": 320.563,
+                "height": 76.094,
+                "clientWidth": 321,
+                "clientHeight": 76,
+                "scrollWidth": 321,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-parents-wrapper": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "17.25px",
+                "lineHeight": "23.2875px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "13.8px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 597.219,
+                "y": 354.375,
+                "width": 205.547,
+                "height": 62.266,
+                "clientWidth": 206,
+                "clientHeight": 62,
+                "scrollWidth": 206,
+                "scrollHeight": 62
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-nasi": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.455px",
+                "lineHeight": "18.837px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "10.764px",
+                "marginBottom": "13.455px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 660.938,
+                "y": 427.391,
+                "width": 78.109,
+                "height": 42.234,
+                "clientWidth": 78,
+                "clientHeight": 42,
+                "scrollWidth": 78,
+                "scrollHeight": 42
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              }
+            }
+          ],
+          ".inv-event": [
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 557.547,
+                "y": 647.047,
+                "width": 110.344,
+                "height": 95.094,
+                "clientWidth": 110,
+                "clientHeight": 95,
+                "scrollWidth": 110,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "Cununie civilăStarea Civila Sector 602-12-2026 ora 12:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 688.578,
+                "y": 647.047,
+                "width": 153.859,
+                "height": 95.094,
+                "clientWidth": 154,
+                "clientHeight": 95,
+                "scrollWidth": 154,
+                "scrollHeight": 95
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 7,
+                "textContentTrim": "Ceremonie religioasăBiserica Adormirea Maicii Domnului02-19-2026 ora 14:20Deschide în Waze"
+              }
+            },
+            {
+              "computed": {
+                "fontFamily": "\"Cormorant Garamond\", serif",
+                "fontSize": "13.11px",
+                "lineHeight": "19.0095px",
+                "letterSpacing": "normal",
+                "textTransform": "none",
+                "marginTop": "0px",
+                "marginBottom": "0px",
+                "paddingTop": "0px",
+                "paddingBottom": "0px"
+              },
+              "geometry": {
+                "x": 648.344,
+                "y": 755.938,
+                "width": 103.313,
+                "height": 76.094,
+                "clientWidth": 103,
+                "clientHeight": 76,
+                "scrollWidth": 103,
+                "scrollHeight": 76
+              },
+              "inline": {
+                "styleAttr": "",
+                "styleFontSize": "",
+                "styleMarginTop": "",
+                "styleMarginBottom": ""
+              },
+              "wrap": {
+                "lineCount": 6,
+                "textContentTrim": "PetrecereaRestaurant Calipso02-03-2026 ora 20:00Deschide în Waze"
+              }
+            }
+          ]
+        },
+        "screenshot": "baseline-output-280-2026-02-13-2204/classic__pdf-html.png"
+      }
+    }
+  }
+}
