@@ -1,6 +1,6 @@
 /**
- * TeInvit – PDF Service (Puppeteer Core)
- * CANONIC – FINAL (WP decides filename, Node only renders)
+ * TeInvit â€“ PDF Service (Puppeteer Core)
+ * CANONIC â€“ FINAL (WP decides filename, Node only renders)
  */
 
 const express = require('express');
@@ -13,7 +13,7 @@ app.use(express.json({ limit: '2mb' }));
 
 /* ================= CONFIG ================= */
 const PORT = 3000;
-const PDF_BASE_URL = 'https://pdf.teinvit.com';
+const PDF_BASE_URL = 'https://www.teinvit.com';
 const OUTPUT_DIR = path.join(__dirname, 'pdf');
 const CHROME_PATH = '/usr/bin/google-chrome';
 
@@ -37,7 +37,7 @@ app.post('/api/render', async (req, res) => {
         });
     }
 
-    const targetUrl = `${PDF_BASE_URL}/pdf/${token}`;
+    const targetUrl = `${PDF_BASE_URL}/pdf/${token}/`;
     const orderDir  = path.join(OUTPUT_DIR, String(order_id));
 
     if (!fs.existsSync(orderDir)) {
@@ -72,7 +72,7 @@ app.post('/api/render', async (req, res) => {
             timeout: 60000
         });
 
-        // Handshake PDF final (exact cum ai definit deja)
+        // Handshake PDF final
         await page.waitForFunction(
             () => window.__TEINVIT_PDF_READY__ === true,
             { timeout: 30000 }
