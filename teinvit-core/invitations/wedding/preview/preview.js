@@ -514,6 +514,21 @@ applyAutoFit(canvas);
 
             finalizedSignature = signature;
             render();
+
+            // Final normalize: doar în context product+WAPF,
+            // încercăm 1em; dacă apare overflow real, revenim la auto-fit.
+            var canvas = qs('.teinvit-canvas');
+            if (!canvas || !isProductWAPFContext()) {
+                return;
+            }
+
+            canvas.style.fontSize = '1em';
+            window.requestAnimationFrame(function () {
+                if (!isProductWAPFContext()) return;
+                if (canvas.scrollHeight > canvas.clientHeight) {
+                    applyAutoFit(canvas);
+                }
+            });
         }, FINAL_PASS_DEBOUNCE_MS);
     }
 
