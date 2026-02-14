@@ -20,8 +20,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+    function normalizeDisplayDate(dateValue) {
+        var raw = (dateValue || '').trim();
+        if (!raw) return '';
+
+        var mdy = raw.match(/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-(\d{4})$/);
+        if (mdy) {
+            return mdy[2] + '-' + mdy[1] + '-' + mdy[3];
+        }
+
+        var ymd = raw.match(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+        if (ymd) {
+            return ymd[3] + '-' + ymd[2] + '-' + ymd[1];
+        }
+
+        var dmy = raw.match(/^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-(\d{4})$/);
+        if (dmy) {
+            return raw;
+        }
+
+        return raw;
+    }
+
     function formatDateTimeLine(dateValue, timeValue) {
-        var date = (dateValue || '').trim();
+        var date = normalizeDisplayDate(dateValue);
         var time = (timeValue || '').trim();
 
         if (!date) return '';
