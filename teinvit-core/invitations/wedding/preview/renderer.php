@@ -366,9 +366,34 @@ class TeInvit_Wedding_Preview_Renderer {
         return trim( $id );
     }
 
-    private static function format_date_time_line( $date, $time ) {
+    private static function normalize_display_date( $date ) {
 
         $date = self::value_to_string( $date );
+        if ( $date === '' ) {
+            return '';
+        }
+
+        // WAPF standard (mm-dd-yyyy) -> dd-mm-yyyy
+        if ( preg_match( '/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-(\d{4})$/', $date, $m ) ) {
+            return $m[2] . '-' . $m[1] . '-' . $m[3];
+        }
+
+        // Defensive: yyyy-mm-dd -> dd-mm-yyyy
+        if ( preg_match( '/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $date, $m ) ) {
+            return $m[3] . '-' . $m[2] . '-' . $m[1];
+        }
+
+        // Already dd-mm-yyyy -> keep as-is
+        if ( preg_match( '/^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-(\d{4})$/', $date ) ) {
+            return $date;
+        }
+
+        return $date;
+    }
+
+    private static function format_date_time_line( $date, $time ) {
+
+        $date = self::normalize_display_date( $date );
         $time = self::value_to_string( $time );
 
         if ( $date === '' ) {
