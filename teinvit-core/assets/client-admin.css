@@ -1,1 +1,97 @@
-.teinvit-client-admin{max-width:1200px;margin:20px auto;padding:16px}.teinvit-client-admin .section{border:1px solid #ddd;padding:12px;margin:12px 0}.teinvit-client-admin .edit-section{display:grid;grid-template-columns:1fr 1fr;gap:16px}.teinvit-client-admin .teinvit-wapf-field{margin-bottom:10px}.teinvit-client-admin .teinvit-wapf-label{display:block;font-weight:600;margin-bottom:4px}.teinvit-client-admin input[type=text],.teinvit-client-admin input[type=number],.teinvit-client-admin textarea,.teinvit-client-admin select{width:100%}#teinvit-gifts-list .gift-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}.teinvit-guest-rsvp-card{max-width:980px;margin:20px auto;padding:16px;border:1px solid #ddd}.teinvit-guest-rsvp-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-guest-rsvp-form label{display:flex;flex-direction:column;gap:6px}.teinvit-guest-gifts{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:980px;margin:8px auto}
+.teinvit-client-admin {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 16px;
+}
+
+.teinvit-client-admin .section {
+    border: 1px solid #ddd;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+/* Admin: 2 coloane (fallback fără fr) */
+.teinvit-client-admin .edit-section {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 16px;
+}
+
+/* Dacă vrei să fie mai robust pe ecrane mici */
+@media (max-width: 900px) {
+    .teinvit-client-admin .edit-section {
+        grid-template-columns: 100%;
+    }
+}
+
+.teinvit-client-admin .teinvit-wapf-field {
+    margin-bottom: 10px;
+}
+
+.teinvit-client-admin .teinvit-wapf-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.teinvit-client-admin input[type="text"],
+.teinvit-client-admin input[type="number"],
+.teinvit-client-admin textarea,
+.teinvit-client-admin select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Gifts admin: 3 coloane */
+#teinvit-gifts-list .gift-row {
+    display: grid;
+    grid-template-columns: 33.3333% 33.3333% 33.3333%;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+    #teinvit-gifts-list .gift-row {
+        grid-template-columns: 100%;
+    }
+}
+
+.teinvit-guest-rsvp-card {
+    max-width: 980px;
+    margin: 20px auto;
+    padding: 16px;
+    border: 1px solid #ddd;
+}
+
+.teinvit-guest-rsvp-form {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .teinvit-guest-rsvp-form {
+        grid-template-columns: 100%;
+    }
+}
+
+.teinvit-guest-rsvp-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Gifts guest: 2 coloane */
+.teinvit-guest-gifts {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 8px;
+    max-width: 980px;
+    margin: 8px auto;
+}
+
+@media (max-width: 900px) {
+    .teinvit-guest-gifts {
+        grid-template-columns: 100%;
+    }
+}
