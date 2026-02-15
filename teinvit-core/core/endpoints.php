@@ -49,11 +49,14 @@ add_action( 'template_redirect', function () {
 
     status_header( 200 );
     nocache_headers();
-    echo '<!DOCTYPE html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Invitație</title></head><body>';
+    echo '<!DOCTYPE html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Invitație</title>';
+    wp_head();
+    echo '</head><body>';
     echo '<div style="display:flex;justify-content:center;flex-direction:column;">';
     echo '<div>' . $html . '</div>';
     do_action( 'teinvit_guest_page_preview', $order );
     echo '</div>';
+    wp_footer();
     echo '</body></html>';
     exit;
 } );

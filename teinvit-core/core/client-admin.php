@@ -213,6 +213,245 @@ function teinvit_get_booked_gift_ids( $token ) {
     ) );
 }
 
+
+function teinvit_get_order_primary_product_id( WC_Order $order ) {
+    $items = $order->get_items();
+    if ( empty( $items ) ) {
+        return 0;
+    }
+
+    $item = reset( $items );
+    $product = $item ? $item->get_product() : null;
+    return $product ? (int) $product->get_id() : 0;
+}
+
+function teinvit_normalize_wapf_field_id( $raw ) {
+    $id = is_scalar( $raw ) ? (string) $raw : '';
+    $id = trim( $id );
+
+    if ( strpos( $id, 'field_' ) === 0 ) {
+        $id = substr( $id, 6 );
+    }
+    if ( strpos( $id, 'wapf[field_' ) === 0 && substr( $id, -1 ) === ']' ) {
+        $id = substr( $id, 11, -1 );
+    }
+
+    return trim( $id );
+}
+
+function teinvit_extract_wapf_definitions_from_product( $product_id ) {
+    $product_id = (int) $product_id;
+    if ( $product_id <= 0 ) {
+        return [];
+    }
+
+    $known = array_fill_keys( TeInvit_Wedding_Preview_Renderer::get_wapf_field_ids(), true );
+    $raw_meta = get_post_meta( $product_id );
+    $definitions = [];
+
+    $parse_options = function( $field ) {
+        $out = [];
+        $nodes = [];
+        if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
+            $nodes = $field['options'];
+        } elseif ( isset( $field['choices'] ) && is_array( $field['choices'] ) ) {
+            $nodes = $field['choices'];
+        }
+
+        foreach ( $nodes as $opt ) {
+            if ( is_string( $opt ) ) {
+                $out[] = [ 'value' => $opt, 'label' => $opt ];
+                continue;
+            }
+            if ( ! is_array( $opt ) ) {
+                continue;
+            }
+            $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? '' );
+            $value = (string) ( $opt['value'] ?? $label );
+            if ( $label === '' && $value === '' ) {
+                continue;
+            }
+            $out[] = [ 'value' => $value, 'label' => $label !== '' ? $label : $value ];
+        }
+
+        return $out;
+    };
+
+    $parse_conditions = function( $field ) {
+        $candidates = [];
+        if ( isset( $field['conditions'] ) ) {
+            $candidates[] = $field['conditions'];
+        }
+        if ( isset( $field['conditionals'] ) ) {
+            $candidates[] = $field['conditionals'];
+        }
+        if ( isset( $field['conditional_logic'] ) ) {
+            $candidates[] = $field['conditional_logic'];
+        }
+
+        $rules = [];
+        $walk = function( $node ) use ( &$walk, &$rules ) {
+            if ( is_array( $node ) ) {
+                $field = $node['field'] ?? $node['field_id'] ?? $node['id'] ?? null;
+                $value = $node['value'] ?? $node['compare'] ?? null;
+                if ( $field !== null ) {
+                    $fid = teinvit_normalize_wapf_field_id( $field );
+                    if ( $fid !== '' ) {
+                        $rules[] = [
+                            'field' => $fid,
+                            'operator' => (string) ( $node['operator'] ?? $node['comparison'] ?? '==' ),
+                            'value' => is_scalar( $value ) ? (string) $value : '',
+                        ];
+                    }
+                }
+                foreach ( $node as $v ) {
+                    if ( is_array( $v ) || is_object( $v ) ) {
+                        $walk( $v );
+                    }
+                }
+            } elseif ( is_object( $node ) ) {
+                $walk( json_decode( wp_json_encode( $node ), true ) );
+            }
+        };
+
+        foreach ( $candidates as $candidate ) {
+            $walk( $candidate );
+        }
+
+        return $rules;
+    };
+
+    $consume = function( $node ) use ( &$consume, &$definitions, $known, $parse_options, $parse_conditions ) {
+        if ( is_array( $node ) ) {
+            if ( isset( $node['id'] ) && isset( $node['type'] ) ) {
+                $id = teinvit_normalize_wapf_field_id( $node['id'] );
+                if ( $id !== '' && isset( $known[ $id ] ) ) {
+                    if ( ! isset( $definitions[ $id ] ) ) {
+                        $definitions[ $id ] = [
+                            'id' => $id,
+                            'label' => (string) ( $node['label'] ?? $node['title'] ?? ('Field ' . $id) ),
+                            'type' => (string) $node['type'],
+                            'options' => $parse_options( $node ),
+                            'conditions' => $parse_conditions( $node ),
+                            'order' => isset( $node['order'] ) ? (int) $node['order'] : 0,
+                        ];
+                    }
+                }
+            }
+
+            foreach ( $node as $value ) {
+                if ( is_array( $value ) || is_object( $value ) ) {
+                    $consume( $value );
+                }
+            }
+            return;
+        }
+
+        if ( is_object( $node ) ) {
+            $consume( json_decode( wp_json_encode( $node ), true ) );
+        }
+    };
+
+    foreach ( $raw_meta as $meta_key => $meta_values ) {
+        if ( strpos( (string) $meta_key, 'wapf' ) === false && strpos( (string) $meta_key, '_wapf' ) === false ) {
+            continue;
+        }
+
+        foreach ( (array) $meta_values as $meta_value ) {
+            $decoded = maybe_unserialize( $meta_value );
+            if ( is_string( $decoded ) ) {
+                $json = json_decode( $decoded, true );
+                if ( json_last_error() === JSON_ERROR_NONE ) {
+                    $decoded = $json;
+                }
+            }
+            if ( is_array( $decoded ) || is_object( $decoded ) ) {
+                $consume( $decoded );
+            }
+        }
+    }
+
+    if ( empty( $definitions ) ) {
+        foreach ( TeInvit_Wedding_Preview_Renderer::get_wapf_field_ids() as $id ) {
+            $definitions[ $id ] = [
+                'id' => $id,
+                'label' => 'Field ' . $id,
+                'type' => 'text',
+                'options' => [],
+                'conditions' => [],
+                'order' => 0,
+            ];
+        }
+    }
+
+    uasort( $definitions, function( $a, $b ) {
+        if ( (int) $a['order'] === (int) $b['order'] ) {
+            return strcmp( $a['id'], $b['id'] );
+        }
+        return (int) $a['order'] <=> (int) $b['order'];
+    } );
+
+    return array_values( $definitions );
+}
+
+function teinvit_render_wapf_field_admin( array $def, array $values ) {
+    $id = $def['id'];
+    $name = 'wapf[field_' . $id . ']';
+    $type = strtolower( (string) ( $def['type'] ?? 'text' ) );
+    $label = (string) ( $def['label'] ?? ('Field ' . $id ) );
+    $value = isset( $values[ $id ] ) ? (string) $values[ $id ] : '';
+    $options = is_array( $def['options'] ?? null ) ? $def['options'] : [];
+    $conditions = is_array( $def['conditions'] ?? null ) ? $def['conditions'] : [];
+
+    $attrs = 'data-wapf-field-id="' . esc_attr( $id ) . '"';
+    if ( ! empty( $conditions ) ) {
+        $attrs .= ' data-wapf-conditions="' . esc_attr( wp_json_encode( $conditions ) ) . '"';
+    }
+
+    ob_start();
+    echo '<div class="teinvit-wapf-field" ' . $attrs . '>';
+    echo '<label class="teinvit-wapf-label">' . esc_html( $label ) . '</label>';
+
+    if ( in_array( $type, [ 'textarea' ], true ) ) {
+        echo '<textarea name="' . esc_attr( $name ) . '">' . esc_textarea( $value ) . '</textarea>';
+    } elseif ( in_array( $type, [ 'select', 'dropdown' ], true ) ) {
+        echo '<select name="' . esc_attr( $name ) . '">';
+        foreach ( $options as $opt ) {
+            $opt_value = (string) ( $opt['value'] ?? '' );
+            $opt_label = (string) ( $opt['label'] ?? $opt_value );
+            echo '<option value="' . esc_attr( $opt_value ) . '"' . selected( $value, $opt_value, false ) . '>' . esc_html( $opt_label ) . '</option>';
+        }
+        echo '</select>';
+    } elseif ( in_array( $type, [ 'radio' ], true ) ) {
+        foreach ( $options as $idx => $opt ) {
+            $opt_value = (string) ( $opt['value'] ?? '' );
+            $opt_label = (string) ( $opt['label'] ?? $opt_value );
+            $rid = 'teinvit-radio-' . esc_attr( $id ) . '-' . $idx;
+            echo '<label for="' . $rid . '"><input id="' . $rid . '" type="radio" name="' . esc_attr( $name ) . '" value="' . esc_attr( $opt_value ) . '"' . checked( $value, $opt_value, false ) . '> ' . esc_html( $opt_label ) . '</label>';
+        }
+    } elseif ( in_array( $type, [ 'checkbox' ], true ) ) {
+        $checkbox_name = $name . '[]';
+        if ( ! empty( $options ) ) {
+            foreach ( $options as $idx => $opt ) {
+                $opt_value = (string) ( $opt['value'] ?? '' );
+                $opt_label = (string) ( $opt['label'] ?? $opt_value );
+                $cid = 'teinvit-check-' . esc_attr( $id ) . '-' . $idx;
+                $checked = ( $value !== '' && ( $value === $opt_value || $value === $opt_label ) );
+                echo '<label for="' . $cid . '"><input id="' . $cid . '" type="checkbox" name="' . esc_attr( $checkbox_name ) . '" value="' . esc_attr( $opt_value !== '' ? $opt_value : $opt_label ) . '"' . checked( $checked, true, false ) . '> ' . esc_html( $opt_label ) . '</label>';
+            }
+        } else {
+            $cid = 'teinvit-check-' . esc_attr( $id );
+            $checked = $value !== '';
+            echo '<label for="' . $cid . '"><input id="' . $cid . '" type="checkbox" name="' . esc_attr( $checkbox_name ) . '" value="1"' . checked( $checked, true, false ) . '> ' . esc_html( $label ) . '</label>';
+        }
+    } else {
+        echo '<input type="text" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
+    }
+
+    echo '</div>';
+    return ob_get_clean();
+}
+
 function teinvit_build_initial_snapshot( $order_id, $token ) {
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
@@ -319,6 +558,15 @@ function teinvit_client_admin_shortcode( $atts ) {
     $wapf = isset( $payload['wapf_fields'] ) && is_array( $payload['wapf_fields'] ) ? $payload['wapf_fields'] : [];
     $remaining = teinvit_get_remaining_edits( $settings );
 
+    $order = wc_get_order( (int) $settings['order_id'] );
+    $order_product_id = $order ? teinvit_get_order_primary_product_id( $order ) : 0;
+    $wapf_definitions = teinvit_extract_wapf_definitions_from_product( $order_product_id );
+
+    $title_names = trim( implode( ' & ', array_filter( [ $wapf['6963a95e66425'] ?? '', $wapf['6963aa37412e4'] ?? '' ] ) ) );
+    if ( $title_names === '' && ! empty( $payload['invitation']['names'] ) ) {
+        $title_names = (string) $payload['invitation']['names'];
+    }
+
     wp_enqueue_style( 'teinvit-client-admin', TEINVIT_CORE_URL . 'assets/client-admin.css', [], TEINVIT_CORE_VERSION );
     wp_enqueue_script( 'teinvit-client-admin', TEINVIT_CORE_URL . 'assets/client-admin.js', [ 'jquery' ], TEINVIT_CORE_VERSION, true );
     wp_localize_script( 'teinvit-client-admin', 'TEINVIT_CLIENT_ADMIN', [
@@ -334,24 +582,29 @@ function teinvit_client_admin_shortcode( $atts ) {
         'buyEditsUrl' => esc_url_raw( teinvit_get_purchase_url( 'edits', $token ) ),
         'buyGiftsUrl' => esc_url_raw( teinvit_get_purchase_url( 'gifts', $token ) ),
         'inviteUrl' => home_url( '/i/' . $token ),
+        'wapfDefinitions' => $wapf_definitions,
+        'wapfValues' => $wapf,
     ] );
 
-    $order = wc_get_order( (int) $settings['order_id'] );
     $preview = '';
     if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
         $preview = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+    } elseif ( $order ) {
+        $preview = TeInvit_Wedding_Preview_Renderer::render_from_order( $order );
     }
 
     ob_start();
     ?>
     <div class="teinvit-client-admin" data-token="<?php echo esc_attr( $token ); ?>">
-        <h1>Admin Client</h1>
+        <h1>Administrare Invitație - <?php echo esc_html( $title_names ); ?></h1>
         <div class="section edit-section">
             <div class="left"><?php echo $preview; ?></div>
             <div class="right">
-                <?php foreach ( TeInvit_Wedding_Preview_Renderer::get_wapf_field_ids() as $fid ) : ?>
-                    <label>Field <?php echo esc_html( $fid ); ?><input type="text" name="wapf[field_<?php echo esc_attr( $fid ); ?>]" value="<?php echo esc_attr( $wapf[ $fid ] ?? '' ); ?>"></label>
+                <div id="teinvit-wapf-fields">
+                <?php foreach ( $wapf_definitions as $def ) : ?>
+                    <?php echo teinvit_render_wapf_field_admin( $def, $wapf ); ?>
                 <?php endforeach; ?>
+                </div>
                 <p class="edits-counter" id="teinvit-edits-counter"></p>
                 <button id="teinvit-save-version" class="button button-primary">Salvează modificările</button>
                 <a id="teinvit-buy-edits" class="button" href="<?php echo esc_url( teinvit_get_purchase_url( 'edits', $token ) ); ?>">Cumpără modificări suplimentare</a>
@@ -366,9 +619,10 @@ function teinvit_client_admin_shortcode( $atts ) {
         </div>
 
         <div class="section">
-            <h3>Confirmări invitați (RSVP)</h3>
+            <h3>Informații invitați</h3>
+            <p>Bifați informațiile care doriți să apară în pagina invitaților:</p>
             <div id="teinvit-rsvp-flags"></div>
-            <button id="teinvit-save-flags" class="button">Salvează RSVP</button>
+            <button id="teinvit-save-flags" class="button">Salveaza Informatii</button>
         </div>
 
         <div class="section" id="teinvit-gifts-section">

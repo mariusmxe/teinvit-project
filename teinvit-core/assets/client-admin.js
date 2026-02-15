@@ -1,5 +1,6 @@
 (function () {
 function j(x) { return document.querySelector(x); }
+function qsa(x, root) { return Array.prototype.slice.call((root || document).querySelectorAll(x)); }
 function el(tag, attrs) {
     var n = document.createElement(tag);
     if (attrs) {
@@ -28,9 +29,64 @@ async function api(url, method, data, nonce) {
     return payload;
 }
 
+function normalizeBool(v) {
+    if (typeof v === 'boolean') return v;
+    if (v === null || v === undefined) return false;
+    var s = String(v).trim().toLowerCase();
+    return s === '1' || s === 'true' || s === 'yes' || s === 'da' || s === 'on';
+}
+
 if (window.TEINVIT_CLIENT_ADMIN) {
     const C = window.TEINVIT_CLIENT_ADMIN;
     C.gifts = (C.gifts || []).map(function (g) { return Object.assign({}, g); });
+
+    function getWapfFieldValue(fieldId) {
+        var textInput = document.querySelector('[name="wapf[field_' + fieldId + ']"]');
+        if (textInput) {
+            if (textInput.type === 'checkbox') {
+                return textInput.checked ? (textInput.value || '1') : '';
+            }
+            return textInput.value || '';
+        }
+
+        var checks = qsa('[name="wapf[field_' + fieldId + '][]"]:checked');
+        if (checks.length) {
+            return checks.map(function (c) { return c.value || '1'; }).join(',');
+        }
+        return '';
+    }
+
+    function evaluateRule(rule) {
+        var currentRaw = getWapfFieldValue(rule.field);
+        var currentBool = normalizeBool(currentRaw);
+        var expected = (rule.value || '').toString();
+        var expectedBool = normalizeBool(expected);
+        var op = (rule.operator || '==').toString();
+
+        if (op === '!=' || op === 'not' || op === 'is_not') {
+            if (expected === '') return !currentBool;
+            return currentRaw !== expected;
+        }
+
+        if (expected === '') return currentBool;
+        if (expectedBool) return currentBool;
+        return currentRaw === expected;
+    }
+
+    function applyWapfConditions() {
+        qsa('.teinvit-wapf-field[data-wapf-conditions]').forEach(function (node) {
+            var raw = node.getAttribute('data-wapf-conditions') || '[]';
+            var rules = [];
+            try { rules = JSON.parse(raw); } catch (e) { rules = []; }
+            if (!Array.isArray(rules) || !rules.length) {
+                node.style.display = '';
+                return;
+            }
+
+            var visible = rules.every(evaluateRule);
+            node.style.display = visible ? '' : 'none';
+        });
+    }
 
     const versions = (C.versions || []).map(v => parseInt(v.version, 10));
     const sel = j('#teinvit-active-version');
@@ -53,6 +109,9 @@ if (window.TEINVIT_CLIENT_ADMIN) {
     }
 
     refreshCounter();
+    applyWapfConditions();
+    document.addEventListener('input', applyWapfConditions);
+    document.addEventListener('change', applyWapfConditions);
 
     j('#teinvit-set-active').addEventListener('click', async function () {
         await api(C.rest + '/client-admin/' + C.token + '/set-active-version', 'POST', { version: parseInt(sel.value, 10) }, C.nonce);
@@ -61,9 +120,17 @@ if (window.TEINVIT_CLIENT_ADMIN) {
 
     j('#teinvit-save-version').addEventListener('click', async function () {
         const fields = {};
-        document.querySelectorAll('[name^="wapf[field_"]').forEach(function (i) {
-            fields[i.name.replace('wapf[field_', '').replace(']', '')] = i.value;
+        qsa('[name^="wapf[field_"]').forEach(function (i) {
+            var k = i.name.replace('wapf[field_', '').replace('][]', '').replace(']', '');
+            if (i.type === 'checkbox') {
+                if (i.checked) fields[k] = i.value || '1';
+            } else if (i.type === 'radio') {
+                if (i.checked) fields[k] = i.value || '';
+            } else {
+                fields[k] = i.value;
+            }
         });
+
         const inv = window.TEINVIT_INVITATION_DATA || {};
         const res = await api(C.rest + '/client-admin/' + C.token + '/save-version', 'POST', { invitation: inv, wapf_fields: fields }, C.nonce);
         C.remaining = Math.max(0, (parseInt(C.remaining, 10) || 0) - 1);
@@ -111,11 +178,6 @@ if (window.TEINVIT_CLIENT_ADMIN) {
         const u = el('input', { type: 'text', 'data-k': 'url', placeholder: 'Link produs', value: g.url || '' });
         const d = el('input', { type: 'text', 'data-k': 'delivery_address', placeholder: 'Adresă livrare', value: g.delivery_address || '' });
 
-        if (g.id && (C.bookedGiftIds || []).map(Number).includes(Number(g.id))) {
-            row.dataset.booked = '1';
-            row.title = 'Cadou rezervat';
-        }
-
         row.appendChild(t);
         row.appendChild(u);
         row.appendChild(d);
@@ -146,7 +208,7 @@ if (window.TEINVIT_CLIENT_ADMIN) {
 
     j('#teinvit-save-gifts').addEventListener('click', async function () {
         const gifts = [];
-        document.querySelectorAll('#teinvit-gifts-list .gift-row').forEach(function (r, idx) {
+        qsa('#teinvit-gifts-list .gift-row').forEach(function (r, idx) {
             gifts.push({
                 id: r.dataset.id ? parseInt(r.dataset.id, 10) : null,
                 title: r.querySelector('[data-k="title"]').value,
@@ -190,30 +252,77 @@ if (window.TEINVIT_GUEST) {
     const root = j('#teinvit-guest-rsvp');
     if (!root) return;
 
+    const card = el('div', { class: 'teinvit-guest-rsvp-card' });
+    const title = el('h3', { text: 'Confirmare prezență' });
+    card.appendChild(title);
+
     const f = el('form', { class: 'teinvit-guest-rsvp-form' });
-    ['guest_last_name', 'guest_first_name', 'phone', 'attendees_count'].forEach(function (k) {
-        const i = el('input', { name: k, placeholder: k, type: k === 'attendees_count' ? 'number' : 'text' });
-        if (k === 'attendees_count') i.value = '1';
-        f.appendChild(i);
-    });
+
+    function addField(label, name, type) {
+        const wrap = el('label');
+        wrap.appendChild(document.createTextNode(label));
+        const i = el('input', { name: name, type: type || 'text' });
+        wrap.appendChild(i);
+        f.appendChild(wrap);
+        return i;
+    }
+
+    const ln = addField('Nume invitat', 'guest_last_name', 'text');
+    const fn = addField('Prenume invitat', 'guest_first_name', 'text');
+    const ph = addField('Telefon invitat', 'phone', 'text');
+    const at = addField('Câte persoane confirmă', 'attendees_count', 'number');
+    at.value = '1';
+
+    function addYesNo(label, key) {
+        const wrap = el('label');
+        wrap.appendChild(document.createTextNode(label));
+        const s = el('select', { name: key });
+        s.appendChild(el('option', { value: '', text: '-' }));
+        s.appendChild(el('option', { value: 'da', text: 'DA' }));
+        s.appendChild(el('option', { value: 'nu', text: 'NU' }));
+        wrap.appendChild(s);
+        f.appendChild(wrap);
+        return s;
+    }
 
     const fields = {};
-    ['civil', 'religious', 'party', 'kids', 'lodging', 'vegetarian', 'allergies'].forEach(function (k) {
-        if (!G.flags[k]) return;
-        const c = el('label');
-        const i = el('input', { type: 'checkbox', name: k });
-        c.appendChild(i);
-        c.appendChild(document.createTextNode(' ' + k));
-        f.appendChild(c);
-        fields[k] = i;
-    });
+    if (G.flags.civil) fields.civil = addYesNo('Prezență civilă', 'civil');
+    if (G.flags.religious) fields.religious = addYesNo('Prezență religioasă', 'religious');
+    if (G.flags.party) fields.party = addYesNo('Prezență petrecere', 'party');
+
+    if (G.flags.kids) {
+        fields.kids = addYesNo('Copii', 'kids');
+        const kidsCount = addField('Nr copii', 'kids_count', 'number');
+        kidsCount.style.display = 'none';
+        fields.kids_count = kidsCount;
+        fields.kids.addEventListener('change', function () { kidsCount.style.display = fields.kids.value === 'da' ? '' : 'none'; });
+    }
+
+    if (G.flags.lodging) {
+        fields.lodging = addYesNo('Cazare', 'lodging');
+        const lodgeCount = addField('Câte persoane', 'lodging_count', 'number');
+        lodgeCount.style.display = 'none';
+        fields.lodging_count = lodgeCount;
+        fields.lodging.addEventListener('change', function () { lodgeCount.style.display = fields.lodging.value === 'da' ? '' : 'none'; });
+    }
+
+    if (G.flags.vegetarian) fields.vegetarian = addYesNo('Vegetarian', 'vegetarian');
+
+    if (G.flags.allergies) {
+        fields.allergies = addYesNo('Alergeni', 'allergies');
+        const allergiesText = addField('Completează alergiile', 'allergies_text', 'text');
+        allergiesText.style.display = 'none';
+        fields.allergies_text = allergiesText;
+        fields.allergies.addEventListener('change', function () { allergiesText.style.display = fields.allergies.value === 'da' ? '' : 'none'; });
+    }
 
     const submit = el('button', { type: 'submit', text: 'Trimite RSVP' });
     f.appendChild(submit);
-    root.appendChild(f);
+    card.appendChild(f);
 
     let giftChecks = [];
     if (G.flags.gifts_enabled) {
+        const giftsTitle = el('h3', { text: 'Lista cadouri' });
         const gbox = el('div', { class: 'teinvit-guest-gifts' });
         (G.gifts || []).forEach(function (g) {
             const c = el('label');
@@ -224,21 +333,34 @@ if (window.TEINVIT_GUEST) {
             gbox.appendChild(c);
             giftChecks.push(i);
         });
-        root.appendChild(gbox);
+        card.appendChild(giftsTitle);
+        card.appendChild(gbox);
     }
+
+    root.appendChild(card);
 
     f.addEventListener('submit', async function (e) {
         e.preventDefault();
+
+        var phone = (ph.value || '').replace(/\D+/g, '');
+        if (!/^07\d{8}$/.test(phone)) {
+            alert('Telefon invalid. Format corect: 0721330411');
+            return;
+        }
+
+        const payloadFields = {};
+        Object.keys(fields).forEach(function (k) {
+            payloadFields[k] = fields[k].value;
+        });
+
         const p = {
-            guest_last_name: f.querySelector('[name=guest_last_name]').value,
-            guest_first_name: f.querySelector('[name=guest_first_name]').value,
-            phone: f.querySelector('[name=phone]').value,
-            attendees_count: parseInt(f.querySelector('[name=attendees_count]').value, 10) || 1,
-            fields: {},
+            guest_last_name: ln.value,
+            guest_first_name: fn.value,
+            phone: phone,
+            attendees_count: parseInt(at.value, 10) || 1,
+            fields: payloadFields,
             gift_ids: giftChecks.filter(i => i.checked && !i.disabled).map(i => parseInt(i.value, 10))
         };
-
-        Object.keys(fields).forEach(function (k) { p.fields[k] = fields[k].checked; });
 
         try {
             await api(G.rest + '/invite/' + G.token + '/rsvp', 'POST', p, '');

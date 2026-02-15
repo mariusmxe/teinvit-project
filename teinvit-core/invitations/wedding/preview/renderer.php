@@ -123,9 +123,14 @@ class TeInvit_Wedding_Preview_Renderer {
         ];
 
         $invitation = wp_parse_args( $invitation, $defaults );
+
+        $order = null;
+        $product = null;
         if ( $order_or_product instanceof WC_Order ) {
+            $order = $order_or_product;
             $GLOBALS['order'] = $order_or_product;
         } elseif ( $order_or_product instanceof WC_Product ) {
+            $product = $order_or_product;
             $GLOBALS['product'] = $order_or_product;
         }
         $GLOBALS['invitation'] = $invitation;
