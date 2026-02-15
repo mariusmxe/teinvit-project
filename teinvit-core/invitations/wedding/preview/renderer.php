@@ -424,11 +424,13 @@ class TeInvit_Wedding_Preview_Renderer {
         echo '<link rel="preconnect" href="https://fonts.googleapis.com">';
         echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
         echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-            . 'family=Playfair+Display:ital,wght@0,400;0,600;1,400&'
-            . 'family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&'
-            . 'family=Great+Vibes&'
-            . 'family=Inter:wght@300;400;500;600&'
-            . 'family=Libre+Baskerville:ital,wght@0,400;1,400&display=swap">';
+            . 'family=Playfair+Display:wght@600&'
+            . 'family=Source+Serif+4:wght@400&'
+            . 'family=Raleway:wght@600&'
+            . 'family=Parisienne&'
+            . 'family=Crimson+Text:wght@400;600&'
+            . 'family=DM+Sans:wght@600&'
+            . 'family=Inter:wght@400;600&display=swap">';
 
         /* ===============================
            CONTEXT PDF

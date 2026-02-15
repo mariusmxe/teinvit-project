@@ -1,155 +1,300 @@
 /* =====================================================
    TEINVIT – THEMES (SURSĂ UNICĂ DE ADEVĂR)
    Folosit de PREVIEW și PDF
-   ⚠️ FĂRĂ layout, FĂRĂ spacing, FĂRĂ responsive
+   ⚠️ FĂRĂ layout shell (preview.css/pdf.css)
 ===================================================== */
 
-/* =========================
-   EDITORIAL
-========================= */
-.teinvit-canvas.theme-editorial {
-    font-family: 'Playfair Display', serif;
-    color: #5c5c5c;
-}
-
-/* =========================
-   ROMANTIC
-========================= */
-.teinvit-canvas.theme-romantic {
-    font-family: 'Cormorant Garamond', serif;
-    color: #5f5f5f;
-}
-
-.teinvit-canvas.theme-romantic .inv-names {
-    font-family: 'Great Vibes', cursive;
-    color: #c06a7a;
-}
-
-/* =========================
-   MODERN
-========================= */
-.teinvit-canvas.theme-modern {
-    font-family: 'Inter', sans-serif;
-    color: #1a1a1a;
-}
-
-/* =========================
-   CLASSIC
-========================= */
-.teinvit-canvas.theme-classic {
-    font-family: 'Cormorant Garamond', serif;
-    color: #5a5044;
-}
-
 /* =====================================================
-   TIPOGRAFIE – SURSA UNICĂ DE ADEVĂR
+   BASE TYPOGRAPHY CONTRACT (theme-scoped)
 ===================================================== */
 .teinvit-canvas {
     font-size: 1em;
     line-height: 1.35;
 }
 
-.inv-names {
-    margin-bottom: 0.6em;
-    font-size: 1.75em;
+.teinvit-canvas .inv-names {
+    margin-bottom: 0.55em;
     line-height: 1.2;
 }
 
-.section-title {
-    margin-top: 0.9em;
-    margin-bottom: 0.4em;
-    font-size: 0.85em;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-}
-
-.inv-message {
-    margin-top: 0.8em;
-    font-size: 1em;
-    line-height: 1.55;
-}
-
-.inv-parents-wrapper,
-.inv-nasi {
-    margin-top: 0.8em;
-}
-
-.inv-parents-grid {
-    gap: 1.5em;
-    margin-top: 0.5em;
-}
-
-.inv-parent-mireasa,
-.inv-parent-mire,
-.nasi-row {
-    font-size: 1em;
-    line-height: 1.4;
-    white-space: nowrap;
-}
-
-.events-row {
-    gap: 1.5em;
-    margin-top: 1em;
-}
-
-.inv-event {
-    font-size: 0.95em;
-    line-height: 1.45;
-}
-
-.inv-event strong {
-    font-weight: 600;
-}
-
-/* Romantic – nume mai mare, cursiv */
-.teinvit-canvas.theme-romantic .inv-names {
-    font-size: 2.3em;
-    line-height: 1.15;
-}
-
-/* Modern – spațiere diferită mesaj */
-.teinvit-canvas.theme-modern .inv-message {
-    margin-bottom: 1.4em;
-}
-
-/* ==================================================
-   TEINVIT – CONTRACT TIPOGRAFIC GLOBAL (FINAL)
-================================================== */
-.teinvit-canvas .inv-names {
-    font-size: 1.75em;
-    line-height: 1.25;
-    margin-bottom: 1.2em;
-}
-
-.teinvit-canvas .section-title {
-    font-size: 0.6em;
-    letter-spacing: 0.12em;
-    margin-bottom: 0.6em;
-}
-
-.teinvit-canvas .inv-parents,
-.teinvit-canvas .inv-nasi {
-    font-size: 0.78em;
-    line-height: 1.4;
-    margin-bottom: 1em;
+.teinvit-canvas .inv-divider {
+    position: relative;
+    height: 0;
+    margin: 0.28em auto 0.34em;
+    pointer-events: none;
 }
 
 .teinvit-canvas .inv-message {
-    font-size: 0.88em;
+    margin: 0.55em 0 0;
     line-height: 1.5;
-    margin: 1.4em 0;
 }
 
-.teinvit-canvas .inv-events {
-    font-size: 0.8em;
-    line-height: 1.45;
-    margin-top: 1.2em;
+.teinvit-canvas .inv-parents-wrapper,
+.teinvit-canvas .inv-nasi {
+    margin-top: 0.6em;
+}
+
+.teinvit-canvas .section-title {
+    margin-top: 0;
+    margin-bottom: 0.45em;
+    text-transform: uppercase;
+}
+
+.teinvit-canvas .inv-parents-grid {
+    gap: 1.2em;
+    margin-top: 0;
+}
+
+.teinvit-canvas .inv-parent-mireasa,
+.teinvit-canvas .inv-parent-mire,
+.teinvit-canvas .nasi-row,
+.teinvit-canvas .inv-event > div:first-of-type {
+    line-height: 1.4;
+}
+
+.teinvit-canvas .events-row {
+    gap: 1.2em;
+    margin-top: 0.8em;
+}
+
+.teinvit-canvas .inv-event {
+    line-height: 1.4;
 }
 
 .teinvit-canvas .inv-event strong {
-    font-size: 1em;
+    display: block;
+    margin-bottom: 0.2em;
+    text-transform: uppercase;
+}
+
+.teinvit-canvas .inv-event > div:nth-of-type(2) {
+    margin-top: 0.18em;
 }
 
 .teinvit-canvas .inv-event a {
-    font-size: 0.9em;
+    display: inline-block;
+    margin-top: 0.2em;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.12em;
+}
+
+/* =====================================================
+   THEME EL-1 — Editorial Luxury
+   class: theme-editorial-luxury
+===================================================== */
+.teinvit-canvas.theme-editorial-luxury {
+    color: #1A1A1A;
+    font-family: 'Source Serif 4', serif;
+}
+
+.teinvit-canvas.theme-editorial-luxury .inv-names {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    color: #1A1A1A;
+    font-size: 2em;
+}
+
+.teinvit-canvas.theme-editorial-luxury .inv-message {
+    font-size: 1.08em;
+}
+
+.teinvit-canvas.theme-editorial-luxury .section-title,
+.teinvit-canvas.theme-editorial-luxury .inv-event strong {
+    font-family: 'Raleway', sans-serif;
+    font-size: 0.92em;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    color: #6F6F6F;
+}
+
+.teinvit-canvas.theme-editorial-luxury .inv-parent-mireasa,
+.teinvit-canvas.theme-editorial-luxury .inv-parent-mire,
+.teinvit-canvas.theme-editorial-luxury .nasi-row,
+.teinvit-canvas.theme-editorial-luxury .inv-event > div:first-of-type {
+    font-size: 0.92em;
+}
+
+.teinvit-canvas.theme-editorial-luxury .inv-event > div:nth-of-type(2) {
+    font-size: 0.86em;
+}
+
+.teinvit-canvas.theme-editorial-luxury .inv-event a {
+    font-size: 0.86em;
+    color: #243B53;
+}
+
+.teinvit-canvas.theme-editorial-luxury .inv-divider {
+    width: 62%;
+    border-top: 0.06em solid rgba(191, 167, 111, 0.40);
+}
+
+/* =====================================================
+   THEME RF-3 — Romantic Floral
+   class: theme-romantic-floral
+===================================================== */
+.teinvit-canvas.theme-romantic-floral {
+    color: #332C2B;
+    font-family: 'Crimson Text', serif;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-names {
+    font-family: 'Parisienne', cursive;
+    font-weight: 400;
+    color: #C06F86;
+    font-size: 2.26em;
+    line-height: 1.08;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-message {
+    font-size: 1.09em;
+}
+
+.teinvit-canvas.theme-romantic-floral .section-title,
+.teinvit-canvas.theme-romantic-floral .inv-event strong {
+    font-family: 'Crimson Text', serif;
+    font-size: 0.92em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: #6A5E5A;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-parent-mireasa,
+.teinvit-canvas.theme-romantic-floral .inv-parent-mire,
+.teinvit-canvas.theme-romantic-floral .nasi-row,
+.teinvit-canvas.theme-romantic-floral .inv-event > div:first-of-type {
+    font-size: 0.92em;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-event > div:nth-of-type(2) {
+    font-size: 0.86em;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-event a {
+    font-size: 0.86em;
+    color: #243B53;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-divider {
+    width: 46%;
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -0.03em;
+    border-top: 0.06em solid rgba(201, 166, 70, 0.52);
+}
+
+.teinvit-canvas.theme-romantic-floral .inv-divider::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -0.18em;
+    transform: translateX(-50%);
+    width: 0.24em;
+    height: 0.24em;
+    border-radius: 50%;
+    background: rgba(201, 166, 70, 0.52);
+}
+
+/* =====================================================
+   THEME MM-1 — Modern Minimal
+   class: theme-modern-minimal
+===================================================== */
+.teinvit-canvas.theme-modern-minimal {
+    color: #161616;
+    font-family: 'Inter', sans-serif;
+}
+
+.teinvit-canvas.theme-modern-minimal .inv-names {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    color: #161616;
+    font-size: 1.85em;
+}
+
+.teinvit-canvas.theme-modern-minimal .inv-message {
+    font-size: 1.08em;
+}
+
+.teinvit-canvas.theme-modern-minimal .section-title,
+.teinvit-canvas.theme-modern-minimal .inv-event strong {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92em;
+    font-weight: 600;
+    letter-spacing: 0.085em;
+    color: #4F4F4F;
+}
+
+.teinvit-canvas.theme-modern-minimal .inv-parent-mireasa,
+.teinvit-canvas.theme-modern-minimal .inv-parent-mire,
+.teinvit-canvas.theme-modern-minimal .nasi-row,
+.teinvit-canvas.theme-modern-minimal .inv-event > div:first-of-type {
+    font-size: 0.92em;
+}
+
+.teinvit-canvas.theme-modern-minimal .inv-event > div:nth-of-type(2) {
+    font-size: 0.86em;
+}
+
+.teinvit-canvas.theme-modern-minimal .inv-event a {
+    font-size: 0.86em;
+    color: #0F4C5C;
+}
+
+.teinvit-canvas.theme-modern-minimal .inv-divider {
+    width: 66%;
+    border-top: 0.06em solid rgba(194, 161, 74, 0.25);
+}
+
+/* =====================================================
+   THEME CE-2 — Classic Elegant
+   class: theme-classic-elegant
+===================================================== */
+.teinvit-canvas.theme-classic-elegant {
+    color: #2B2725;
+    font-family: 'Crimson Text', serif;
+}
+
+.teinvit-canvas.theme-classic-elegant .inv-names {
+    font-family: 'Crimson Text', serif;
+    font-weight: 600;
+    color: #2B2725;
+    font-size: 2em;
+}
+
+.teinvit-canvas.theme-classic-elegant .inv-message {
+    font-size: 1.08em;
+}
+
+.teinvit-canvas.theme-classic-elegant .section-title,
+.teinvit-canvas.theme-classic-elegant .inv-event strong {
+    font-family: 'Crimson Text', serif;
+    font-size: 0.92em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: #6B6460;
+}
+
+.teinvit-canvas.theme-classic-elegant .inv-parent-mireasa,
+.teinvit-canvas.theme-classic-elegant .inv-parent-mire,
+.teinvit-canvas.theme-classic-elegant .nasi-row,
+.teinvit-canvas.theme-classic-elegant .inv-event > div:first-of-type {
+    font-size: 0.92em;
+}
+
+.teinvit-canvas.theme-classic-elegant .inv-event > div:nth-of-type(2) {
+    font-size: 0.86em;
+}
+
+.teinvit-canvas.theme-classic-elegant .inv-event a {
+    font-size: 0.86em;
+    color: #243B53;
+}
+
+.teinvit-canvas.theme-classic-elegant .inv-divider {
+    width: 56%;
+    border-top: 0.06em solid rgba(191, 167, 111, 0.36);
 }

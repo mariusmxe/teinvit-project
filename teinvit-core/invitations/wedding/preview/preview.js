@@ -143,6 +143,59 @@ function formatNames(text) {
         return text.substring(0, 255);
     }
 
+    function resolveCanonicalThemeClass(themeValue) {
+        var raw = (themeValue || '').toString().trim().toLowerCase();
+        if (!raw) return 'theme-editorial-luxury';
+
+        if (
+            raw.indexOf('theme-editorial-luxury') !== -1 ||
+            raw.indexOf('editorial luxury') !== -1 ||
+            raw.indexOf('editorial') !== -1
+        ) {
+            return 'theme-editorial-luxury';
+        }
+
+        if (
+            raw.indexOf('theme-romantic-floral') !== -1 ||
+            raw.indexOf('romantic floral') !== -1 ||
+            raw.indexOf('romantic') !== -1
+        ) {
+            return 'theme-romantic-floral';
+        }
+
+        if (
+            raw.indexOf('theme-modern-minimal') !== -1 ||
+            raw.indexOf('modern minimal') !== -1 ||
+            raw.indexOf('modern') !== -1
+        ) {
+            return 'theme-modern-minimal';
+        }
+
+        if (
+            raw.indexOf('theme-classic-elegant') !== -1 ||
+            raw.indexOf('classic elegant') !== -1 ||
+            raw.indexOf('classic') !== -1
+        ) {
+            return 'theme-classic-elegant';
+        }
+
+        return 'theme-editorial-luxury';
+    }
+
+    function applyCanonicalThemeClass(canvas, themeValue) {
+        if (!canvas) return;
+
+        var current = Array.prototype.slice.call(canvas.classList);
+        current.forEach(function (cls) {
+            if (cls.indexOf('theme-') === 0) {
+                canvas.classList.remove(cls);
+            }
+        });
+
+        var canonicalClass = resolveCanonicalThemeClass(themeValue);
+        canvas.classList.add(canonicalClass);
+    }
+
     /* ==================================================
        THEME LOGIC – PAGINA PRODUS (WAPF)
     ================================================== */
@@ -155,24 +208,13 @@ function formatNames(text) {
         var selectedOption = select.options[select.selectedIndex];
         if (!selectedOption) return;
 
-        var label = selectedOption.text.toLowerCase();
-        var slug = 'editorial';
-
-        if (label.indexOf('romantic') !== -1) slug = 'romantic';
-        if (label.indexOf('modern') !== -1)   slug = 'modern';
-        if (label.indexOf('classic') !== -1)  slug = 'classic';
-
         var canvas = qs('.teinvit-canvas');
         if (!canvas) return;
 
-        canvas.classList.remove(
-            'theme-editorial',
-            'theme-romantic',
-            'theme-modern',
-            'theme-classic'
-        );
+        var label = selectedOption.text || '';
+        var value = select.value || '';
 
-        canvas.classList.add('theme-' + slug);
+        applyCanonicalThemeClass(canvas, label || value);
     }
 
     /* ==================================================
@@ -188,18 +230,10 @@ function formatNames(text) {
             return;
         }
 
-        var slug = window.TEINVIT_INVITATION_DATA.theme;
         var canvas = qs('.teinvit-canvas');
         if (!canvas) return;
 
-        canvas.classList.remove(
-            'theme-editorial',
-            'theme-romantic',
-            'theme-modern',
-            'theme-classic'
-        );
-
-        canvas.classList.add('theme-' + slug);
+        applyCanonicalThemeClass(canvas, window.TEINVIT_INVITATION_DATA.theme);
     }
 
     /* ==================================================
