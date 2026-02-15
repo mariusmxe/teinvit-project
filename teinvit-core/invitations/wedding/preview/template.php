@@ -58,6 +58,7 @@ if ( isset( $order ) && $order instanceof WC_Order ) {
         <div class="teinvit-canvas canvas--spread">
 
             <div class="inv-names"></div>
+            <div class="inv-divider" aria-hidden="true"></div>
 
             <div class="inv-parents-wrapper" style="display:none;">
                 <div class="section-title">ÎMPREUNĂ CU PĂRINȚII</div>
@@ -116,6 +117,7 @@ if ( isset( $order ) && $order instanceof WC_Order ) {
         <div class="teinvit-canvas canvas--spread">
 
             <div class="inv-names"></div>
+            <div class="inv-divider" aria-hidden="true"></div>
 
 <div class="inv-parents-wrapper" style="display:none;">
                 <div class="section-title">ÎMPREUNĂ CU PĂRINȚII</div>
