@@ -19,6 +19,9 @@ define( 'TEINVIT_CORE_VERSION', '1.0.0' );
 define( 'TEINVIT_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TEINVIT_CORE_URL', plugin_dir_url( __FILE__ ) );
 
+require_once TEINVIT_CORE_PATH . 'core/client-admin.php';
+register_activation_hook( __FILE__, 'teinvit_install_client_admin_tables' );
+
 /**
  * NOTICE ADMIN – confirmare încărcare plugin
  * (nu conține logică de business)
