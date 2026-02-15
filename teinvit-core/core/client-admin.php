@@ -125,7 +125,6 @@ function teinvit_run_schema_migrations() {
         $wpdb->query( "ALTER TABLE {$t['gifts']} ADD KEY token_position (token, position)" );
     }
 }
-add_action( 'init', 'teinvit_run_schema_migrations' );
 
 function teinvit_get_order_id_by_token( $token ) {
     global $wpdb;
