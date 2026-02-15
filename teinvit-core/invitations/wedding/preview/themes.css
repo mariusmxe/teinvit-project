@@ -24,8 +24,18 @@
     pointer-events: none;
 }
 
+/* Mesaj + Părinți + Nași folosesc aceeași lățime utilă */
+.teinvit-canvas .inv-message,
+.teinvit-canvas .inv-parents-wrapper,
+.teinvit-canvas .inv-nasi {
+    width: 100%;
+    max-width: 94%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .teinvit-canvas .inv-message {
-    margin: 0.55em 0 0;
+    margin-top: 0.55em;
     line-height: 1.5;
 }
 
@@ -40,9 +50,13 @@
     text-transform: uppercase;
 }
 
+/* Părinți: 2 coloane egale, alipite spre centru */
 .teinvit-canvas .inv-parents-grid {
-    gap: 1.2em;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 0.9em;
     margin-top: 0;
+    align-items: start;
 }
 
 .teinvit-canvas .inv-parent-mireasa,
@@ -50,6 +64,31 @@
 .teinvit-canvas .nasi-row,
 .teinvit-canvas .inv-event > div:first-of-type {
     line-height: 1.4;
+}
+
+.teinvit-canvas .inv-parent-mireasa,
+.teinvit-canvas .inv-parent-mire {
+    width: 100%;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+.teinvit-canvas .inv-parent-mireasa {
+    text-align: right;
+}
+
+.teinvit-canvas .inv-parent-mire {
+    text-align: left;
+}
+
+/* Nași: aceeași lățime utilă ca mesajul */
+.teinvit-canvas .inv-nasi .nasi-row {
+    width: 100%;
+    text-align: center;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
 }
 
 .teinvit-canvas .events-row {
@@ -125,7 +164,7 @@
 
 .teinvit-canvas.theme-editorial-luxury .inv-divider {
     width: 62%;
-    border-top: 0.06em solid rgba(191, 167, 111, 0.40);
+    border-top: 0.11em solid rgba(191, 167, 111, 0.62);
 }
 
 /* =====================================================
@@ -183,20 +222,20 @@
     position: absolute;
     left: 0;
     right: 0;
-    top: -0.03em;
-    border-top: 0.06em solid rgba(201, 166, 70, 0.52);
+    top: -0.05em;
+    border-top: 0.11em solid rgba(201, 166, 70, 0.68);
 }
 
 .teinvit-canvas.theme-romantic-floral .inv-divider::after {
     content: '';
     position: absolute;
     left: 50%;
-    top: -0.18em;
+    top: -0.24em;
     transform: translateX(-50%);
-    width: 0.24em;
-    height: 0.24em;
+    width: 0.34em;
+    height: 0.34em;
     border-radius: 50%;
-    background: rgba(201, 166, 70, 0.52);
+    background: rgba(201, 166, 70, 0.74);
 }
 
 /* =====================================================
@@ -246,7 +285,7 @@
 
 .teinvit-canvas.theme-modern-minimal .inv-divider {
     width: 66%;
-    border-top: 0.06em solid rgba(194, 161, 74, 0.25);
+    border-top: 0.11em solid rgba(194, 161, 74, 0.42);
 }
 
 /* =====================================================
@@ -296,5 +335,5 @@
 
 .teinvit-canvas.theme-classic-elegant .inv-divider {
     width: 56%;
-    border-top: 0.06em solid rgba(191, 167, 111, 0.36);
+    border-top: 0.11em solid rgba(191, 167, 111, 0.56);
 }
