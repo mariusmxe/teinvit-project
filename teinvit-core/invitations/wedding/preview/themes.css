@@ -82,6 +82,16 @@
     text-align: left;
 }
 
+.teinvit-canvas .inv-parents-grid.parents-force-split .inv-parent-mireasa,
+.teinvit-canvas .inv-parents-grid.parents-force-split .inv-parent-mire {
+    text-align: center;
+}
+
+.teinvit-canvas .parent-amp {
+    display: inline;
+    white-space: nowrap;
+}
+
 /* Nași: aceeași lățime utilă ca mesajul */
 .teinvit-canvas .inv-nasi .nasi-row {
     width: 100%;

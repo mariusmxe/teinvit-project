@@ -236,6 +236,123 @@ function formatNames(text) {
         applyCanonicalThemeClass(canvas, window.TEINVIT_INVITATION_DATA.theme);
     }
 
+    function getLineHeightPx(el) {
+        if (!el) return 0;
+        var cs = window.getComputedStyle(el);
+        var lh = parseFloat(cs.lineHeight);
+        if (!isNaN(lh)) return lh;
+
+        var fs = parseFloat(cs.fontSize);
+        if (isNaN(fs)) return 0;
+        return fs * 1.2;
+    }
+
+    function isMultiLine(el) {
+        if (!el || !el.textContent) return false;
+
+        var lineHeight = getLineHeightPx(el);
+        if (!lineHeight) return false;
+
+        var h = el.getBoundingClientRect().height;
+        return h > (lineHeight * 1.3);
+    }
+
+    function splitParentPair(raw) {
+        var value = (raw || '').replace(/\s+/g, ' ').trim();
+        if (!value) return null;
+
+        var idx = value.indexOf(' & ');
+        var sepLen = 3;
+
+        if (idx < 0) {
+            idx = value.indexOf('&');
+            sepLen = 1;
+        }
+
+        if (idx < 0) return null;
+
+        var mother = value.slice(0, idx).trim();
+        var father = value.slice(idx + sepLen).trim();
+        if (!mother || !father) return null;
+
+        return {
+            mother: mother,
+            father: father
+        };
+    }
+
+    function restoreParentRaw(el) {
+        if (!el) return;
+        var raw = el.getAttribute('data-raw') || '';
+        el.textContent = raw;
+        el.removeAttribute('data-parent-split');
+    }
+
+    function applyForcedParentSplit(el, pair) {
+        if (!el || !pair) return;
+
+        el.textContent = '';
+
+        var mother = document.createElement('span');
+        mother.className = 'parent-mother';
+        mother.textContent = pair.mother + ' ';
+
+        var amp = document.createElement('span');
+        amp.className = 'parent-amp';
+        amp.textContent = '&';
+
+        var br = document.createElement('br');
+
+        var father = document.createElement('span');
+        father.className = 'parent-father';
+        father.textContent = pair.father;
+
+        el.appendChild(mother);
+        el.appendChild(amp);
+        el.appendChild(br);
+        el.appendChild(father);
+        el.setAttribute('data-parent-split', '1');
+    }
+
+    function normalizeParentsWrap(wrapper) {
+        if (!wrapper) return;
+
+        var left = qs('.inv-parent-col.inv-parent-mireasa', wrapper);
+        var right = qs('.inv-parent-col.inv-parent-mire', wrapper);
+        var grid = qs('.inv-parents-grid', wrapper) || qs('.inv-parents', wrapper);
+
+        if (!left || !right || !grid) return;
+
+        var leftRaw = (left.getAttribute('data-raw') || left.textContent || '').replace(/\s+/g, ' ').trim();
+        var rightRaw = (right.getAttribute('data-raw') || right.textContent || '').replace(/\s+/g, ' ').trim();
+
+        left.setAttribute('data-raw', leftRaw);
+        right.setAttribute('data-raw', rightRaw);
+
+        restoreParentRaw(left);
+        restoreParentRaw(right);
+
+        var needsSplit = isMultiLine(left) || isMultiLine(right);
+
+        if (!needsSplit) {
+            grid.classList.remove('parents-force-split');
+            return;
+        }
+
+        var leftPair = splitParentPair(leftRaw);
+        var rightPair = splitParentPair(rightRaw);
+
+        if (leftPair) {
+            applyForcedParentSplit(left, leftPair);
+        }
+
+        if (rightPair) {
+            applyForcedParentSplit(right, rightPair);
+        }
+
+        grid.classList.add('parents-force-split');
+    }
+
     /* ==================================================
        DATA SOURCES
     ================================================== */
@@ -388,10 +505,22 @@ function syncBaseFontSize(canvas) {
         if (pw && data.show_parents) {
             pw.style.display = '';
             var cols = qsa('.inv-parents div', pw);
-            if (cols[0]) cols[0].textContent = data.parents.mireasa;
-            if (cols[1]) cols[1].textContent = data.parents.mire;
+            if (cols[0]) {
+                cols[0].textContent = data.parents.mireasa;
+                cols[0].setAttribute('data-raw', (data.parents.mireasa || '').replace(/\s+/g, ' ').trim());
+                cols[0].removeAttribute('data-parent-split');
+            }
+            if (cols[1]) {
+                cols[1].textContent = data.parents.mire;
+                cols[1].setAttribute('data-raw', (data.parents.mire || '').replace(/\s+/g, ' ').trim());
+                cols[1].removeAttribute('data-parent-split');
+            }
+
+            normalizeParentsWrap(pw);
         } else if (pw) {
             pw.style.display = 'none';
+            var grid = qs('.inv-parents-grid', pw) || qs('.inv-parents', pw);
+            if (grid) grid.classList.remove('parents-force-split');
         }
 
         var nasiBox = qs('.inv-nasi', canvas);
