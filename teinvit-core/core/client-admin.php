@@ -62,7 +62,8 @@ function teinvit_install_client_admin_tables() {
         created_at datetime NOT NULL,
         updated_at datetime NOT NULL,
         PRIMARY KEY (id),
-        KEY token (token)
+        KEY token (token),
+        KEY token_position (token, position)
     ) $charset;");
 
     dbDelta("CREATE TABLE {$t['rsvp']} (
@@ -83,9 +84,48 @@ function teinvit_install_client_admin_tables() {
         submission_id bigint(20) unsigned NOT NULL,
         gift_id bigint(20) unsigned NOT NULL,
         PRIMARY KEY (submission_id, gift_id),
+        UNIQUE KEY uniq_gift_id (gift_id),
         KEY gift_id (gift_id)
     ) $charset;");
 }
+
+function teinvit_run_schema_migrations() {
+    global $wpdb;
+    $t = teinvit_tables();
+
+    $dup_rows = $wpdb->get_results(
+        "SELECT gift_id, MIN(submission_id) AS keep_submission_id
+         FROM {$t['rsvp_g']}
+         GROUP BY gift_id
+         HAVING COUNT(*) > 1",
+        ARRAY_A
+    );
+
+    if ( ! empty( $dup_rows ) ) {
+        foreach ( $dup_rows as $dup ) {
+            $gift_id = (int) $dup['gift_id'];
+            $keep_submission_id = (int) $dup['keep_submission_id'];
+            $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM {$t['rsvp_g']} WHERE gift_id = %d AND submission_id <> %d",
+                    $gift_id,
+                    $keep_submission_id
+                )
+            );
+        }
+    }
+
+    $index = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$t['rsvp_g']} WHERE Key_name = %s", 'uniq_gift_id' ) );
+    if ( ! $index ) {
+        $wpdb->query( "ALTER TABLE {$t['rsvp_g']} ADD UNIQUE KEY uniq_gift_id (gift_id)" );
+    }
+
+    $idx_tp = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$t['gifts']} WHERE Key_name = %s", 'token_position' ) );
+    if ( ! $idx_tp ) {
+        $wpdb->query( "ALTER TABLE {$t['gifts']} ADD KEY token_position (token, position)" );
+    }
+}
+add_action( 'init', 'teinvit_run_schema_migrations' );
 
 function teinvit_get_order_id_by_token( $token ) {
     global $wpdb;
@@ -291,6 +331,7 @@ function teinvit_client_admin_shortcode( $atts ) {
         'gifts' => teinvit_get_gifts( $token ),
         'remaining' => $remaining,
         'capacity' => teinvit_get_gifts_capacity( $settings ),
+        'bookedGiftIds' => array_map( 'intval', teinvit_get_booked_gift_ids( $token ) ),
         'buyEditsUrl' => esc_url_raw( teinvit_get_purchase_url( 'edits', $token ) ),
         'buyGiftsUrl' => esc_url_raw( teinvit_get_purchase_url( 'gifts', $token ) ),
         'inviteUrl' => home_url( '/i/' . $token ),
@@ -491,26 +532,114 @@ add_action( 'rest_api_init', function () {
             $token = $req['token'];
             $settings = teinvit_get_settings( $token );
             $capacity = teinvit_get_gifts_capacity( $settings );
-            $gifts = $req->get_json_params()['gifts'] ?? [];
-            if ( count( $gifts ) > $capacity ) {
-                return new WP_Error( 'capacity', 'Depășește capacitatea.', [ 'status' => 400 ] );
-            }
-            $t = teinvit_tables();
-            $wpdb->delete( $t['gifts'], [ 'token' => $token ] );
-            $pos = 1;
-            foreach ( $gifts as $gift ) {
-                if ( empty( $gift['title'] ) ) continue;
-                $wpdb->insert( $t['gifts'], [
-                    'token' => $token,
-                    'position' => $pos++,
-                    'title' => sanitize_text_field( $gift['title'] ),
+            $input_gifts = (array) ( $req->get_json_params()['gifts'] ?? [] );
+
+            $normalized = [];
+            $next_position = 1;
+            foreach ( $input_gifts as $gift ) {
+                $title = sanitize_text_field( $gift['title'] ?? '' );
+                if ( $title === '' ) {
+                    continue;
+                }
+                $normalized[] = [
+                    'id' => isset( $gift['id'] ) && $gift['id'] !== '' ? (int) $gift['id'] : 0,
+                    'title' => $title,
                     'url' => esc_url_raw( $gift['url'] ?? '' ),
                     'delivery_address' => sanitize_textarea_field( $gift['delivery_address'] ?? '' ),
-                    'created_at' => current_time( 'mysql' ),
-                    'updated_at' => current_time( 'mysql' ),
-                ] );
+                    'position' => isset( $gift['position'] ) ? max( 1, (int) $gift['position'] ) : $next_position,
+                ];
+                $next_position++;
             }
-            return [ 'ok' => true ];
+
+            if ( count( $normalized ) > $capacity ) {
+                return new WP_Error( 'capacity', 'Depășește capacitatea.', [ 'status' => 400 ] );
+            }
+
+            $t = teinvit_tables();
+            $existing = teinvit_get_gifts( $token );
+            $existing_by_id = [];
+            foreach ( $existing as $gift ) {
+                $existing_by_id[ (int) $gift['id'] ] = $gift;
+            }
+
+            $incoming_ids = [];
+            foreach ( $normalized as $gift ) {
+                if ( $gift['id'] > 0 ) {
+                    $incoming_ids[] = $gift['id'];
+                }
+            }
+            $incoming_ids = array_values( array_unique( $incoming_ids ) );
+
+            $existing_ids = array_keys( $existing_by_id );
+            $ids_to_delete = array_values( array_diff( $existing_ids, $incoming_ids ) );
+
+            $booked_ids = array_map( 'intval', teinvit_get_booked_gift_ids( $token ) );
+            $blocked_delete = array_values( array_intersect( $ids_to_delete, $booked_ids ) );
+            if ( ! empty( $blocked_delete ) ) {
+                $blocked_titles = [];
+                foreach ( $blocked_delete as $bid ) {
+                    if ( isset( $existing_by_id[ $bid ]['title'] ) ) {
+                        $blocked_titles[] = $existing_by_id[ $bid ]['title'];
+                    }
+                }
+                return new WP_Error(
+                    'gift_booked_delete',
+                    'Nu poți șterge un cadou deja ales de invitați.',
+                    [ 'status' => 400, 'gift_ids' => $blocked_delete, 'gift_titles' => $blocked_titles ]
+                );
+            }
+
+            $wpdb->query( 'START TRANSACTION' );
+            try {
+                foreach ( $normalized as $gift ) {
+                    if ( $gift['id'] > 0 && isset( $existing_by_id[ $gift['id'] ] ) ) {
+                        $ok = $wpdb->update(
+                            $t['gifts'],
+                            [
+                                'position' => $gift['position'],
+                                'title' => $gift['title'],
+                                'url' => $gift['url'],
+                                'delivery_address' => $gift['delivery_address'],
+                                'updated_at' => current_time( 'mysql' ),
+                            ],
+                            [ 'id' => $gift['id'], 'token' => $token ]
+                        );
+                        if ( $ok === false ) {
+                            throw new Exception( 'update_failed' );
+                        }
+                        continue;
+                    }
+
+                    $ok = $wpdb->insert( $t['gifts'], [
+                        'token' => $token,
+                        'position' => $gift['position'],
+                        'title' => $gift['title'],
+                        'url' => $gift['url'],
+                        'delivery_address' => $gift['delivery_address'],
+                        'created_at' => current_time( 'mysql' ),
+                        'updated_at' => current_time( 'mysql' ),
+                    ] );
+                    if ( $ok === false ) {
+                        throw new Exception( 'insert_failed' );
+                    }
+                }
+
+                if ( ! empty( $ids_to_delete ) ) {
+                    foreach ( $ids_to_delete as $id_to_delete ) {
+                        $ok = $wpdb->delete( $t['gifts'], [ 'id' => (int) $id_to_delete, 'token' => $token ] );
+                        if ( $ok === false ) {
+                            throw new Exception( 'delete_failed' );
+                        }
+                    }
+                }
+
+                $wpdb->query( 'COMMIT' );
+            } catch ( Exception $e ) {
+                $wpdb->query( 'ROLLBACK' );
+                return new WP_Error( 'gift_save_failed', 'Nu s-au putut salva cadourile.', [ 'status' => 500 ] );
+            }
+
+            return [ 'ok' => true, 'gifts' => teinvit_get_gifts( $token ) ];
         }
     ] );
 
@@ -542,7 +671,34 @@ function teinvit_submit_rsvp( WP_REST_Request $req ) {
     }
 
     $t = teinvit_tables();
-    $wpdb->insert( $t['rsvp'], [
+    $gift_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) ( $p['gift_ids'] ?? [] ) ) ) ) );
+
+    $gift_map = [];
+    if ( ! empty( $gift_ids ) ) {
+        $placeholders = implode( ',', array_fill( 0, count( $gift_ids ), '%d' ) );
+        $sql = $wpdb->prepare(
+            "SELECT id, title FROM {$t['gifts']} WHERE token = %s AND id IN ($placeholders)",
+            array_merge( [ $token ], $gift_ids )
+        );
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
+        foreach ( $rows as $row ) {
+            $gift_map[ (int) $row['id'] ] = $row['title'];
+        }
+    }
+
+    $invalid = [];
+    foreach ( $gift_ids as $gid ) {
+        if ( ! isset( $gift_map[ $gid ] ) ) {
+            $invalid[] = $gid;
+        }
+    }
+    if ( ! empty( $invalid ) ) {
+        return new WP_Error( 'invalid_gifts', 'Selecția de cadouri conține valori invalide.', [ 'status' => 400, 'gift_ids' => $invalid ] );
+    }
+
+    $wpdb->query( 'START TRANSACTION' );
+
+    $ok = $wpdb->insert( $t['rsvp'], [
         'token' => $token,
         'guest_last_name' => sanitize_text_field( $p['guest_last_name'] ?? '' ),
         'guest_first_name' => sanitize_text_field( $p['guest_first_name'] ?? '' ),
@@ -552,17 +708,42 @@ function teinvit_submit_rsvp( WP_REST_Request $req ) {
         'created_at' => current_time( 'mysql' ),
         'ip' => sanitize_text_field( $_SERVER['REMOTE_ADDR'] ?? '' ),
     ] );
-    $submission_id = (int) $wpdb->insert_id;
 
-    $gift_ids = array_map( 'intval', (array) ( $p['gift_ids'] ?? [] ) );
-    $booked = array_map( 'intval', teinvit_get_booked_gift_ids( $token ) );
-    foreach ( $gift_ids as $gift_id ) {
-        if ( in_array( $gift_id, $booked, true ) ) {
-            continue;
-        }
-        $wpdb->insert( $t['rsvp_g'], [ 'submission_id' => $submission_id, 'gift_id' => $gift_id ] );
+    if ( $ok === false ) {
+        $wpdb->query( 'ROLLBACK' );
+        return new WP_Error( 'rsvp_insert_failed', 'Nu s-a putut salva RSVP.', [ 'status' => 500 ] );
     }
 
+    $submission_id = (int) $wpdb->insert_id;
+    $conflicts = [];
+
+    foreach ( $gift_ids as $gift_id ) {
+        $gift_ok = $wpdb->insert( $t['rsvp_g'], [ 'submission_id' => $submission_id, 'gift_id' => $gift_id ] );
+        if ( $gift_ok === false ) {
+            if ( stripos( (string) $wpdb->last_error, 'Duplicate entry' ) !== false ) {
+                $conflicts[] = [
+                    'id' => $gift_id,
+                    'title' => $gift_map[ $gift_id ] ?? ( 'Cadou #' . $gift_id ),
+                ];
+                continue;
+            }
+
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'rsvp_gift_insert_failed', 'Nu s-au putut salva cadourile.', [ 'status' => 500 ] );
+        }
+    }
+
+    if ( ! empty( $conflicts ) ) {
+        $wpdb->query( 'ROLLBACK' );
+        $titles = wp_list_pluck( $conflicts, 'title' );
+        return new WP_Error(
+            'gift_already_booked',
+            'Unul sau mai multe cadouri au fost deja rezervate: ' . implode( ', ', $titles ) . '. Reîncarcă și alege altul.',
+            [ 'status' => 409, 'conflicts' => $conflicts ]
+        );
+    }
+
+    $wpdb->query( 'COMMIT' );
     return [ 'ok' => true ];
 }
 
