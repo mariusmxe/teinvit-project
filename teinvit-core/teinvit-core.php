@@ -31,9 +31,8 @@ function teinvit_maybe_run_client_admin_schema_migrations() {
 
     if ( function_exists( 'teinvit_run_schema_migrations' ) ) {
         teinvit_run_schema_migrations();
+        update_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION, false );
     }
-
-    update_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION, false );
 }
 
 require_once TEINVIT_CORE_PATH . 'core/client-admin.php';
