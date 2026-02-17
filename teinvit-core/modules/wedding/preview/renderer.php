@@ -6,6 +6,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class TeInvit_Wedding_Preview_Renderer {
 
+    public static function get_wapf_field_ids() {
+        return [
+            '6963a95e66425','6963aa37412e4','6963aa782092d','6967752ab511b','696445d6a9ce9','6964461d67da5','6964466afe4d1','69644689ee7e1','696446dfabb7b','696448f2ae763','69644a3415fb9','69644a5822ddc','69644d9e814ef','69644f2b40023','69644f85d865e','69644fd5c832b','69645088f4b73','696450ee17f9e','696450ffe7db4','69645104b39f4','696451a951467','696451d204a8a','696452023cdcd','696452478586d','8dec5e7','32f74cc','a4a0fca',
+        ];
+    }
+
     /* =====================================================
        PREVIEW – PAGINA DE PRODUS
     ===================================================== */
@@ -35,7 +41,7 @@ class TeInvit_Wedding_Preview_Renderer {
         self::print_assets();
 
         ob_start();
-        include __DIR__ . '/template.php';
+        include TEINVIT_WEDDING_MODULE_PATH . 'templates/template.php';
         return ob_get_clean();
     }
 
@@ -57,39 +63,87 @@ class TeInvit_Wedding_Preview_Renderer {
         /** @var WC_Order_Item_Product $item */
         $item = reset( $items );
 
-        $field_ids = [
-            '6963a95e66425',
-            '6963aa37412e4',
-            '6963aa782092d',
-            '6967752ab511b',
-            '696445d6a9ce9',
-            '6964461d67da5',
-            '6964466afe4d1',
-            '69644689ee7e1',
-            '696446dfabb7b',
-            '696448f2ae763',
-            '69644a3415fb9',
-            '69644a5822ddc',
-            '69644d9e814ef',
-            '69644f2b40023',
-            '69644f85d865e',
-            '69644fd5c832b',
-            '69645088f4b73',
-            '696450ee17f9e',
-            '696450ffe7db4',
-            '69645104b39f4',
-            '696451a951467',
-            '696451d204a8a',
-            '696452023cdcd',
-            '696452478586d',
-            // Ora (Pasul 2)
-            '8dec5e7',
-            '32f74cc',
-            'a4a0fca',
+        $wapf_data = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
+
+        $invitation = self::build_invitation_from_wapf_data( $wapf_data );
+
+        $GLOBALS['order']      = $order;
+        $GLOBALS['invitation'] = $invitation;
+
+        self::print_assets();
+
+        ob_start();
+        echo '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+        include TEINVIT_WEDDING_MODULE_PATH . 'templates/template.php';
+        return ob_get_clean();
+    }
+
+    public static function get_order_wapf_field_map( WC_Order $order ) {
+        $items = $order->get_items();
+        if ( empty( $items ) ) {
+            return [];
+        }
+
+        $item = reset( $items );
+        $normalized = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
+        $map = [];
+        foreach ( $normalized as $field ) {
+            if ( empty( $field['id'] ) ) {
+                continue;
+            }
+            $clean_id = self::clean_field_id( (string) $field['id'] );
+            $map[ $clean_id ] = self::value_to_string( $field['value'] ?? '' );
+        }
+
+        return $map;
+    }
+
+    public static function get_order_invitation_data( WC_Order $order ) {
+        $items = $order->get_items();
+        if ( empty( $items ) ) {
+            return [];
+        }
+
+        $item = reset( $items );
+        $wapf_data = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
+
+        return self::build_invitation_from_wapf_data( $wapf_data );
+    }
+
+    public static function render_from_invitation_data( array $invitation, $order_or_product = null ) {
+        $defaults = [
+            'theme'        => 'editorial',
+            'names'        => '',
+            'message'      => '',
+            'show_parents' => false,
+            'parents'      => [],
+            'show_nasi'    => false,
+            'nasi'         => [],
+            'events'       => [],
         ];
 
-        $wapf_data = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, $field_ids );
+        $invitation = wp_parse_args( $invitation, $defaults );
 
+        $order = null;
+        $product = null;
+        if ( $order_or_product instanceof WC_Order ) {
+            $order = $order_or_product;
+            $GLOBALS['order'] = $order_or_product;
+        } elseif ( $order_or_product instanceof WC_Product ) {
+            $product = $order_or_product;
+            $GLOBALS['product'] = $order_or_product;
+        }
+        $GLOBALS['invitation'] = $invitation;
+
+        self::print_assets();
+
+        ob_start();
+        echo '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+        include TEINVIT_WEDDING_MODULE_PATH . 'templates/template.php';
+        return ob_get_clean();
+    }
+
+    private static function build_invitation_from_wapf_data( array $wapf_data ) {
         $invitation = [
             'theme'        => 'editorial',
             'names'        => '',
@@ -187,15 +241,7 @@ class TeInvit_Wedding_Preview_Renderer {
             ];
         }
 
-        $GLOBALS['order']      = $order;
-        $GLOBALS['invitation'] = $invitation;
-
-        self::print_assets();
-
-        ob_start();
-        echo '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
-        include __DIR__ . '/template.php';
-        return ob_get_clean();
+        return $invitation;
     }
 
     /**
@@ -438,13 +484,13 @@ class TeInvit_Wedding_Preview_Renderer {
         if ( isset( $GLOBALS['TEINVIT_RENDER_CONTEXT'] ) && $GLOBALS['TEINVIT_RENDER_CONTEXT'] === 'pdf' ) {
 
             echo '<link rel="stylesheet" href="' . esc_url(
-                TEINVIT_CORE_URL . 'invitations/wedding/preview/pdf.css'
+                TEINVIT_WEDDING_MODULE_URL . 'preview/pdf.css'
             ) . '">';
 
             echo '<script>window.__TEINVIT_PDF_MODE__ = true;</script>';
 
             echo '<script src="' . esc_url(
-                TEINVIT_CORE_URL . 'invitations/wedding/preview/preview.js'
+                TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js'
             ) . '"></script>';
 
             return;
@@ -454,11 +500,11 @@ class TeInvit_Wedding_Preview_Renderer {
            CONTEXT PREVIEW
         =============================== */
         echo '<link rel="stylesheet" href="' . esc_url(
-            TEINVIT_CORE_URL . 'invitations/wedding/preview/preview.css'
+            TEINVIT_WEDDING_MODULE_URL . 'preview/preview.css'
         ) . '">';
 
         echo '<script src="' . esc_url(
-            TEINVIT_CORE_URL . 'invitations/wedding/preview/preview.js'
+            TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js'
         ) . '"></script>';
     }
 }
