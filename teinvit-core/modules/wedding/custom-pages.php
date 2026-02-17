@@ -94,6 +94,109 @@ add_action( 'template_redirect', function() {
     exit;
 }, 2 );
 
+
+function teinvit_build_invitation_from_wapf_map( array $wapf ) {
+    $get = function( $id ) use ( $wapf ) {
+        return isset( $wapf[ $id ] ) ? trim( (string) $wapf[ $id ] ) : '';
+    };
+
+    $has = function( $id ) use ( $wapf ) {
+        return isset( $wapf[ $id ] ) && trim( (string) $wapf[ $id ] ) !== '';
+    };
+
+    $format_date_time = function( $date, $time ) {
+        $date = trim( (string) $date );
+        $time = trim( (string) $time );
+        if ( $date === '' ) {
+            return '';
+        }
+        return $time !== '' ? ( $date . ' ora ' . $time ) : $date;
+    };
+
+    $invitation = [
+        'theme'        => 'editorial',
+        'names'        => trim( implode( ' & ', array_filter( [ $get( '6963a95e66425' ), $get( '6963aa37412e4' ) ] ) ) ),
+        'message'      => $get( '6963aa782092d' ),
+        'show_parents' => false,
+        'parents'      => [],
+        'show_nasi'    => false,
+        'nasi'         => [],
+        'events'       => [],
+        'model_key'    => 'invn01',
+    ];
+
+    $theme_label = strtolower( $get( '6967752ab511b' ) );
+    if ( strpos( $theme_label, 'romantic' ) !== false ) {
+        $invitation['theme'] = 'romantic';
+    } elseif ( strpos( $theme_label, 'modern' ) !== false ) {
+        $invitation['theme'] = 'modern';
+    } elseif ( strpos( $theme_label, 'classic' ) !== false ) {
+        $invitation['theme'] = 'classic';
+    }
+
+    if ( $has( '696445d6a9ce9' ) ) {
+        $invitation['show_parents'] = true;
+        $invitation['parents'] = [
+            'mireasa' => trim( implode( ' & ', array_filter( [ $get( '6964461d67da5' ), $get( '6964466afe4d1' ) ] ) ) ),
+            'mire'    => trim( implode( ' & ', array_filter( [ $get( '69644689ee7e1' ), $get( '696446dfabb7b' ) ] ) ) ),
+        ];
+    }
+
+    if ( $has( '696448f2ae763' ) ) {
+        $invitation['show_nasi'] = true;
+        $invitation['nasi'] = trim( implode( ' & ', array_filter( [ $get( '69644a3415fb9' ), $get( '69644a5822ddc' ) ] ) ) );
+    }
+
+    if ( $has( '69644d9e814ef' ) ) {
+        $invitation['events'][] = [
+            'title' => 'Cununie civilă',
+            'loc'   => $get( '69644f2b40023' ),
+            'date'  => $format_date_time( $get( '69644f85d865e' ), $get( '8dec5e7' ) ),
+            'waze'  => $get( '69644fd5c832b' ),
+        ];
+    }
+
+    if ( $has( '69645088f4b73' ) ) {
+        $invitation['events'][] = [
+            'title' => 'Ceremonie religioasă',
+            'loc'   => $get( '696450ee17f9e' ),
+            'date'  => $format_date_time( $get( '696450ffe7db4' ), $get( '32f74cc' ) ),
+            'waze'  => $get( '69645104b39f4' ),
+        ];
+    }
+
+    if ( $has( '696451a951467' ) ) {
+        $invitation['events'][] = [
+            'title' => 'Petrecerea',
+            'loc'   => $get( '696451d204a8a' ),
+            'date'  => $format_date_time( $get( '696452023cdcd' ), $get( 'a4a0fca' ) ),
+            'waze'  => $get( '696452478586d' ),
+        ];
+    }
+
+    return $invitation;
+}
+
+function teinvit_extract_posted_wapf_map( array $source ) {
+    $out = [];
+    foreach ( $source as $key => $value ) {
+        if ( ! is_string( $key ) ) {
+            continue;
+        }
+        if ( preg_match( '/^wapf\[field_([^\]]+)\]$/', $key, $m ) ) {
+            $field_id = sanitize_text_field( $m[1] );
+            if ( is_array( $value ) ) {
+                $flat = array_map( 'sanitize_text_field', array_map( 'wp_unslash', $value ) );
+                $out[ $field_id ] = implode( ', ', array_filter( $flat, static function( $v ) { return $v !== ''; } ) );
+            } else {
+                $out[ $field_id ] = sanitize_text_field( wp_unslash( (string) $value ) );
+            }
+        }
+    }
+
+    return $out;
+}
+
 function teinvit_admin_post_guard( $token ) {
     if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'teinvit_admin_' . $token ) ) {
         wp_die( 'Nonce invalid' );
@@ -115,13 +218,12 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
     $config['show_rsvp_deadline'] = isset( $_POST['show_rsvp_deadline'] ) ? 1 : 0;
-    $config['rsvp_deadline_text'] = sanitize_text_field( wp_unslash( $_POST['rsvp_deadline_text'] ?? '' ) );
+    $config['rsvp_deadline_date'] = sanitize_text_field( wp_unslash( $_POST['rsvp_deadline_date'] ?? '' ) );
+    if ( ! isset( $config['edits_free_remaining'] ) ) {
+        $config['edits_free_remaining'] = 2;
+    }
 
-    teinvit_save_invitation_config( $token, [
-        'event_date' => sanitize_text_field( wp_unslash( $_POST['event_date'] ?? '' ) ) ?: null,
-        'model_key' => sanitize_text_field( wp_unslash( $_POST['model_key'] ?? 'invn01' ) ),
-        'config' => $config,
-    ] );
+    teinvit_save_invitation_config( $token, [ 'config' => $config ] );
 
     wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?saved=info' ) );
     exit;
@@ -166,11 +268,23 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
     list( $order_id, $order ) = teinvit_admin_post_guard( $token );
 
+    $inv = teinvit_get_invitation( $token );
+    if ( ! $inv ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=missing' ) );
+        exit;
+    }
+
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
+    $remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+    if ( $remaining <= 0 ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=noedits' ) );
+        exit;
+    }
+
+    $wapf = teinvit_extract_posted_wapf_map( $_POST );
     $snapshot = [
-        'invitation' => [
-            'names' => sanitize_text_field( wp_unslash( $_POST['names'] ?? '' ) ),
-            'message' => sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) ),
-        ],
+        'invitation' => teinvit_build_invitation_from_wapf_map( $wapf ),
+        'wapf_fields' => $wapf,
         'meta' => [ 'order_id' => (int) $order_id ],
     ];
 
@@ -181,7 +295,12 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         'created_at' => current_time( 'mysql' ),
     ] );
     $version_id = (int) $wpdb->insert_id;
-    teinvit_save_invitation_config( $token, [ 'active_version_id' => $version_id ] );
+
+    $config['edits_free_remaining'] = max( 0, $remaining - 1 );
+    teinvit_save_invitation_config( $token, [
+        'active_version_id' => $version_id,
+        'config' => $config,
+    ] );
 
     wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?saved=version' ) );
     exit;
