@@ -15,19 +15,8 @@ $is_pdf = (
 /* =========================
    BACKGROUND IMAGE
 ========================= */
-$background_url = '';
-
-if ( isset( $order ) && $order instanceof WC_Order ) {
-    foreach ( $order->get_items() as $item ) {
-        $product = $item->get_product();
-        if ( $product ) {
-            $background_url = get_the_post_thumbnail_url( $product->get_id(), 'full' );
-            break;
-        }
-    }
-} elseif ( isset( $product ) && $product instanceof WC_Product ) {
-    $background_url = get_the_post_thumbnail_url( $product->get_id(), 'full' );
-}
+$model_key = isset( $invitation['model_key'] ) ? (string) $invitation['model_key'] : 'invn01';
+$background_url = function_exists( 'teinvit_model_background_url' ) ? teinvit_model_background_url( $model_key ) : ( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' );
 ?>
 
 <div class="teinvit-wedding">
