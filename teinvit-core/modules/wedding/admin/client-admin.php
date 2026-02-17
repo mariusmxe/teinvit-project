@@ -245,7 +245,8 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
         return [];
     }
 
-    $known = array_fill_keys( TeInvit_Wedding_Preview_Renderer::get_wapf_field_ids(), true );
+    $allowed_invitation_only_ids = function_exists( 'teinvit_wedding_invitation_only_wapf_field_ids' ) ? teinvit_wedding_invitation_only_wapf_field_ids() : [];
+    $allowed = array_fill_keys( $allowed_invitation_only_ids, true );
     $raw_meta = get_post_meta( $product_id );
     $definitions = [];
 
@@ -321,11 +322,12 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
         return $rules;
     };
 
-    $consume = function( $node ) use ( &$consume, &$definitions, $known, $parse_options, $parse_conditions ) {
+    $consume = function( $node ) use ( &$consume, &$definitions, $allowed, $parse_options, $parse_conditions ) {
         if ( is_array( $node ) ) {
             if ( isset( $node['id'] ) && isset( $node['type'] ) ) {
                 $id = teinvit_normalize_wapf_field_id( $node['id'] );
-                if ( $id !== '' && isset( $known[ $id ] ) ) {
+                // Hard filter: Zona 2 admin randează doar câmpuri invitation-only.
+                if ( $id !== '' && isset( $allowed[ $id ] ) ) {
                     if ( ! isset( $definitions[ $id ] ) ) {
                         $definitions[ $id ] = [
                             'id' => $id,
@@ -372,7 +374,7 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
     }
 
     if ( empty( $definitions ) ) {
-        foreach ( TeInvit_Wedding_Preview_Renderer::get_wapf_field_ids() as $id ) {
+        foreach ( $allowed_invitation_only_ids as $id ) {
             $definitions[ $id ] = [
                 'id' => $id,
                 'label' => 'Field ' . $id,
