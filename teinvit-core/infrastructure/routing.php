@@ -54,7 +54,6 @@ add_action( 'template_redirect', function () {
     echo '</head><body>';
     echo '<div style="display:flex;justify-content:center;flex-direction:column;">';
     echo '<div>' . $html . '</div>';
-    do_action( 'teinvit_guest_page_preview', $order );
     echo '</div>';
     wp_footer();
     echo '</body></html>';

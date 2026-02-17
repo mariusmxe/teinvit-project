@@ -7,6 +7,17 @@ $snapshot = $active ? json_decode( (string) $active['snapshot'], true ) : [];
 $invitation_data = (array) ( $snapshot['invitation'] ?? [] );
 $config = wp_parse_args( (array) ( $inv['config'] ?? [] ), teinvit_default_rsvp_config() );
 
+$toggle_labels = [
+    'show_attending_civil' => 'Permite confirmarea pentru cununia civilă',
+    'show_attending_religious' => 'Permite confirmarea pentru ceremonia religioasă',
+    'show_attending_party' => 'Permite confirmarea pentru petrecere',
+    'show_kids' => 'Permite confirmarea copiilor',
+    'show_accommodation' => 'Permite solicitarea de cazare',
+    'show_vegetarian' => 'Permite selectarea meniului vegetarian',
+    'show_allergies' => 'Permite menționarea alergiilor',
+    'show_rsvp_deadline' => 'Activează data limită de confirmare',
+];
+
 global $wpdb;
 $t = teinvit_db_tables();
 $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['gifts']} WHERE token=%s ORDER BY id ASC", $token ), ARRAY_A );
@@ -34,7 +45,7 @@ $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['gifts']} WHERE 
     <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
     <h3>Toggle RSVP</h3>
     <?php foreach ( teinvit_default_rsvp_config() as $key => $v ) : if ( 'rsvp_deadline_text' === $key ) { continue; } ?>
-      <label><input type="checkbox" name="<?php echo esc_attr( $key ); ?>" <?php checked( ! empty( $config[ $key ] ) ); ?>><?php echo esc_html( $key ); ?></label>
+      <label><input type="checkbox" name="<?php echo esc_attr( $key ); ?>" <?php checked( ! empty( $config[ $key ] ) ); ?>><?php echo esc_html( $toggle_labels[ $key ] ?? $key ); ?></label>
     <?php endforeach; ?>
     <button type="submit">Salvează modificări</button>
   </form>
