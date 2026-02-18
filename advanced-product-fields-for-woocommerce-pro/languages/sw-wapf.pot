@@ -1,0 +1,2438 @@
+# Copyright (C) 2026 sw-wapf
+# This file is distributed under the same license as the sw-wapf package.
+msgid ""
+msgstr ""
+"Project-Id-Version: sw-wapf\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.js\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Product Field Groups"
+msgstr ""
+
+msgid "Field Group"
+msgstr ""
+
+msgid "Add New"
+msgstr ""
+
+msgid "Add New Product Field Group"
+msgstr ""
+
+msgid "Edit Product Field Group"
+msgstr ""
+
+msgid "New Field Group"
+msgstr ""
+
+msgid "View Field Group"
+msgstr ""
+
+msgid "Search Field Groups"
+msgstr ""
+
+msgid "No Field Groups found"
+msgstr ""
+
+msgid "No Field Groups found in Trash"
+msgstr ""
+
+msgid "The field \"%s\" contains a disallowed date."
+msgstr ""
+
+msgid "The field \"%s\" has an invalid date."
+msgstr ""
+
+msgid "The field \"%s\" is older than the minimum allowed date."
+msgstr ""
+
+msgid "The field \"%s\" is later than the maximum allowed date."
+msgstr ""
+
+msgid "Today's date can't be selected in the field \"%s\" because it is after %s."
+msgstr ""
+
+msgid "Logical"
+msgstr ""
+
+msgid "This function runs a logical test and returns one value for a TRUE result, or another for a FALSE result."
+msgstr ""
+
+msgid "An expression you want to test."
+msgstr ""
+
+msgid "The expression to run if <i>test</i> is true."
+msgstr ""
+
+msgid "The expression to run if <i>test</i> is false."
+msgstr ""
+
+msgid "Returns true if at least 1 argument evaluates to true, false otherwise. Used within the IF-function"
+msgstr ""
+
+msgid "the first argument is true"
+msgstr ""
+
+msgid "Returns true if all argument evaluate to true, false otherwise. Used within the IF-function"
+msgstr ""
+
+msgid "Math"
+msgstr ""
+
+msgid "Returns the absolute (positive) value of a number."
+msgstr ""
+
+msgid "The number to return the positive value for."
+msgstr ""
+
+msgid "Number operations"
+msgstr ""
+
+msgid "Round up to the nearest number."
+msgstr ""
+
+msgid "The number to round up."
+msgstr ""
+
+msgid "Other"
+msgstr ""
+
+msgid "Returns how many items are selected in a multi-select field (such as checkboxes, image swatches, …)."
+msgstr ""
+
+msgid "The ID of the field you want to count the selected items of."
+msgstr ""
+
+msgid "Sums all given quantities of a field with multiple quantity number boxes."
+msgstr ""
+
+msgid "Returns the cosine of the specified angle."
+msgstr ""
+
+msgid "The number (in radians) to find the cosine for."
+msgstr ""
+
+msgid "Dates"
+msgstr ""
+
+msgid "Returns the difference (in days) between two dates."
+msgstr ""
+
+msgid "there are 2 days between January 10 and January 12."
+msgstr ""
+
+msgid "the system counts the days between the 2 dates the customer enterered."
+msgstr ""
+
+msgid "A date string or pointer to a date field."
+msgstr ""
+
+msgid "Files"
+msgstr ""
+
+msgid "Returns the count of uploaded files for a File Upload field."
+msgstr ""
+
+msgid "The ID of the field you want to count the uploaded files of."
+msgstr ""
+
+msgid "Round down to the nearest number."
+msgstr ""
+
+msgid "The number to round down."
+msgstr ""
+
+msgid "To do exponentiation."
+msgstr ""
+
+msgid "The base number to do the exponentiation for. "
+msgstr ""
+
+msgid "The exponent."
+msgstr ""
+
+msgid "Round up or down to the neirest number. You can optionally specify decimals."
+msgstr ""
+
+msgid "The number to round up or down."
+msgstr ""
+
+msgid "The optional number of decimal digits to round to. If ommitted, it rounds to a whole number (no decimals)."
+msgstr ""
+
+msgid "Returns the sine of a number."
+msgstr ""
+
+msgid "The number to find the sine for."
+msgstr ""
+
+msgid "Returns the square root of a number."
+msgstr ""
+
+msgid "The number to find the square root for."
+msgstr ""
+
+msgid "Returns the tangent of a number."
+msgstr ""
+
+msgid "The number to find the tangent for."
+msgstr ""
+
+msgid "Returns today’s date. Can be used in other date function for further calculation."
+msgstr ""
+
+msgid "today's date"
+msgstr ""
+
+msgid "The field \"%s\" is required."
+msgstr ""
+
+msgid "The field \"%s\" has an incorrect date format."
+msgstr ""
+
+msgid "\"%s\" can't be equal to today."
+msgstr ""
+
+msgid "\"%s\" can't be in the future."
+msgstr ""
+
+msgid "\"%s\" can't be in the past."
+msgstr ""
+
+msgid "The field \"%s\" requires a minimum of %s."
+msgstr ""
+
+msgid "The field \"%s\" requires a maximum of %s."
+msgstr ""
+
+msgid "\"%s\" requires a minimum of %s choices."
+msgstr ""
+
+msgid "\"%s\" requires a maximum of %s choices."
+msgstr ""
+
+msgid "The item \"%s\" requires a minimum quantity of %s."
+msgstr ""
+
+msgid "The item \"%s\" requires a maximum quantity of %s."
+msgstr ""
+
+msgid "The field \"%s\" requires at minimum %s selections."
+msgstr ""
+
+msgid "The field \"%s\" requires at maximum %s selections."
+msgstr ""
+
+msgid "Value is equal to"
+msgstr ""
+
+msgid "Value is not equal to"
+msgstr ""
+
+msgid "Value is empty"
+msgstr ""
+
+msgid "Value is any text"
+msgstr ""
+
+msgid "Value contains"
+msgstr ""
+
+msgid "Result is equal to"
+msgstr ""
+
+msgid "Result is not equal to"
+msgstr ""
+
+msgid "Result is greater than"
+msgstr ""
+
+msgid "Result is lesser than"
+msgstr ""
+
+msgid "Value is any email"
+msgstr ""
+
+msgid "Value is any URL"
+msgstr ""
+
+msgid "Value is greater than"
+msgstr ""
+
+msgid "Value is lesser than"
+msgstr ""
+
+msgid "Value is any number"
+msgstr ""
+
+msgid "Is checked"
+msgstr ""
+
+msgid "Is not checked"
+msgstr ""
+
+msgid "Nothing selected"
+msgstr ""
+
+msgid "Anything selected"
+msgstr ""
+
+msgid "Selection contains"
+msgstr ""
+
+msgid "Selection does not contain"
+msgstr ""
+
+msgid "Is equal to"
+msgstr ""
+
+msgid "Use this date format: mm-dd-yyyy"
+msgstr ""
+
+msgid "Is not equal to"
+msgstr ""
+
+msgid "Is later than"
+msgstr ""
+
+msgid "Is older than"
+msgstr ""
+
+msgid "Is empty"
+msgstr ""
+
+msgid "Is any date"
+msgstr ""
+
+msgid "Has no files selected"
+msgstr ""
+
+msgid "Has file(s) selected"
+msgstr ""
+
+msgid "No quantities given"
+msgstr ""
+
+msgid "Any quantity given"
+msgstr ""
+
+msgid "User"
+msgstr ""
+
+msgid "Authentication"
+msgstr ""
+
+msgid "Logged in"
+msgstr ""
+
+msgid "Not logged in"
+msgstr ""
+
+msgid "User role"
+msgstr ""
+
+msgid "Is"
+msgstr ""
+
+msgid "Is not"
+msgstr ""
+
+msgid "Product"
+msgstr ""
+
+msgid "Search 1 or more products"
+msgstr ""
+
+msgid "Product variation"
+msgstr ""
+
+msgid "Search 1 or more variations"
+msgstr ""
+
+msgid "Product category"
+msgstr ""
+
+msgid "Search 1 or more categories"
+msgstr ""
+
+msgid "Product attribute"
+msgstr ""
+
+msgid "Search 1 or more attributes"
+msgstr ""
+
+msgid "Product tag"
+msgstr ""
+
+msgid "Search 1 or more tags"
+msgstr ""
+
+msgid "Product type"
+msgstr ""
+
+msgid "Select 1 or more types"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Flat fee"
+msgstr ""
+
+msgid "Quantity based flat fee"
+msgstr ""
+
+msgid "Percentage based fee"
+msgstr ""
+
+msgid "Quantity based percentage fee"
+msgstr ""
+
+msgid "Formula based pricing"
+msgstr ""
+
+msgid "Amount &times; character count"
+msgstr ""
+
+msgid "Amount &times; character count &times; qty"
+msgstr ""
+
+msgid "Amount &times; field value"
+msgstr ""
+
+msgid "Amount &times; field value &times; qty"
+msgstr ""
+
+msgid "Message"
+msgstr ""
+
+msgid "Displays text alongside the checkbox."
+msgstr ""
+
+msgid "Checked"
+msgstr ""
+
+msgid "Unchecked"
+msgstr ""
+
+msgid "Default value"
+msgstr ""
+
+msgid "Label for 'true'"
+msgstr ""
+
+msgid "true"
+msgstr ""
+
+msgid "Label for 'false'"
+msgstr ""
+
+msgid "false"
+msgstr ""
+
+msgid "Adjust pricing"
+msgstr ""
+
+msgid "Does this field affect product price?"
+msgstr ""
+
+msgid "Placeholder text"
+msgstr ""
+
+msgid "Appears within the input field as a placholder."
+msgstr ""
+
+msgid "Text length limits"
+msgstr ""
+
+msgid "The min and max text length required."
+msgstr ""
+
+msgid "Leave blank if you don't require any limits."
+msgstr ""
+
+msgid "Minimum length"
+msgstr ""
+
+msgid "characters"
+msgstr ""
+
+msgid "Maximum length"
+msgstr ""
+
+msgid "HTML5 validation regex"
+msgstr ""
+
+msgid "Restrict the input by adding a <a href=\"https://www.htmlregex.com/\" target=\"_blank\">HTML5 regex</a> here."
+msgstr ""
+
+msgid "Displays as placeholder in the field."
+msgstr ""
+
+msgid "Number type"
+msgstr ""
+
+msgid "Allow integers (whole numbers) or decimals."
+msgstr ""
+
+msgid "Integer"
+msgstr ""
+
+msgid "Integer & decimals"
+msgstr ""
+
+msgid "Display as"
+msgstr ""
+
+msgid "How to display this number field?"
+msgstr ""
+
+msgid "As a standard number field"
+msgstr ""
+
+msgid "With plus & minus buttons"
+msgstr ""
+
+msgid "Selection limits"
+msgstr ""
+
+msgid "The min and max choices required."
+msgstr ""
+
+msgid "Minimum value"
+msgstr ""
+
+msgid "No minimum"
+msgstr ""
+
+msgid "Maximum value"
+msgstr ""
+
+msgid "No maximum"
+msgstr ""
+
+msgid "Hide zero from cart and checkout"
+msgstr ""
+
+msgid "When the field value is zero, don't show it in the cart, checkout and order screens."
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Add the options for this select list."
+msgstr ""
+
+msgid "Preset date on page load"
+msgstr ""
+
+msgid "Use format mm-dd-yyyy or mm-dd for yearly recurring dates."
+msgstr ""
+
+msgid "Use format mm-dd-yyyy or mm-dd for yearly recurring dates or <a href=\"#\" onclick=\"javascript:event.preventDefault();jQuery('.modal--dynamic-default-date').show();\">use a dynamic date</a>."
+msgstr ""
+
+msgid "Dynamic dates"
+msgstr ""
+
+msgid "You can use special codes to target a dynamic date in the future or past, relative from today. A few examples: <ul><li><code>0d</code> means today.</li><li><code>7d</code> means 7 days from today.</li><li><code>-10d</code> means 10 days ago.</li></ul> You can use <code>y</code> for years, <code>m</code> for months, and <code>d</code> for days. You can list multiple periods with a space in between. Some more examples: <ul><li><code>-1m -7d</code> means 1 month and 7 days ago.</li><li><code>1y 9m 3d</code> means 1 year, 9 months, and 3 days from today.</li></ul>"
+msgstr ""
+
+msgid "On"
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+msgid "Dates in the past can't be selected"
+msgstr ""
+
+msgid "Dates in the future can't be selected"
+msgstr ""
+
+msgid "Today's date can't be selected"
+msgstr ""
+
+msgid "Selection options"
+msgstr ""
+
+msgid "Define which dates can or can't be selected."
+msgstr ""
+
+msgid "Should the product's final price change?"
+msgstr ""
+
+msgid "Each option is a checkbox."
+msgstr ""
+
+msgid "Leave blank if you don't require a min or max."
+msgstr ""
+
+msgid "Minimum needed"
+msgstr ""
+
+msgid "Maximum allowed"
+msgstr ""
+
+msgid "Each option is a radio button."
+msgstr ""
+
+msgid "Define images here. Ensure they all have same dimensions for optimal layout."
+msgstr ""
+
+msgid "Label position & display"
+msgstr ""
+
+msgid "Below image (inside selection)"
+msgstr ""
+
+msgid "Below image (outside selection)"
+msgstr ""
+
+msgid "Hide the label"
+msgstr ""
+
+msgid "As tooltip"
+msgstr ""
+
+msgid "Grid layout"
+msgstr ""
+
+msgid "Fixed image width"
+msgstr ""
+
+msgid "Flexible image width"
+msgstr ""
+
+msgid "Items per row"
+msgstr ""
+
+msgid "Max. swatches per row."
+msgstr ""
+
+msgid "On desktop"
+msgstr ""
+
+msgid "On tablet"
+msgstr ""
+
+msgid "On mobile"
+msgstr ""
+
+msgid "Swatch width"
+msgstr ""
+
+msgid "pixels"
+msgstr ""
+
+msgid "Show large image"
+msgstr ""
+
+msgid "Show larger image in tooltip when hovering over an image swatch."
+msgstr ""
+
+msgid "Label position"
+msgstr ""
+
+msgid "Quantity input display"
+msgstr ""
+
+msgid "How to display the quantity fields?"
+msgstr ""
+
+msgid "Below quantity"
+msgstr ""
+
+msgid "Set the min and max choices needed (over all choices)."
+msgstr ""
+
+msgid "Cards"
+msgstr ""
+
+msgid "Define your cards (and their content) here."
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Add card"
+msgstr ""
+
+msgid "Set both to '1' if you only allow a single choice. Leave blank if you don't require a min or max."
+msgstr ""
+
+msgid "Max. cards per row."
+msgstr ""
+
+msgid "Define your color swatches here."
+msgstr ""
+
+msgid "Swatch layout"
+msgstr ""
+
+msgid "Square"
+msgstr ""
+
+msgid "Rounded corners"
+msgstr ""
+
+msgid "Circle"
+msgstr ""
+
+msgid "Set the swatch appearance."
+msgstr ""
+
+msgid "Size (in pixels)"
+msgstr ""
+
+msgid "Size of the color swatch."
+msgstr ""
+
+msgid "Below image"
+msgstr ""
+
+msgid "Define your swatches here."
+msgstr ""
+
+msgid "Allow multiple"
+msgstr ""
+
+msgid "Allow multiple files to be uploaded"
+msgstr ""
+
+msgid "Accepted file types"
+msgstr ""
+
+msgid "What file types can be uploaded?"
+msgstr ""
+
+msgid "Maximum file size (MB)"
+msgstr ""
+
+msgid "Maximum allowed size for 1 file."
+msgstr ""
+
+msgid "MB"
+msgstr ""
+
+msgid "Content"
+msgstr ""
+
+msgid "Can contain some basic HTML."
+msgstr ""
+
+msgid "Image"
+msgstr ""
+
+msgid "Find the lowest value among the provided numbers."
+msgstr ""
+
+msgid "The first number to compare."
+msgstr ""
+
+msgid "The 2nd number to compare."
+msgstr ""
+
+msgid "More numbers to compare."
+msgstr ""
+
+msgid "Find the highest value among the provided numbers."
+msgstr ""
+
+msgid "Text operations"
+msgstr ""
+
+msgid "Returns the number of characters in a text."
+msgstr ""
+
+msgid "spaces count as a character."
+msgstr ""
+
+msgid " spaces do not count as a character."
+msgstr ""
+
+msgid "The text for which to find the length. By default, spaces count as characters."
+msgstr ""
+
+msgid "True or false. When set to true, spaces won't count as characters."
+msgstr ""
+
+msgid "Returns a price from a price matrix (lookup table). <a href=\"https://www.studiowombat.com/knowledge-base/what-is-lookup-table-pricing-and-how-does-it-work/\" target=\"_blank\">Read detailed steps</a> on how to use this."
+msgstr ""
+
+msgid "it was defined in a matrix table."
+msgstr ""
+
+msgid "The name of your lookup table."
+msgstr ""
+
+msgid "The ID of the input field holding the 1st number for the number pair to look up."
+msgstr ""
+
+msgid "The ID of the input field holding the 2nd number for the number pair to look up."
+msgstr ""
+
+msgid "Text"
+msgstr ""
+
+msgid "A single-line input field."
+msgstr ""
+
+msgid "Basic"
+msgstr ""
+
+msgid "Text Area"
+msgstr ""
+
+msgid "A multi-line text field."
+msgstr ""
+
+msgid "Number"
+msgstr ""
+
+msgid "A number input field"
+msgstr ""
+
+msgid "E-mail"
+msgstr ""
+
+msgid "An email input field."
+msgstr ""
+
+msgid "URL"
+msgstr ""
+
+msgid "An input field only accepting URLs."
+msgstr ""
+
+msgid "Select list"
+msgstr ""
+
+msgid "A dropdown list where the user selects one option."
+msgstr ""
+
+msgid "Choice"
+msgstr ""
+
+msgid "Checkboxes"
+msgstr ""
+
+msgid "A series of checkboxes. The user can select multiple."
+msgstr ""
+
+msgid "Radio buttons"
+msgstr ""
+
+msgid "A series of radio buttons. The user can select one."
+msgstr ""
+
+msgid "True/False"
+msgstr ""
+
+msgid "One checkbox indicating true (\"yes\") or false (\"no\")."
+msgstr ""
+
+msgid "Image swatches"
+msgstr ""
+
+msgid "A series of image options. The user can select only one."
+msgstr ""
+
+msgid "Swatch"
+msgstr ""
+
+msgid "Multi-select image swatches"
+msgstr ""
+
+msgid "A series of image options. The user can select multiple."
+msgstr ""
+
+msgid "Images + quantities"
+msgstr ""
+
+msgid "A series of images with a quantity input box."
+msgstr ""
+
+msgid "Horizontal cards"
+msgstr ""
+
+msgid "A selectable card with informaiton."
+msgstr ""
+
+msgid "Vertical cards"
+msgstr ""
+
+msgid "Color swatches"
+msgstr ""
+
+msgid "A series of color options. The user can select only one."
+msgstr ""
+
+msgid "Multi-select color swatches"
+msgstr ""
+
+msgid "A series of color options. The user can select multiple."
+msgstr ""
+
+msgid "Text swatches"
+msgstr ""
+
+msgid "A series of text badges. The user can select only one."
+msgstr ""
+
+msgid "Multi-select text swatches"
+msgstr ""
+
+msgid "A series of text badges. The user can select multiple."
+msgstr ""
+
+msgid "File upload"
+msgstr ""
+
+msgid "Allows users to upload one or more files."
+msgstr ""
+
+msgid "Advanced"
+msgstr ""
+
+msgid "Text & HTML"
+msgstr ""
+
+msgid "A text paragraph. Some HTML and shortcodes are allowed."
+msgstr ""
+
+msgid "An image."
+msgstr ""
+
+msgid "Section"
+msgstr ""
+
+msgid "A wrapper for fields, handy for styling or to enable a repeater for multiple fields."
+msgstr ""
+
+msgid "Layout"
+msgstr ""
+
+msgid "Section end"
+msgstr ""
+
+msgid "Ends a previously started section."
+msgstr ""
+
+msgid "Date"
+msgstr ""
+
+msgid "Allows users to select a date from a calendar."
+msgstr ""
+
+msgid "This section contains basic layout settings."
+msgstr ""
+
+msgid "Row gap"
+msgstr ""
+
+msgid "Define the bottom margin between fields."
+msgstr ""
+
+msgid "Field labels"
+msgstr ""
+
+msgid "The field label is the title which (usually) appears above the input field."
+msgstr ""
+
+msgid "Font size"
+msgstr ""
+
+msgid "Label color"
+msgstr ""
+
+msgid "Inherit from theme"
+msgstr ""
+
+msgid "Font weight"
+msgstr ""
+
+msgid "400 (normal)"
+msgstr ""
+
+msgid "500 (medium)"
+msgstr ""
+
+msgid "600 (semi-bold)"
+msgstr ""
+
+msgid "700 (bold)"
+msgstr ""
+
+msgid "Tooltips"
+msgstr ""
+
+msgid "These are the settings for the tooltips that may be shown for certain fields."
+msgstr ""
+
+msgid "Background color"
+msgstr ""
+
+msgid "Text color"
+msgstr ""
+
+msgid "Icon color"
+msgstr ""
+
+msgid "The tooltip is triggered by clicking/hovering an icon next to the field's label. You can define the icon's color here"
+msgstr ""
+
+msgid "General input settings"
+msgstr ""
+
+msgid "Various settings for text input fields and dropdown lists."
+msgstr ""
+
+msgid "Color of text inside input fields and dropdown lists."
+msgstr ""
+
+msgid "Field corner radius"
+msgstr ""
+
+msgid "This setting changes the corner radius of text input fields, select (dropdown) lists, and number/quantity selectors."
+msgstr ""
+
+msgid "Field height"
+msgstr ""
+
+msgid "This setting changes the height of text input fields and select (dropdown) lists."
+msgstr ""
+
+msgid "Border thickness"
+msgstr ""
+
+msgid "If you don't want a border, set this to zero or click the \"clear\" button."
+msgstr ""
+
+msgid "Interaction style"
+msgstr ""
+
+msgid "Define styles for the different input states: default and focussed (when typing)."
+msgstr ""
+
+msgid "Default"
+msgstr ""
+
+msgid "Focus"
+msgstr ""
+
+msgid "Input background color"
+msgstr ""
+
+msgid "Transparent"
+msgstr ""
+
+msgid "Border color"
+msgstr ""
+
+msgid "Same as \"default\" state"
+msgstr ""
+
+msgid "Dropdown (select) lists"
+msgstr ""
+
+msgid "Dropdown lists inherit most of their styling from the \"general input settings\" section."
+msgstr ""
+
+msgid "Arrow color"
+msgstr ""
+
+msgid "Inherit"
+msgstr ""
+
+msgid "A dropdown list has an arrow icon on the right side. Define its color here."
+msgstr ""
+
+msgid "Create custom checkboxes with the below design settings."
+msgstr ""
+
+msgid "You can choose to style checkboxes or keep their default browser style."
+msgstr ""
+
+msgid "Browser standard (unstyled)"
+msgstr ""
+
+msgid "Styled checkboxes"
+msgstr ""
+
+msgid "Corner radius"
+msgstr ""
+
+msgid "Define styles for the different checkbox states: default, mouseover (hover), selected (checkbox is checked)."
+msgstr ""
+
+msgid "Hover"
+msgstr ""
+
+msgid "Selected"
+msgstr ""
+
+msgid "Tick color"
+msgstr ""
+
+msgid "Create custom radio buttons with the below design settings."
+msgstr ""
+
+msgid "You can choose to style radio buttons or keep their default browser style."
+msgstr ""
+
+msgid "Styled radio buttons"
+msgstr ""
+
+msgid "Define styles for the different button states: default, mouseover (hover), selected (radio button is checked)."
+msgstr ""
+
+msgid "Number & quantity selector"
+msgstr ""
+
+msgid "Number and quantity fields have an option to display the input as a selector with plus and minus buttons. Customize their style here."
+msgstr ""
+
+msgid "Width"
+msgstr ""
+
+msgid "Add a border to mark the buttons."
+msgstr ""
+
+msgid "Button text color"
+msgstr ""
+
+msgid "Button background color"
+msgstr ""
+
+msgid "Override input styles"
+msgstr ""
+
+msgid "The styles of the \"general input settings\" section are used. Turn this toggle on if you want to override those settings here."
+msgstr ""
+
+msgid "If you don't want a border, set it to zero or click the \"clear\" button."
+msgstr ""
+
+msgid "Boxed"
+msgstr ""
+
+msgid "Add inside borders to mark the buttons."
+msgstr ""
+
+msgid "Define styles for the different input states: default and focussed (when typing in the field)."
+msgstr ""
+
+msgid "Input text color"
+msgstr ""
+
+msgid "Text Swatches"
+msgstr ""
+
+msgid "These are the settings for the text swatch field."
+msgstr ""
+
+msgid "If you don't want a border, click the red clear button or set the thickness to zero."
+msgstr ""
+
+msgid "Image Swatches"
+msgstr ""
+
+msgid "These are the settings related to the image swatch field."
+msgstr ""
+
+msgid "Image corner radius"
+msgstr ""
+
+msgid "Border gap"
+msgstr ""
+
+msgid "Using a gap between the image and border helps distinguish the image from the site's background."
+msgstr ""
+
+msgid "These are the settings related to the color swatch field."
+msgstr ""
+
+msgid "Using a gap between the color and border helps distinguish the image from the site's background."
+msgstr ""
+
+msgid "Gap color"
+msgstr ""
+
+msgid "#fff"
+msgstr ""
+
+msgid "Selection color"
+msgstr ""
+
+msgid "Date picker (calendar)"
+msgstr ""
+
+msgid "These are the design settings related to the date picker field."
+msgstr ""
+
+msgid "Define styles for the different states."
+msgstr ""
+
+msgid "File Upload"
+msgstr ""
+
+msgid "These are the design settings for the (modern) file upload field."
+msgstr ""
+
+msgid "Border"
+msgstr ""
+
+msgid "Define the border color, style, and thickness with this setting. If you don't want a border, press the red \"clear\" button."
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Progress bar color"
+msgstr ""
+
+msgid "Progress bar background color"
+msgstr ""
+
+msgid "Design settings related to the \"Images + Quantities\" field type."
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Define a gap between the image and the quantity field."
+msgstr ""
+
+msgid "Below are the design settings related to the various \"Cards\" field types."
+msgstr ""
+
+msgid "Card corder radius"
+msgstr ""
+
+msgid "Shadow"
+msgstr ""
+
+msgid "Extra smal"
+msgstr ""
+
+msgid "Small"
+msgstr ""
+
+msgid "Medium"
+msgstr ""
+
+msgid "Large"
+msgstr ""
+
+msgid "Add a shadow around the card."
+msgstr ""
+
+msgid "Show icon"
+msgstr ""
+
+msgid "Add a checkmark icon to highlight the selected card."
+msgstr ""
+
+msgid "Below are the design settings related to the various \"Cards\" field types that include quantity input boxes."
+msgstr ""
+
+msgid "Define the border color, style, and thickness with this setting."
+msgstr ""
+
+msgid "No border"
+msgstr ""
+
+msgid "This setting changes the corner radius of the card."
+msgstr ""
+
+msgid "Override selector styling"
+msgstr ""
+
+msgid "The styles of the \"number & quantity selector\" section are used. Turn this toggle on if you want to override those settings here.\""
+msgstr ""
+
+msgid "CSS file can not be read."
+msgstr ""
+
+msgid "CSS file is not writable."
+msgstr ""
+
+msgid "Existing CSS content is empty."
+msgstr ""
+
+msgid "Could not find write-position in the CSS file."
+msgstr ""
+
+msgid "Could not generate the necessary CSS variables."
+msgstr ""
+
+msgid "Couldn't write the result to the CSS file."
+msgstr ""
+
+msgid "Error uploading file \"%s\". %s"
+msgstr ""
+
+msgid "You are not authorized to upload files."
+msgstr ""
+
+msgid "The uploaded file type is not allowed."
+msgstr ""
+
+msgid "This file doesn't belong to any product option."
+msgstr ""
+
+msgid "Error uploading file \"%s\". Please try again."
+msgstr ""
+
+msgid "You are not allowed to upload multiple files."
+msgstr ""
+
+msgid "The uploaded file exceeds the upload_max_filesize directive in php.ini."
+msgstr ""
+
+msgid "Failed to write file to disk."
+msgstr ""
+
+msgid "The uploaded file was only partially uploaded."
+msgstr ""
+
+msgid "Error code: %s"
+msgstr ""
+
+msgid "The filesize is too big."
+msgstr ""
+
+msgid "This file type is not supported."
+msgstr ""
+
+msgid "The maximum number of allowed simultanious uploads was exceeded. Please upload less files."
+msgstr ""
+
+msgid "per character"
+msgstr ""
+
+msgid "Choose an option"
+msgstr ""
+
+msgid "quantity"
+msgstr ""
+
+msgid "Reduce"
+msgstr ""
+
+msgid "Increase"
+msgstr ""
+
+msgid "Updates are disabled because your license key is expired. To enable updates, please renew your license key."
+msgstr ""
+
+msgid "Fields"
+msgstr ""
+
+msgid "Duplicate &#8220;%s&#8221;"
+msgstr ""
+
+msgid "Duplicate"
+msgstr ""
+
+msgid "No Product Field Groups found."
+msgstr ""
+
+msgid "Any value"
+msgstr ""
+
+msgid "any"
+msgstr ""
+
+msgid "Download files"
+msgstr ""
+
+msgid "Delete files"
+msgstr ""
+
+msgid "Are you sure you want to delete uploaded files from this order? This action can't be undone."
+msgstr ""
+
+msgid "Price display"
+msgstr ""
+
+msgid "Hide the price"
+msgstr ""
+
+msgid "Add a label before the price"
+msgstr ""
+
+msgid "Add a label after the price"
+msgstr ""
+
+msgid "Replace WooCommerce price with text"
+msgstr ""
+
+msgid "Extra price label"
+msgstr ""
+
+msgid "Additional or replacement text for the price display. If or how this is displayed depends on the setting above."
+msgstr ""
+
+msgid "Please add a field group title first."
+msgstr ""
+
+msgid "Please add some fields first."
+msgstr ""
+
+msgid "Product Fields"
+msgstr ""
+
+msgid "Field groups per page"
+msgstr ""
+
+msgid "License activated. You can now add custom fields by going to WooCommerce > Product Fields or by editing a product individually."
+msgstr ""
+
+msgid "License deactivated"
+msgstr ""
+
+msgid "Global fields"
+msgstr ""
+
+msgid "Copy"
+msgstr ""
+
+msgid "Custom fields"
+msgstr ""
+
+msgid "Add custom fields to this group."
+msgstr ""
+
+msgid "Layout & design settings"
+msgstr ""
+
+msgid "Custom variables"
+msgstr ""
+
+msgid "Create dynamic variables to use with formula-based pricing"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "Design"
+msgstr ""
+
+msgid "License key"
+msgstr ""
+
+msgid "Design settings"
+msgstr ""
+
+msgid "General settings"
+msgstr ""
+
+msgid "Show in cart"
+msgstr ""
+
+msgid "Show on customer's cart page."
+msgstr ""
+
+msgid "When a user has filled out your fields, should they be summarized on their cart page after adding the product to their cart?"
+msgstr ""
+
+msgid "Show on checkout"
+msgstr ""
+
+msgid "Show on the checkout page."
+msgstr ""
+
+msgid "When a user has filled out your fields, should they be summarized on their checkout page?"
+msgstr ""
+
+msgid "Show in mini cart"
+msgstr ""
+
+msgid "Show in mini cart."
+msgstr ""
+
+msgid "When a user has filled out your fields, should they be summarized on the mini (floating) cart?"
+msgstr ""
+
+msgid "Display pricing summary"
+msgstr ""
+
+msgid "How to display the pricing summary on the product page"
+msgstr ""
+
+msgid "Show 3-line summary below the options"
+msgstr ""
+
+msgid "Show only grand total below the options"
+msgstr ""
+
+msgid "Show price hints"
+msgstr ""
+
+msgid "Show price hints."
+msgstr ""
+
+msgid "When an option changes the final product price, a pricing hint is shown next to the option. You can disable that here."
+msgstr ""
+
+msgid "Pricing hint format"
+msgstr ""
+
+msgid "The format for all pricing hints. Use {x} to represent the price."
+msgstr ""
+
+msgid "(+{x})"
+msgstr ""
+
+msgid "Edit cart"
+msgstr ""
+
+msgid "Enable editing from cart."
+msgstr ""
+
+msgid "When enabled, users can edit product options from their cart."
+msgstr ""
+
+msgid "Advanced field settings"
+msgstr ""
+
+msgid "Modern uploader"
+msgstr ""
+
+msgid "Enable the modern (ajax) uploader."
+msgstr ""
+
+msgid "Replace the default browser file upload with a more modern uploader. You may need to enable this if your theme is not compatible with the default file upload."
+msgstr ""
+
+msgid "Must be logged in"
+msgstr ""
+
+msgid "Users must be logged in to upload files."
+msgstr ""
+
+msgid "Customers must log in to your site before uploading files."
+msgstr ""
+
+msgid "Enable date fields"
+msgstr ""
+
+msgid "Enable date fields."
+msgstr ""
+
+msgid "The date field requires additional scripts. Enabling this will load those scripts and allow you to create date fields."
+msgstr ""
+
+msgid "Date format"
+msgstr ""
+
+msgid "Available date placeholders: mm, m, dd, d, yyyy, yy. You can include symbols (like dot, dash, or slash) but no extra letters or numbers."
+msgstr ""
+
+msgid "What date format should be used for the date picker (both on the site and order admin screens)?"
+msgstr ""
+
+msgid "mm-dd-yyyy"
+msgstr ""
+
+msgid "labels"
+msgstr ""
+
+msgid "\"Add to cart\" button on shop page"
+msgstr ""
+
+msgid "When a product has custom fields, what should the \"add to cart\" button text be on the shop page?"
+msgstr ""
+
+msgid "Select options"
+msgstr ""
+
+msgid "\"Must be logged in\" text"
+msgstr ""
+
+msgid "If users need to log in before uploading files, display a message to let them know."
+msgstr ""
+
+msgid "You need to be logged in to upload files."
+msgstr ""
+
+msgid "Product fields"
+msgstr ""
+
+msgid "Tools"
+msgstr ""
+
+msgid "Conditions"
+msgstr ""
+
+msgid "When should this field group be displayed?"
+msgstr ""
+
+msgid "Layout & design"
+msgstr ""
+
+msgid "Field group layout settings"
+msgstr ""
+
+msgid "Help with conditions"
+msgstr ""
+
+msgid "In the \"conditions\" section, you can define on which products your options should be shown. Here are a few examples of what you can do:<ul><li>Only show the options on products from a certain category</li><li>Only show the options to users with a certain role.</li><li>Only show these options on variable products.</li></ul>"
+msgstr ""
+
+msgid "Help with custom variables"
+msgstr ""
+
+msgid "You can create dynamic variables which can then be used in formulas. A variable can dynamically change value depending on other values.<br/><br/><a href=\"https://www.studiowombat.com/knowledge-base/formulas-and-variables-explained/?ref=wapf_admin#variables\" target=\"_blank\">Read more about variables here</a>"
+msgstr ""
+
+msgid "Increase product weight when this field is used."
+msgstr ""
+
+msgid "Sunday"
+msgstr ""
+
+msgid "Monday"
+msgstr ""
+
+msgid "Tuesday"
+msgstr ""
+
+msgid "Wednesday"
+msgstr ""
+
+msgid "Thursday"
+msgstr ""
+
+msgid "Friday"
+msgstr ""
+
+msgid "Saturday"
+msgstr ""
+
+msgid "Calculation type"
+msgstr ""
+
+msgid "Informational calculation"
+msgstr ""
+
+msgid "Cost calculation"
+msgstr ""
+
+msgid "Select the type of calculation."
+msgstr ""
+
+msgid "Is the calculation being shown for informational purpose only, or should it also adjust the product price?"
+msgstr ""
+
+msgid "Result format"
+msgstr ""
+
+msgid "Don't apply formatting"
+msgstr ""
+
+msgid "Format as number"
+msgstr ""
+
+msgid "Formula"
+msgstr ""
+
+msgid "Build your formula."
+msgstr ""
+
+msgid "Result text"
+msgstr ""
+
+msgid "The text displayed before & after the result."
+msgstr ""
+
+msgid "Enter the text to display before/after the calculation result. Use <i>{{result}}</i> to refer to the result. Leave blank if you only want to show the result."
+msgstr ""
+
+msgid "Disable days"
+msgstr ""
+
+msgid "Define days that can't be selected."
+msgstr ""
+
+msgid "Min. date"
+msgstr ""
+
+msgid "Use format mm-dd-yyyy or <a href=\"#\" onclick=\"javascript:event.preventDefault();jQuery('.modal--dynamic-date').show();\">use a dynamic date</a>."
+msgstr ""
+
+msgid "The minimum selectable date."
+msgstr ""
+
+msgid "You can use special codes to target a dynamic date in the future or past, relative from today. A few examples: <ul><li><code>0d</code> means today.</li><li><code>7d</code> means 7 days from today.</li><li><code>-10d</code> means 10 days ago.</li></ul> You can use <code>y</code> for years, <code>m</code> for months, and <code>d</code> for days. You can list multiple periods with a space in between. Some more examples: <ul><li><code>-1m -7d</code> means 1 month and 7 days ago.</li><li><code>1y 9m 3d</code> means 1 year, 9 months, and 3 days from today.</li></ul><h4>Reference other date fields</h4>You can also reference othere date fields by using the code <code>[field.{{id}}]</code>. Replace <code> {{id}} </code> with your field’s ID. Here’s an example: <code>[field.5e8c41711d1db]</code> For example, you can have 2 date fields asking for a 'start' date and an 'end' date. The user should not be able to select an end date before the start date. To do this, you can set the minimum date of the 'end' date to <code>[field.{{id}}]+1d</code>"
+msgstr ""
+
+msgid "Max. date"
+msgstr ""
+
+msgid "The maximum selectable date."
+msgstr ""
+
+msgid "Disabled dates"
+msgstr ""
+
+msgid "Use format mm-dd-yyyy or mm-dd for yearly recurring dates. Separate multiple dates with a comma. Specify date ranges with a space between the start and end date."
+msgstr ""
+
+msgid "Which dates can't be selected?"
+msgstr ""
+
+msgid "Select a time"
+msgstr ""
+
+msgid "Disable today after a specific time"
+msgstr ""
+
+msgid "Can't select today's date if time is equal or after this setting. Leave blank to ignore."
+msgstr ""
+
+msgid "Calculation"
+msgstr ""
+
+msgid "Show a calculation result or optionally adjust the product price."
+msgstr ""
+
+msgid "Calculate only on base price"
+msgstr ""
+
+msgid "Calculate the percentage only on the base product price & exclude any additional pricing set by <a href=\"https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/\">Advanced Product Fields for WooCommerce</a>."
+msgstr ""
+
+msgid "Hide quantity controls on the cart item."
+msgstr ""
+
+msgid "Cannot change product quantity because a linked child product has insufficient stock."
+msgstr ""
+
+msgid "Some selections of \"%s\" are invalid. Please refresh the page and try again."
+msgstr ""
+
+msgid "Some selections of \"%s\" are no longer available for purchase."
+msgstr ""
+
+msgid "The product \"%s\" is no longer available for purchase."
+msgstr ""
+
+msgid "The product \"%s\" is no longer in stock."
+msgstr ""
+
+msgid "The product \"%s\" doesn't have enough stock. Please select a smaller quantity. "
+msgstr ""
+
+msgid "STOCK FAILURE: stock levels could'nt be adjusted after a refund for these child products: %s."
+msgstr ""
+
+msgid "Stock levels adjusted after a refund for the following child products: %s."
+msgstr ""
+
+msgid "STOCK FAILURE: stock levels could'nt be increased for the following child products: %s."
+msgstr ""
+
+msgid "Stock levels increased for the following child products: %s."
+msgstr ""
+
+msgid "STOCK FAILURE: stock levels could'nt be adjusted for the following child products: %s."
+msgstr ""
+
+msgid "Stock levels reduced for the following child products: %s."
+msgstr ""
+
+msgid "Products"
+msgstr ""
+
+msgid "Allow customers to select existing products from your store."
+msgstr ""
+
+msgid "No quantity given"
+msgstr ""
+
+msgid "Display products as"
+msgstr ""
+
+msgid "Simple choices"
+msgstr ""
+
+msgid "Images"
+msgstr ""
+
+msgid "Product cards"
+msgstr ""
+
+msgid "Horizontal cards with quantities"
+msgstr ""
+
+msgid "Vertical cards with quantities"
+msgstr ""
+
+msgid "Product image"
+msgstr ""
+
+msgid "Product description"
+msgstr ""
+
+msgid "Included components"
+msgstr ""
+
+msgid "Define what info should be displayed on the cards."
+msgstr ""
+
+msgid "Extra info components"
+msgstr ""
+
+msgid "Define what extra info should be shown on the cards."
+msgstr ""
+
+msgid "Slot 1 (next to title)"
+msgstr ""
+
+msgid "No data"
+msgstr ""
+
+msgid "Product price"
+msgstr ""
+
+msgid "Stock"
+msgstr ""
+
+msgid "Details link"
+msgstr ""
+
+msgid "Slot 2 (bottom)"
+msgstr ""
+
+msgid "Slot 3 (bottom)"
+msgstr ""
+
+msgid "Included products"
+msgstr ""
+
+msgid "Cards per row"
+msgstr ""
+
+msgid "Image fitting"
+msgstr ""
+
+msgid "How to display the image?"
+msgstr ""
+
+msgid "Fill container"
+msgstr ""
+
+msgid "Scale to fit"
+msgstr ""
+
+msgid "What is this?"
+msgstr ""
+
+msgid "Image fitting mode"
+msgstr ""
+
+msgid "This setting determines how the image should be displayed within its container. <ul><li><strong>Fill container:</strong> The image fills the container (and maintains aspect ratio). It might crop parts of the image to ensure it fully covers the container.</li><li><strong>Scale to fit:</strong> The image is scaled to fit entirely within the container. It may leave empty space around it, so this is ideal for images with a transparent background.</li></ul>"
+msgstr ""
+
+msgid "Quantity selection"
+msgstr ""
+
+msgid "Just one"
+msgstr ""
+
+msgid "Same as parent"
+msgstr ""
+
+msgid "How many products should be added to cart per selection?"
+msgstr ""
+
+msgid "Set the min and max choices needed (over all choices)"
+msgstr ""
+
+msgid "Link to edit the cart item."
+msgstr ""
+
+msgid "edit"
+msgstr ""
+
+msgid "Your cart contains incorrect or outdated information. "
+msgstr ""
+
+msgid "Error adding product to cart."
+msgstr ""
+
+msgid "Included with"
+msgstr ""
+
+msgid "N/a"
+msgstr ""
+
+msgid "Rules"
+msgstr ""
+
+msgid "Add rules to determine for which products the fields should show."
+msgstr ""
+
+msgid "Add your first rule"
+msgstr ""
+
+msgid "If you don't add any rules, this field group will display on all products."
+msgstr ""
+
+msgid "If you create multiple rules using the 'or' button, the first group that evaluates to true will be used."
+msgstr ""
+
+msgid "or"
+msgstr ""
+
+msgid "User is"
+msgstr ""
+
+msgid "And"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Or"
+msgstr ""
+
+msgid "It seems you've created multiple 'OR' conditions that should be grouped into 1 condition. <a href=\"https://www.studiowombat.com/wp-content/uploads/2025/10/grouping-rules-together-correctly.png\" target=\"_blank\">See this screenshot</a> on how to fix it."
+msgstr ""
+
+msgid "A field group is a collection of fields that belong together."
+msgstr ""
+
+msgid "Advanced Product Fields - Important notice"
+msgstr ""
+
+msgid "To keep the plugin Advanced Product Fields running smoothly, we have to update your database. This typically doesn't take long but it depends on how many products are using the plugin. We recommend taking a backup before performing this action."
+msgstr ""
+
+msgid "Update Database"
+msgstr ""
+
+msgid "Starting update..."
+msgstr ""
+
+msgid "Something went wrong. Try again or <a target=\"_blank\" href=\"https://studiowombat.com/request-support\">contact support</a>."
+msgstr ""
+
+msgid "Revert changes"
+msgstr ""
+
+msgid "View all fields"
+msgstr ""
+
+msgid "To ensure optimal page load performance, the field list is not displayed yet.<br/>If you want to edit or add fields, click the button above to view the list. Rendering may take a moment to complete."
+msgstr ""
+
+msgid "Add your first field"
+msgstr ""
+
+msgid "It appears you are using the paid version without a valid license. Features are temporarily disabled.<br/>If this is a mistake, please <a style=\"color: #fff;text-decoration: underline\" target=\"_blank\" href=\"https://www.studiowombat.com/request-support/\">contact support</a> for help."
+msgstr ""
+
+msgid "Add a Field"
+msgstr ""
+
+msgid "Drag & drop"
+msgstr ""
+
+msgid "(No label)"
+msgstr ""
+
+msgid "copy"
+msgstr ""
+
+msgid "copied!"
+msgstr ""
+
+msgid "Duplicate field"
+msgstr ""
+
+msgid "Delete field"
+msgstr ""
+
+msgid "Date selection"
+msgstr ""
+
+msgid "Appearance"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "The field's type."
+msgstr ""
+
+msgid "Label"
+msgstr ""
+
+msgid "Label shown near the field."
+msgstr ""
+
+msgid "Instructions"
+msgstr ""
+
+msgid "Display extra info near the field."
+msgstr ""
+
+msgid "Required"
+msgstr ""
+
+msgid "Looking for more design settings? Explore all color, style, and design settings <a target=\"_blank\" href=\"/wp-admin/admin.php?page=wc-settings&tab=wapf_settings&section=design\">here</a>."
+msgstr ""
+
+msgid "Hide this field value on the cart page"
+msgstr ""
+
+msgid "Hide this field value on the checkout page"
+msgstr ""
+
+msgid "Hide this field value on the \"order received\" page and emails."
+msgstr ""
+
+msgid "Hide on cart, checkout, order"
+msgstr ""
+
+msgid "Hide field values from cart, checkout, or order."
+msgstr ""
+
+msgid "Wrapper attributes"
+msgstr ""
+
+msgid "Enable repeater"
+msgstr ""
+
+msgid "Make the element repeatable."
+msgstr ""
+
+msgid "Conditional logic"
+msgstr ""
+
+msgid "Show field only if conditions are met."
+msgstr ""
+
+msgid "Arithmetic"
+msgstr ""
+
+msgid "Variables"
+msgstr ""
+
+msgid "Functions"
+msgstr ""
+
+msgid "View help"
+msgstr ""
+
+msgid "Where should the label be positioned?"
+msgstr ""
+
+msgid "Above the field"
+msgstr ""
+
+msgid "Below the field"
+msgstr ""
+
+msgid "Instruction position"
+msgstr ""
+
+msgid "Where should instructions be positioned?"
+msgstr ""
+
+msgid "Below the label"
+msgstr ""
+
+msgid "Mark required fields"
+msgstr ""
+
+msgid "Add *-symbol for required fields."
+msgstr ""
+
+msgid "Change product image"
+msgstr ""
+
+msgid "Change the main product image depending on selected options."
+msgstr ""
+
+msgid "Want to style your fields? %s"
+msgstr ""
+
+msgid "Go to design the settings."
+msgstr ""
+
+msgid "Deactivate"
+msgstr ""
+
+msgid "Activate license"
+msgstr ""
+
+msgid "Please enter your license key to activate the plugin and click 'Activate license'."
+msgstr ""
+
+msgid "Import"
+msgstr ""
+
+msgid "Export"
+msgstr ""
+
+msgid "You can use the code below to import into another field group (or product). If you are importing this on a different website, all images need re-linking as they are not copied along."
+msgstr ""
+
+msgid "You can use the code below to import into another product. If you are importing this on a different website, all images need re-linking as they are not copied along."
+msgstr ""
+
+msgid "Paste exported code below to import it into this field group. This will overwrite any current configuration."
+msgstr ""
+
+msgid "Paste exported code below to import it into this product. This will overwrite any current configuration."
+msgstr ""
+
+msgid "Import mode:"
+msgstr ""
+
+msgid "Replace with imported"
+msgstr ""
+
+msgid "Append to existing"
+msgstr ""
+
+msgid "Import done!"
+msgstr ""
+
+msgid "An error occured. Did you paste all the code?"
+msgstr ""
+
+msgid "You can import multiple options at once by placing each option on a separate line below."
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "{x} out of {y} items imported"
+msgstr ""
+
+msgid "Visually build your formula below or check the function glossary to find out more about functions."
+msgstr ""
+
+msgid "Functions glossary"
+msgstr ""
+
+msgid "Learn about formulas"
+msgstr ""
+
+msgid "Choose a function from the list to learn more about it."
+msgstr ""
+
+msgid "Optional"
+msgstr ""
+
+msgid "<code>%s</code> returns <code>%s</code>%s"
+msgstr ""
+
+msgid "because"
+msgstr ""
+
+msgid "Parameters"
+msgstr ""
+
+msgid "Examples"
+msgstr ""
+
+msgid "Duplicate variable"
+msgstr ""
+
+msgid "Delete variable"
+msgstr ""
+
+msgid "Variable name"
+msgstr ""
+
+msgid "A unique key to identify your variable. Use this key in pricing formulas."
+msgstr ""
+
+msgid "Should only contain letters, numbers, or underscores."
+msgstr ""
+
+msgid "Standard value"
+msgstr ""
+
+msgid "The default value of your variable."
+msgstr ""
+
+msgid "This should be a number or a formula."
+msgstr ""
+
+msgid "Value changes"
+msgstr ""
+
+msgid "Add rules when the value of this variable should change."
+msgstr ""
+
+msgid "If this happens"
+msgstr ""
+
+msgid "Field value changes"
+msgstr ""
+
+msgid "Product quantity changes"
+msgstr ""
+
+msgid "And quantity"
+msgstr ""
+
+msgid " is equal to"
+msgstr ""
+
+msgid "is not equal to"
+msgstr ""
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is lesser than"
+msgstr ""
+
+msgid "This field changes"
+msgstr ""
+
+msgid "Product ID"
+msgstr ""
+
+msgid "Variable value is"
+msgstr ""
+
+msgid "Add new rule"
+msgstr ""
+
+msgid "Add new variable"
+msgstr ""
+
+msgid "Product total"
+msgstr ""
+
+msgid "Options total"
+msgstr ""
+
+msgid "Grand total"
+msgstr ""
+
+msgid "Repeat with persons"
+msgstr ""
+
+msgid "Should this field appear as many times as persons on the booking?"
+msgstr ""
+
+msgid "Repeat for person type"
+msgstr ""
+
+msgid "Select which person type this field should repeat for."
+msgstr ""
+
+msgid "Class"
+msgstr ""
+
+msgid "Product selection: "
+msgstr ""
+
+msgid "Select specific products"
+msgstr ""
+
+msgid "Auto-populate by category"
+msgstr ""
+
+msgid "Category"
+msgstr ""
+
+msgid "Search a category..."
+msgstr ""
+
+msgid "Max. limit"
+msgstr ""
+
+msgid "Sorting"
+msgstr ""
+
+msgid "Creation date (newest first)"
+msgstr ""
+
+msgid "Creation date (oldest first)"
+msgstr ""
+
+msgid "Title (A-Z)"
+msgstr ""
+
+msgid "Title (Z-A)"
+msgstr ""
+
+msgid "Price"
+msgstr ""
+
+msgid "Free"
+msgstr ""
+
+msgid "Select"
+msgstr ""
+
+msgid "Disable"
+msgstr ""
+
+msgid "Search a product..."
+msgstr ""
+
+msgid "more"
+msgstr ""
+
+msgid "less"
+msgstr ""
+
+msgid "Add product"
+msgstr ""
+
+msgid "Color"
+msgstr ""
+
+msgid "Price type"
+msgstr ""
+
+msgid "Pricing"
+msgstr ""
+
+msgid "No price change"
+msgstr ""
+
+msgid "Enter formula"
+msgstr ""
+
+msgid "Amount"
+msgstr ""
+
+msgid "Add option"
+msgstr ""
+
+msgid "Pricing help"
+msgstr ""
+
+msgid "You need atleast 2 fields to create conditional rules. Add another field first."
+msgstr ""
+
+msgid "Add new rule group"
+msgstr ""
+
+msgid "Show this field if"
+msgstr ""
+
+msgid "Or add new rule group"
+msgstr ""
+
+msgid "Learn about all field types"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "How should images be swapped?"
+msgstr ""
+
+msgid "According to the last option changed"
+msgstr ""
+
+msgid "According to a combination of option values"
+msgstr ""
+
+msgid "Any"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Select from the product gallery or upload your own:"
+msgstr ""
+
+msgid "Select image"
+msgstr ""
+
+msgid "&darr; Show all rules ({hidden} hidden) &darr;"
+msgstr ""
+
+msgid "&uarr; Show less rules &uarr;"
+msgstr ""
+
+msgid "You can add rules below. A rule holds a set of values which have to be true before showing that product image. If two or more rules are true, the last rule will be used."
+msgstr ""
+
+msgid "The product image changes based on the value of the last option changed by your visitor. You can set an image for each option value below."
+msgstr ""
+
+msgid "Add new"
+msgstr ""
+
+msgid "Before you can add rules, you must add one of these fields: true-false, select, swatches, checkboxes, or radio buttons."
+msgstr ""
+
+msgid "Help with pricing"
+msgstr ""
+
+msgid "Repeater type"
+msgstr ""
+
+msgid "Repeat based on WooCommerce quantity input"
+msgstr ""
+
+msgid "Repeat by clicking a button"
+msgstr ""
+
+msgid "Label for duplicates"
+msgstr ""
+
+msgid "use {{n}} to denote the number of the duplicate. Leave blank if you don't need a label."
+msgstr ""
+
+msgid "\"Add\" button text"
+msgstr ""
+
+msgid "\"Delete\" button text"
+msgstr ""
+
+msgid "Maximum repetitions"
+msgstr ""
+
+msgid "Set the max. allowed repetitions. Leave blank if you don't need a maximum."
+msgstr ""
+
+msgid "File is too big ({{filesize}}MB). Max filesize is {{maxFilesize}}MB."
+msgstr ""
+
+msgid "You can't upload files of this type."
+msgstr ""
+
+msgid "You can't upload any more files."
+msgstr ""
+
+msgid "Upload canceled."
+msgstr ""
+
+msgid "Remove file"
+msgstr ""
+
+msgid "Drag files here or <span>browse</span>"
+msgstr ""
