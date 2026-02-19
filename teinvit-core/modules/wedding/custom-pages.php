@@ -21,9 +21,90 @@ function teinvit_model_background_url( $model_key ) {
 }
 
 add_action( 'init', function() {
+    register_post_type( 'teinvit_invitation', [
+        'labels' => [
+            'name'          => __( 'TeInvit Invitations', 'teinvit-core' ),
+            'singular_name' => __( 'TeInvit Invitation', 'teinvit-core' ),
+        ],
+        'public'             => false,
+        'show_ui'            => true,
+        'show_in_rest'       => true,
+        'exclude_from_search'=> true,
+        'publicly_queryable' => false,
+        'rewrite'            => false,
+        'supports'           => [ 'title', 'editor', 'thumbnail', 'excerpt', 'revisions' ],
+        'menu_position'      => 56,
+        'menu_icon'          => 'dashicons-email-alt2',
+    ] );
+
     add_rewrite_rule( '^admin-client/([^/]+)/?$', 'index.php?teinvit_admin_client_token=$matches[1]', 'top' );
     add_rewrite_rule( '^invitati/([^/]+)/?$', 'index.php?teinvit_invitati_token=$matches[1]', 'top' );
 } );
+
+function teinvit_get_invitation_post_id_by_token( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return 0;
+    }
+
+    $posts = get_posts( [
+        'post_type'              => 'teinvit_invitation',
+        'post_status'            => [ 'publish', 'draft', 'pending', 'private' ],
+        'meta_key'               => 'teinvit_token',
+        'meta_value'             => $token,
+        'posts_per_page'         => 1,
+        'orderby'                => 'ID',
+        'order'                  => 'DESC',
+        'fields'                 => 'ids',
+        'no_found_rows'          => true,
+        'ignore_sticky_posts'    => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    ] );
+
+    return ! empty( $posts ) ? (int) $posts[0] : 0;
+}
+
+function teinvit_seed_invitation_post_if_missing( $token, $order_id ) {
+    $post_id = teinvit_get_invitation_post_id_by_token( $token );
+    if ( $post_id > 0 ) {
+        return $post_id;
+    }
+
+    $post_id = wp_insert_post( [
+        'post_type'    => 'teinvit_invitation',
+        'post_status'  => 'publish',
+        'post_title'   => sprintf( 'Invitation %s', $token ),
+        'post_content' => '',
+    ] );
+
+    if ( is_wp_error( $post_id ) || ! $post_id ) {
+        return 0;
+    }
+
+    update_post_meta( $post_id, 'teinvit_token', $token );
+    update_post_meta( $post_id, 'teinvit_order_id', (int) $order_id );
+
+    return (int) $post_id;
+}
+
+function teinvit_render_tokenized_invitation_template( $mode, $token, $invitation_post_id ) {
+    $template_path = TEINVIT_WEDDING_MODULE_PATH . 'templates/single-teinvit_invitation.php';
+    if ( ! file_exists( $template_path ) ) {
+        status_header( 500 );
+        echo 'Template missing.';
+        exit;
+    }
+
+    $GLOBALS['teinvit_tokenized_mode'] = $mode;
+    $GLOBALS['teinvit_tokenized_token'] = $token;
+    $GLOBALS['teinvit_tokenized_post_id'] = (int) $invitation_post_id;
+
+    status_header( 200 );
+    nocache_headers();
+    include $template_path;
+    exit;
+}
 
 add_filter( 'query_vars', function( $vars ) {
     $vars[] = 'teinvit_admin_client_token';
@@ -61,12 +142,16 @@ add_action( 'template_redirect', function() {
     }
 
     teinvit_seed_invitation_if_missing( $token, $order_id );
+    $invitation_post_id = teinvit_seed_invitation_post_if_missing( $token, $order_id );
+    if ( ! $invitation_post_id ) {
+        status_header( 500 );
+        get_header();
+        echo '<p>Nu s-a putut inițializa invitația WP.</p>';
+        get_footer();
+        exit;
+    }
 
-    status_header( 200 );
-    get_header();
-    include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php';
-    get_footer();
-    exit;
+    teinvit_render_tokenized_invitation_template( 'admin-client', $token, $invitation_post_id );
 }, 2 );
 
 add_action( 'template_redirect', function() {
@@ -86,12 +171,16 @@ add_action( 'template_redirect', function() {
 
     teinvit_seed_invitation_if_missing( $token, $order_id );
     teinvit_touch_invitation_activity( $token );
+    $invitation_post_id = teinvit_seed_invitation_post_if_missing( $token, $order_id );
+    if ( ! $invitation_post_id ) {
+        status_header( 500 );
+        get_header();
+        echo '<p>Nu s-a putut inițializa invitația WP.</p>';
+        get_footer();
+        exit;
+    }
 
-    status_header( 200 );
-    get_header();
-    include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-invitati.php';
-    get_footer();
-    exit;
+    teinvit_render_tokenized_invitation_template( 'invitati', $token, $invitation_post_id );
 }, 2 );
 
 

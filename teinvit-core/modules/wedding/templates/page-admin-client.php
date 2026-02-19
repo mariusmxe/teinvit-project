@@ -74,6 +74,7 @@ $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
 $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
+$in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 $product_id = teinvit_get_order_primary_product_id( $order );
 $wapf_definitions = teinvit_extract_wapf_definitions_from_product( $product_id );
 $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_get_cart_url() );
@@ -112,7 +113,9 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
   <div class="teinvit-zone teinvit-two-col">
     <div>
+      <?php if ( ! $in_cpt_template ) : ?>
       <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      <?php endif; ?>
       <h3>Alege varianta afișată invitaților:</h3>
       <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-publish-form">
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
