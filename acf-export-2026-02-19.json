@@ -201,7 +201,7 @@
             {
                 "key": "field_6996cace7bf0e",
                 "label": "Permite menționarea alergiilor",
-                "name": "permite_menționarea_alergiilor",
+                "name": "permite_mentionarea_alergiilor",
                 "aria-label": "",
                 "type": "checkbox",
                 "instructions": "Invitatul v-a putea completa in confirmare la ce este alergic",
@@ -225,7 +225,7 @@
             {
                 "key": "field_6996caec7bf0f",
                 "label": "Afișează lista de cadouri",
-                "name": "afișeaza_lista_de_cadouri",
+                "name": "afiseaza_lista_de_cadouri",
                 "aria-label": "",
                 "type": "checkbox",
                 "instructions": "Daca doresti ca lista de cadouri sa fie afisata in pagina invitatilor, bifeaza aceasta optiune.",
@@ -273,7 +273,7 @@
             {
                 "key": "field_6996ce147bf11",
                 "label": "Alege ce variantă de invitatie este afișată invitatilor",
-                "name": "alege_ce_varianta_de_invitatie_este_afișata_invitatilor",
+                "name": "alege_ce_varianta_de_invitatie_este_afisata_invitatilor",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "Alege varianta de invitatie care v-a fi afisata in pagina invitatilor",
@@ -502,7 +502,7 @@
             {
                 "key": "field_6996c1c49fa6f",
                 "label": "Pentru câte persoane confirmați prezența?",
-                "name": "pentru_cate_persoane_confirmați_prezența",
+                "name": "pentru_cate_persoane_confirmati_prezenta",
                 "aria-label": "",
                 "type": "number",
                 "instructions": "",
@@ -525,7 +525,7 @@
             {
                 "key": "field_6996c2199fa70",
                 "label": "Veți participa la cununia civilă?",
-                "name": "veți_participa_la_cununia_civila",
+                "name": "veti_participa_la_cununia_civila",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -551,7 +551,7 @@
             {
                 "key": "field_6996c26f9fa71",
                 "label": "Veți participa la ceremonia religioasă?",
-                "name": "veți_participa_la_ceremonia_religioasa",
+                "name": "veti_participa_la_ceremonia_religioasa",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -577,7 +577,7 @@
             {
                 "key": "field_6996c2939fa72",
                 "label": "Veți participa la petrecere?",
-                "name": "veți_participa_la_petrecere",
+                "name": "veti_participa_la_petrecere",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -603,7 +603,7 @@
             {
                 "key": "field_6996c2cf9fa73",
                 "label": "Veți veni însoțiți de copii?",
-                "name": "veți_veni_insoțiți_de_copii",
+                "name": "veti_veni_insotiti_de_copii",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -629,7 +629,7 @@
             {
                 "key": "field_6996c3009fa74",
                 "label": "Câți copii vă vor însoți?",
-                "name": "cați_copii_va_vor_insoți",
+                "name": "cati_copii_va_vor_insoti",
                 "aria-label": "",
                 "type": "number",
                 "instructions": "",
@@ -660,7 +660,7 @@
             {
                 "key": "field_6996c3339fa75",
                 "label": "Aveți nevoie de cazare?",
-                "name": "aveți_nevoie_de_cazare",
+                "name": "aveti_nevoie_de_cazare",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -686,7 +686,7 @@
             {
                 "key": "field_6996c3819fa76",
                 "label": "Pentru câte persoane solicitați cazare?",
-                "name": "pentru_cate_persoane_solicitați_cazare",
+                "name": "pentru_cate_persoane_solicitati_cazare",
                 "aria-label": "",
                 "type": "number",
                 "instructions": "",
@@ -717,7 +717,7 @@
             {
                 "key": "field_6996c3ec9fa77",
                 "label": "Doriți meniu vegetarian?",
-                "name": "doriți_meniu_vegetarian",
+                "name": "doriti_meniu_vegetarian",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -743,7 +743,7 @@
             {
                 "key": "field_6996c40f9fa78",
                 "label": "Aveți alergii alimentare?",
-                "name": "aveți_alergii_alimentare",
+                "name": "aveti_alergii_alimentare",
                 "aria-label": "",
                 "type": "radio",
                 "instructions": "",
@@ -769,7 +769,7 @@
             {
                 "key": "field_6996c4309fa79",
                 "label": "Vă rugăm să specificați alergiile",
-                "name": "va_rugam_sa_specificați_alergiile",
+                "name": "va_rugam_sa_specificati_alergiile",
                 "aria-label": "",
                 "type": "text",
                 "instructions": "",
@@ -798,7 +798,7 @@
             {
                 "key": "field_6996c4609fa7a",
                 "label": "Dacă doriți, lăsați un mesaj pentru miri",
-                "name": "daca_doriți_lasați_un_mesaj_pentru_miri",
+                "name": "daca_doriti_lasati_un_mesaj_pentru_miri",
                 "aria-label": "",
                 "type": "textarea",
                 "instructions": "",
