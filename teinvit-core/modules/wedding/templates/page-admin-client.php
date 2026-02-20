@@ -127,8 +127,8 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
       </form>
     </div>
 
-    <div class="teinvit-apf-col">
-      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart">
+    <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
         <input type="hidden" name="action" value="teinvit_save_version_snapshot">
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
@@ -171,6 +171,10 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
       const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
       const id = m[1];
+
+      if (el.type === 'hidden') {
+        return;
+      }
 
       if (el.type === 'checkbox') {
         if (!Array.isArray(out[id])) {
@@ -241,8 +245,10 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     });
 
     if (window.jQuery) {
-      window.jQuery(document.body).trigger('wapf/init');
-      window.jQuery(document.body).trigger('wapf/init_datepickers');
+      const $form = window.jQuery('#teinvit-save-form');
+      window.jQuery(document).trigger('wapf/init', [$form]);
+      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+      document.dispatchEvent(new CustomEvent('wapf:init', { detail: { wrapper: $form[0] || null } }));
     }
   }
 
@@ -260,8 +266,16 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
   }
 
   function refreshPreview(){
-    const inv = buildInvitation(parseWapfForm());
+    const parsed = parseWapfForm();
+    if (Object.keys(parsed).length === 0) {
+      return;
+    }
+    const inv = buildInvitation(parsed);
     window.TEINVIT_INVITATION_DATA = inv;
+    const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
+    if (themeSelect) {
+      themeSelect.dispatchEvent(new Event('change', {bubbles:true}));
+    }
     document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
