@@ -80,9 +80,11 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1,.teinvit-admin-page .sub{text-align:center}
 .teinvit-admin-intro{border:1px solid #ddd;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
-.teinvit-two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
+.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
 @media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
 .teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}
+.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{max-width:100%;overflow:hidden}
+.teinvit-admin-page .teinvit-preview{max-width:760px;margin:0 auto;overflow:hidden}
 </style>
 <div class="teinvit-admin-page">
   <h1>Administrare invitație</h1>
@@ -157,43 +159,91 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
   const deadlineWrap = document.getElementById('deadline-wrap');
   if(deadlineCb && deadlineWrap){ deadlineCb.addEventListener('change',()=>{ deadlineWrap.style.display = deadlineCb.checked ? '' : 'none'; }); }
 
+  function normalizeToArray(value){
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(s=>s.trim()).filter(Boolean);
+    if (value == null) return [];
+    return [String(value)];
+  }
+
   function parseWapfForm(){
     const out = {};
     document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
       const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
       const id = m[1];
-      if(el.type==='checkbox'){
-        if(!out[id]) out[id] = [];
-        if(el.checked) out[id].push(el.value || '1');
+
+      if (el.type === 'checkbox') {
+        if (!Array.isArray(out[id])) {
+          out[id] = normalizeToArray(out[id]);
+        }
+        if (el.checked) {
+          const val = el.value || '1';
+          if (!out[id].includes(val)) out[id].push(val);
+        }
         return;
       }
-      if(el.type==='radio'){ if(el.checked){ out[id]=el.value || ''; } else if(typeof out[id] === 'undefined'){ out[id]=''; } return; }
-      out[id]=el.value || '';
+
+      if(el.type==='radio'){
+        if(el.checked){ out[id]=el.value || ''; }
+        else if(typeof out[id] === 'undefined'){ out[id]=''; }
+        return;
+      }
+
+      if (!Array.isArray(out[id])) {
+        out[id]=el.value || '';
+      }
     });
-    Object.keys(out).forEach(k=>{ if(Array.isArray(out[k])) out[k]=out[k].join(', '); });
+
+    Object.keys(out).forEach(k=>{
+      if(Array.isArray(out[k])) out[k]=out[k].join(', ');
+    });
+
     return out;
   }
 
+  function splitSelected(raw){
+    return String(raw || '').split(',').map(s=>s.trim()).filter(Boolean);
+  }
+
   function setWapfValues(map){
+    const groups = {};
+
     document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
       const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
       const id = m[1];
-      const raw = String(map[id] ?? '');
-      if(el.type==='checkbox'){
-        const selected = raw.split(',').map(s=>s.trim()).filter(Boolean);
-        el.checked = selected.includes(el.value) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
-        el.dispatchEvent(new Event('change', {bubbles:true}));
-        return;
-      }
-      if(el.type==='radio'){
-        el.checked = String(el.value) === raw;
-        if(el.checked) el.dispatchEvent(new Event('change', {bubbles:true}));
-        return;
-      }
-      el.value = raw;
-      el.dispatchEvent(new Event('input', {bubbles:true}));
-      el.dispatchEvent(new Event('change', {bubbles:true}));
+      if(!groups[id]) groups[id] = [];
+      groups[id].push(el);
     });
+
+    Object.keys(groups).forEach(id=>{
+      const elements = groups[id];
+      const raw = map[id] ?? '';
+      const selected = splitSelected(raw);
+
+      elements.forEach(el=>{
+        if(el.type==='checkbox'){
+          const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
+          el.checked = selected.includes(el.value) || selected.includes(label) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
+        } else if(el.type==='radio'){
+          el.checked = String(el.value) === String(raw);
+        } else if(el.tagName === 'SELECT'){
+          const opts = Array.from(el.options || []);
+          const byValue = opts.find(o=>String(o.value)===String(raw));
+          const byLabel = opts.find(o=>String(o.text).trim()===String(raw).trim());
+          el.value = byValue ? byValue.value : (byLabel ? byLabel.value : String(raw));
+        } else {
+          el.value = String(raw);
+        }
+
+        el.dispatchEvent(new Event('input', {bubbles:true}));
+        el.dispatchEvent(new Event('change', {bubbles:true}));
+      });
+    });
+
+    if (window.jQuery) {
+      window.jQuery(document.body).trigger('wapf/init');
+      window.jQuery(document.body).trigger('wapf/init_datepickers');
+    }
   }
 
   function buildInvitation(w){
