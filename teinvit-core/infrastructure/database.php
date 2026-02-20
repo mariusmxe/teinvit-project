@@ -143,12 +143,20 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
 
     $order = wc_get_order( (int) $order_id );
     $invitation = $order ? TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order ) : [];
+    $wapf_fields = $order ? TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order ) : [];
     $snapshot_id = 0;
 
     $t = teinvit_db_tables();
     $wpdb->insert( $t['versions'], [
         'token'      => $token,
-        'snapshot'   => wp_json_encode( [ 'invitation' => $invitation ] ),
+        'snapshot'   => wp_json_encode( [
+            'invitation' => $invitation,
+            'wapf_fields' => $wapf_fields,
+            'meta' => [
+                'seeded_from_order' => true,
+                'order_id' => (int) $order_id,
+            ],
+        ] ),
         'created_at' => current_time( 'mysql' ),
     ] );
 

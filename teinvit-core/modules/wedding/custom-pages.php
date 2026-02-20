@@ -20,6 +20,106 @@ function teinvit_model_background_url( $model_key ) {
     return TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png';
 }
 
+function teinvit_is_modular_snapshot_complete( $snapshot ) {
+    if ( ! is_array( $snapshot ) ) {
+        return false;
+    }
+
+    $invitation = isset( $snapshot['invitation'] ) && is_array( $snapshot['invitation'] ) ? $snapshot['invitation'] : [];
+    $wapf_fields = isset( $snapshot['wapf_fields'] ) && is_array( $snapshot['wapf_fields'] ) ? $snapshot['wapf_fields'] : [];
+
+    return ! empty( $invitation ) && ! empty( $wapf_fields );
+}
+
+function teinvit_migrate_legacy_active_to_modular( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return false;
+    }
+
+    $inv = teinvit_get_invitation( $token );
+    if ( ! $inv ) {
+        return false;
+    }
+
+    $active_snapshot = teinvit_get_active_snapshot( $token );
+    $active_payload = $active_snapshot ? json_decode( (string) $active_snapshot['snapshot'], true ) : [];
+    if ( teinvit_is_modular_snapshot_complete( $active_payload ) ) {
+        return true;
+    }
+
+    if ( ! function_exists( 'teinvit_tables' ) ) {
+        return false;
+    }
+
+    $legacy = teinvit_tables();
+    $legacy_settings = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$legacy['settings']} WHERE token = %s LIMIT 1", $token ), ARRAY_A );
+    if ( ! $legacy_settings ) {
+        return false;
+    }
+
+    $legacy_version = (int) ( $legacy_settings['active_version'] ?? 0 );
+    $legacy_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$legacy['versions']} WHERE token = %s AND version = %d LIMIT 1", $token, $legacy_version ), ARRAY_A );
+    if ( ! $legacy_row || empty( $legacy_row['data_json'] ) ) {
+        return false;
+    }
+
+    $legacy_payload = json_decode( (string) $legacy_row['data_json'], true );
+    if ( ! is_array( $legacy_payload ) ) {
+        return false;
+    }
+
+    $snapshot = [
+        'invitation' => isset( $legacy_payload['invitation'] ) && is_array( $legacy_payload['invitation'] ) ? $legacy_payload['invitation'] : [],
+        'wapf_fields' => isset( $legacy_payload['wapf_fields'] ) && is_array( $legacy_payload['wapf_fields'] ) ? $legacy_payload['wapf_fields'] : [],
+        'meta' => [
+            'migrated_from_legacy' => true,
+            'legacy_version' => $legacy_version,
+            'order_id' => (int) ( $inv['order_id'] ?? 0 ),
+        ],
+    ];
+
+    if ( ! teinvit_is_modular_snapshot_complete( $snapshot ) ) {
+        return false;
+    }
+
+    $t = teinvit_db_tables();
+    $wpdb->insert( $t['versions'], [
+        'token' => $token,
+        'snapshot' => wp_json_encode( $snapshot ),
+        'created_at' => current_time( 'mysql' ),
+    ] );
+
+    $new_version_id = (int) $wpdb->insert_id;
+    if ( $new_version_id <= 0 ) {
+        return false;
+    }
+
+    teinvit_save_invitation_config( $token, [ 'active_version_id' => $new_version_id ] );
+    return true;
+}
+
+function teinvit_get_modular_active_payload( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return [];
+    }
+
+    $active_snapshot = teinvit_get_active_snapshot( $token );
+    $payload = $active_snapshot ? json_decode( (string) $active_snapshot['snapshot'], true ) : [];
+    if ( teinvit_is_modular_snapshot_complete( $payload ) ) {
+        return $payload;
+    }
+
+    teinvit_migrate_legacy_active_to_modular( $token );
+    $active_snapshot = teinvit_get_active_snapshot( $token );
+    $payload = $active_snapshot ? json_decode( (string) $active_snapshot['snapshot'], true ) : [];
+
+    return is_array( $payload ) ? $payload : [];
+}
+
 add_action( 'init', function() {
     register_post_type( 'teinvit_invitation', [
         'labels' => [
@@ -296,6 +396,23 @@ function teinvit_build_invitation_from_wapf_map( array $wapf ) {
 
 function teinvit_extract_posted_wapf_map( array $source ) {
     $out = [];
+
+    if ( isset( $source['wapf'] ) && is_array( $source['wapf'] ) ) {
+        foreach ( $source['wapf'] as $field_key => $field_value ) {
+            if ( ! is_string( $field_key ) || strpos( $field_key, 'field_' ) !== 0 ) {
+                continue;
+            }
+
+            $field_id = sanitize_text_field( substr( $field_key, 6 ) );
+            if ( is_array( $field_value ) ) {
+                $flat = array_map( 'sanitize_text_field', array_map( 'wp_unslash', $field_value ) );
+                $out[ $field_id ] = implode( ', ', array_filter( $flat, static function( $v ) { return $v !== ''; } ) );
+            } else {
+                $out[ $field_id ] = sanitize_text_field( wp_unslash( (string) $field_value ) );
+            }
+        }
+    }
+
     foreach ( $source as $key => $value ) {
         if ( ! is_string( $key ) ) {
             continue;
@@ -312,6 +429,23 @@ function teinvit_extract_posted_wapf_map( array $source ) {
     }
 
     return $out;
+}
+
+function teinvit_wapf_payload_is_minimally_valid( array $wapf, array $invitation ) {
+    $name = trim( (string) ( $invitation['names'] ?? '' ) );
+    $theme = trim( (string) ( $invitation['theme'] ?? '' ) );
+    if ( $name === '' || $theme === '' ) {
+        return false;
+    }
+
+    $required_ids = [ '6963a95e66425', '6963aa37412e4', '6967752ab511b' ];
+    foreach ( $required_ids as $id ) {
+        if ( ! isset( $wapf[ $id ] ) || trim( (string) $wapf[ $id ] ) === '' ) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function teinvit_admin_post_guard( $token ) {
@@ -399,8 +533,14 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     }
 
     $wapf = teinvit_extract_posted_wapf_map( $_POST );
+    $snapshot_invitation = teinvit_build_invitation_from_wapf_map( $wapf );
+    if ( ! teinvit_wapf_payload_is_minimally_valid( $wapf, $snapshot_invitation ) ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=invalid_snapshot' ) );
+        exit;
+    }
+
     $snapshot = [
-        'invitation' => teinvit_build_invitation_from_wapf_map( $wapf ),
+        'invitation' => $snapshot_invitation,
         'wapf_fields' => $wapf,
         'meta' => [ 'order_id' => (int) $order_id ],
     ];

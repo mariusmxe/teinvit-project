@@ -24,13 +24,7 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
     $order_id = (int) teinvit_get_order_id_by_token( $token );
     $order = $order_id ? wc_get_order( $order_id ) : null;
     if ( $order ) {
-        $active = function_exists( 'teinvit_get_active_version_data' ) ? teinvit_get_active_version_data( $token ) : null;
-        $payload = $active ? json_decode( (string) $active['data_json'], true ) : [];
-
-        if ( empty( $payload ) && function_exists( 'teinvit_get_active_snapshot' ) ) {
-            $active_snapshot = teinvit_get_active_snapshot( $token );
-            $payload = $active_snapshot ? json_decode( (string) $active_snapshot['snapshot'], true ) : [];
-        }
+        $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
 
         if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
             $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );

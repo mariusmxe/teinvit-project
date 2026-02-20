@@ -35,12 +35,9 @@ add_action( 'template_redirect', function () {
     }
 
     $html = '';
-    if ( function_exists( 'teinvit_get_active_version_data' ) ) {
-        $active = teinvit_get_active_version_data( $token );
-        $payload = $active ? json_decode( (string) $active['data_json'], true ) : [];
-        if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
-            $html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
-        }
+    $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
+    if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
+        $html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
     }
 
     if ( $html === '' ) {
@@ -87,8 +84,7 @@ add_action( 'template_redirect', function () {
 
     echo '<!DOCTYPE html><html lang="ro" class="teinvit-pdf"><head><meta charset="utf-8"><meta name="viewport" content="width=148mm, height=210mm, initial-scale=1"><title>Invitație PDF</title></head><body style="display:flex;justify-content:center;">';
 
-    $active = function_exists( 'teinvit_get_active_version_data' ) ? teinvit_get_active_version_data( $token ) : null;
-    $payload = $active ? json_decode( (string) $active['data_json'], true ) : [];
+    $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
     if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
         echo TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
     } else {
