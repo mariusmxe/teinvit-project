@@ -61,9 +61,6 @@ if ( ! $current && ! empty( $variants ) ) {
 $current_invitation = $current['invitation'] ?? $order_invitation;
 $current_wapf = $current['wapf_fields'] ?? $order_wapf;
 $subtitle = trim( (string) ( $current_invitation['names'] ?? '' ) );
-if ( $subtitle === '' && ! empty( $variants[0]['invitation']['names'] ) ) {
-    $subtitle = trim( (string) $variants[0]['invitation']['names'] );
-}
 if ( $subtitle === '' ) {
     $subtitle = 'Nume Mireasă & Nume Mire';
 }
@@ -74,26 +71,25 @@ $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
 $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
-$in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 $product_id = teinvit_get_order_primary_product_id( $order );
-$wapf_definitions = teinvit_extract_wapf_definitions_from_product( $product_id );
+$product = $product_id ? wc_get_product( $product_id ) : null;
+$apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_get_cart_url() );
 ?>
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1,.teinvit-admin-page .sub{text-align:center}
 .teinvit-admin-intro{border:1px solid #ddd;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
-.teinvit-two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}.teinvit-wapf-field{margin-bottom:10px}
+.teinvit-two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
+@media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
+.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}
 </style>
 <div class="teinvit-admin-page">
   <h1>Administrare invitație</h1>
   <p class="sub"><?php echo esc_html( $subtitle ); ?></p>
 
   <div class="teinvit-admin-intro">
-    <p>Bine ai venit în panoul de administrare TeInvit. Îți mulțumim că ai ales platforma noastră.</p>
     <p>Aici poți modifica invitația rapid, vedea preview-ul în timp real și publica varianta dorită pentru invitați.</p>
-    <p>Ai 2 modificări gratuite incluse. Fiecare salvare consumă o modificare, indiferent câte câmpuri schimbi.</p>
-    <p>După ce alegi varianta potrivită, o poți publica instant pe pagina invitaților.</p>
   </div>
 
   <div class="teinvit-zone">
@@ -113,9 +109,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
   <div class="teinvit-zone teinvit-two-col">
     <div>
-      <?php if ( ! $in_cpt_template ) : ?>
       <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-      <?php endif; ?>
       <h3>Alege varianta afișată invitaților:</h3>
       <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-publish-form">
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
@@ -127,20 +121,21 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
             <?php echo esc_html( $variant['label'] ); ?>
           </label>
         <?php endforeach; ?>
-        <p>Publică pe pagina invitaților varianta selectată</p>
         <button type="submit" class="button button-primary">Publică</button>
       </form>
     </div>
 
-    <div>
-      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form">
+    <div class="teinvit-apf-col">
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart">
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
         <input type="hidden" name="action" value="teinvit_save_version_snapshot">
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
 
-        <?php foreach ( $wapf_definitions as $def ) : ?>
-          <?php echo teinvit_render_wapf_field_admin( $def, $current_wapf ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        <?php endforeach; ?>
+        <?php if ( $apf_html !== '' ) : ?>
+          <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php else : ?>
+          <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
+        <?php endif; ?>
 
         <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări gratuite disponibile</p>
         <?php if ( $edits_remaining > 0 ) : ?>
@@ -155,6 +150,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 <script>
 (function(){
   const variants = <?php echo wp_json_encode( $variants ); ?>;
+  const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
 
   const deadlineCb = document.getElementById('show_rsvp_deadline');
@@ -163,14 +159,41 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
   function parseWapfForm(){
     const out = {};
-    document.querySelectorAll('[name^="wapf[field_"]').forEach(el=>{
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
       const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
       const id = m[1];
-      if(el.type==='checkbox'){ if(el.checked){ out[id] = out[id] ? (out[id] + ', ' + el.value) : el.value; } else if(!out[id]){ out[id]=''; } return; }
-      if(el.type==='radio'){ if(el.checked){ out[id]=el.value; } else if(!out[id]){ out[id]=''; } return; }
+      if(el.type==='checkbox'){
+        if(!out[id]) out[id] = [];
+        if(el.checked) out[id].push(el.value || '1');
+        return;
+      }
+      if(el.type==='radio'){ if(el.checked){ out[id]=el.value || ''; } else if(typeof out[id] === 'undefined'){ out[id]=''; } return; }
       out[id]=el.value || '';
     });
+    Object.keys(out).forEach(k=>{ if(Array.isArray(out[k])) out[k]=out[k].join(', '); });
     return out;
+  }
+
+  function setWapfValues(map){
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
+      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
+      const id = m[1];
+      const raw = String(map[id] ?? '');
+      if(el.type==='checkbox'){
+        const selected = raw.split(',').map(s=>s.trim()).filter(Boolean);
+        el.checked = selected.includes(el.value) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
+        el.dispatchEvent(new Event('change', {bubbles:true}));
+        return;
+      }
+      if(el.type==='radio'){
+        el.checked = String(el.value) === raw;
+        if(el.checked) el.dispatchEvent(new Event('change', {bubbles:true}));
+        return;
+      }
+      el.value = raw;
+      el.dispatchEvent(new Event('input', {bubbles:true}));
+      el.dispatchEvent(new Event('change', {bubbles:true}));
+    });
   }
 
   function buildInvitation(w){
@@ -194,16 +217,12 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
   function applyVariant(id){
     const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
-    const wapf = variant.wapf_fields || {};
-    document.querySelectorAll('[name^="wapf[field_"]').forEach(el=>{
-      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
-      const val = (wapf[m[1]] ?? '');
-      if(el.type==='checkbox'){ el.checked = String(val).split(',').map(s=>s.trim()).includes(el.value); return; }
-      if(el.type==='radio'){ el.checked = String(val)===String(el.value); return; }
-      el.value = val;
-    });
+    setWapfValues(variant.wapf_fields || {});
     refreshPreview();
   }
+
+  setWapfValues(initialWapf);
+  refreshPreview();
 
   document.querySelectorAll('.teinvit-variant-radio').forEach(r=>r.addEventListener('change',()=>applyVariant(r.value)));
   document.querySelectorAll('#teinvit-save-form input, #teinvit-save-form select, #teinvit-save-form textarea').forEach(el=>{

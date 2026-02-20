@@ -88,6 +88,33 @@ function teinvit_seed_invitation_post_if_missing( $token, $order_id ) {
     return (int) $post_id;
 }
 
+
+function teinvit_enqueue_wapf_assets_for_admin_client() {
+    if ( ! function_exists( 'wapf_get_setting' ) ) {
+        return;
+    }
+
+    $base_url = (string) wapf_get_setting( 'url' );
+    $base_path = (string) wapf_get_setting( 'path' );
+    $version = (string) wapf_get_setting( 'version' );
+    if ( $base_url === '' || $base_path === '' ) {
+        return;
+    }
+
+    $assets_url = trailingslashit( $base_url ) . 'assets/';
+    $assets_path = trailingslashit( $base_path ) . 'assets/';
+    $frontend_css = $assets_path . 'css/frontend.min.css';
+    if ( file_exists( $frontend_css ) ) {
+        wp_enqueue_style( 'wapf-frontend', $assets_url . 'css/frontend.min.css', [], $version . '-' . filemtime( $frontend_css ) );
+    }
+    wp_enqueue_script( 'wapf-frontend', $assets_url . 'js/frontend.min.js', [ 'jquery' ], $version, true );
+
+    if ( get_option( 'wapf_datepicker', 'no' ) === 'yes' ) {
+        wp_enqueue_script( 'wapf-dp', $assets_url . 'js/datepicker.min.js', [], $version, true );
+        wp_enqueue_style( 'wapf-dp', $assets_url . 'css/datepicker.min.css', [], $version );
+    }
+}
+
 function teinvit_render_tokenized_invitation_template( $mode, $token, $invitation_post_id ) {
     $template_path = TEINVIT_WEDDING_MODULE_PATH . 'templates/single-teinvit_invitation.php';
     if ( ! file_exists( $template_path ) ) {
@@ -142,6 +169,7 @@ add_action( 'template_redirect', function() {
     }
 
     teinvit_seed_invitation_if_missing( $token, $order_id );
+    teinvit_enqueue_wapf_assets_for_admin_client();
     $invitation_post_id = teinvit_seed_invitation_post_if_missing( $token, $order_id );
     if ( ! $invitation_post_id ) {
         status_header( 500 );
