@@ -19,12 +19,15 @@ $bg = teinvit_model_background_url( $inv['model_key'] ?? 'invn01' );
 global $wpdb;
 $t = teinvit_db_tables();
 $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link,gift_delivery_address,status FROM {$t['gifts']} WHERE token=%s ORDER BY id ASC", $token ), ARRAY_A );
+$in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
 <div class="teinvit-invitati-page" style="max-width:980px;margin:0 auto;">
+  <?php if ( ! $in_cpt_template ) : ?>
   <div class="preview" style="position:relative;">
     <img src="<?php echo esc_url( $bg ); ?>" alt="background" style="width:100%;height:auto;display:block;">
     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;"><?php echo esc_html( $invitation_data['names'] ?? '' ); ?></div>
   </div>
+  <?php endif; ?>
 
   <?php if ( $deadline_active && $deadline_raw ) : ?>
     <p style="padding:10px;border:1px solid #ddd;margin:10px 0;">Data limită pentru confirmări: <strong><?php echo esc_html( $deadline_raw ); ?></strong>.</p>
