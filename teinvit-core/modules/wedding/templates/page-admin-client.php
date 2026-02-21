@@ -292,12 +292,26 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
   }
 
   function resolveThemeKey(raw, themeLookup){
-    const direct = String(raw || '').trim().toLowerCase();
-    const normalized = direct || String(themeLookup[String(raw || '').trim()] || '').trim().toLowerCase();
-    if(normalized === 'editorial' || normalized.includes('editorial')) return 'editorial';
-    if(normalized === 'romantic' || normalized.includes('romantic')) return 'romantic';
-    if(normalized === 'modern' || normalized.includes('modern')) return 'modern';
-    if(normalized === 'classic' || normalized.includes('classic')) return 'classic';
+    const rawTrimmed = String(raw || '').trim();
+    const rawLower = rawTrimmed.toLowerCase();
+
+    const toKey = (value)=>{
+      const normalized = String(value || '').trim().toLowerCase();
+      if(!normalized) return '';
+      if(normalized === 'editorial' || normalized.includes('editorial')) return 'editorial';
+      if(normalized === 'romantic' || normalized.includes('romantic')) return 'romantic';
+      if(normalized === 'modern' || normalized.includes('modern')) return 'modern';
+      if(normalized === 'classic' || normalized.includes('classic')) return 'classic';
+      return '';
+    };
+
+    const directKey = toKey(rawLower);
+    if (directKey) return directKey;
+
+    const mappedLabel = String(themeLookup[rawTrimmed] || '').trim();
+    const mappedKey = toKey(mappedLabel);
+    if (mappedKey) return mappedKey;
+
     return 'editorial';
   }
 
@@ -373,10 +387,6 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     }
     const inv = buildInvitation(parsed);
     window.TEINVIT_INVITATION_DATA = inv;
-    const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
-    if (themeSelect) {
-      themeSelect.dispatchEvent(new Event('change', {bubbles:true}));
-    }
     document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
