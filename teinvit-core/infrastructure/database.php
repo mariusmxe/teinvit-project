@@ -45,9 +45,14 @@ function teinvit_install_modular_tables() {
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         token varchar(191) NOT NULL,
         snapshot longtext NOT NULL,
+        pdf_url text NULL,
+        pdf_status varchar(20) NOT NULL DEFAULT 'none',
+        pdf_generated_at datetime NULL,
+        pdf_filename text NULL,
         created_at datetime NOT NULL,
         PRIMARY KEY (id),
-        KEY token (token)
+        KEY token (token),
+        KEY token_pdf_status (token, pdf_status)
     ) $charset;" );
 
     dbDelta( "CREATE TABLE {$t['rsvp']} (
@@ -89,6 +94,31 @@ function teinvit_install_modular_tables() {
         UNIQUE KEY token_gift_id (token, gift_id),
         KEY token_status (token, status)
     ) $charset;" );
+    teinvit_ensure_versions_pdf_columns();
+}
+
+function teinvit_ensure_versions_pdf_columns() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['versions'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'pdf_url', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN pdf_url text NULL" );
+    }
+    if ( ! in_array( 'pdf_status', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN pdf_status varchar(20) NOT NULL DEFAULT 'none'" );
+    }
+    if ( ! in_array( 'pdf_generated_at', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN pdf_generated_at datetime NULL" );
+    }
+    if ( ! in_array( 'pdf_filename', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN pdf_filename text NULL" );
+    }
 }
 
 function teinvit_get_invitation( $token ) {

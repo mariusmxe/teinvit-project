@@ -43,6 +43,8 @@ foreach ( $versions as $index => $row ) {
         'invitation' => $snap_inv,
         'wapf_fields' => $snap_wapf,
         'created_at' => (string) $row['created_at'],
+        'pdf_url' => (string) ( $row['pdf_url'] ?? '' ),
+        'pdf_status' => (string) ( $row['pdf_status'] ?? 'none' ),
     ];
 }
 
@@ -75,6 +77,7 @@ $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_get_cart_url() );
+$global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1,.teinvit-admin-page .sub{text-align:center}
@@ -93,6 +96,12 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
   <div class="teinvit-admin-intro">
     <p>Aici poți modifica invitația rapid, vedea preview-ul în timp real și publica varianta dorită pentru invitați.</p>
   </div>
+
+  <?php if ( $global_admin_content !== '' ) : ?>
+  <div class="teinvit-zone teinvit-admin-global-zone">
+    <?php echo $global_admin_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+  </div>
+  <?php endif; ?>
 
   <div class="teinvit-zone">
     <h3>Data limită RSVP</h3>
@@ -121,6 +130,13 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
           <label style="display:block;margin-bottom:6px;">
             <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $active_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
+            <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
+              — <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener">Descarcă PDF</a>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
+              — <em>PDF în curs...</em>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
+              — <em>PDF eșuat</em>
+            <?php endif; ?>
           </label>
         <?php endforeach; ?>
         <button type="submit" class="button button-primary">Publică</button>
@@ -387,10 +403,12 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     }
     const inv = buildInvitation(parsed);
     window.TEINVIT_INVITATION_DATA = inv;
+    window.__TEINVIT_AUTOFIT_DONE__ = false;
     document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
   function runPreviewCycle(){
+    window.__TEINVIT_AUTOFIT_DONE__ = false;
     document.dispatchEvent(new Event('change', {bubbles:true}));
     refreshPreview();
     document.dispatchEvent(new Event('input', {bubbles:true}));

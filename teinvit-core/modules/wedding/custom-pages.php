@@ -120,6 +120,22 @@ function teinvit_get_modular_active_payload( $token ) {
     return is_array( $payload ) ? $payload : [];
 }
 
+
+function teinvit_render_admin_client_global_content() {
+    $page = get_page_by_path( 'teinvit-admin-client-global', OBJECT, 'page' );
+    if ( ! $page instanceof WP_Post ) {
+        return '';
+    }
+
+    $content = (string) $page->post_content;
+    if ( $content === '' ) {
+        return '';
+    }
+
+    return (string) apply_filters( 'the_content', $content );
+}
+
+
 add_action( 'init', function() {
     register_post_type( 'teinvit_invitation', [
         'labels' => [
@@ -739,6 +755,33 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         'created_at' => current_time( 'mysql' ),
     ] );
     $version_id = (int) $wpdb->insert_id;
+
+    $pdf_status = 'none';
+    $pdf_url = '';
+    $pdf_filename = '';
+    if ( $version_id > 0 && function_exists( 'teinvit_pdf_filename_for_version' ) && function_exists( 'teinvit_generate_pdf_for_version' ) ) {
+        $version_index = max( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t['versions']} WHERE token = %s AND id <= %d", $token, $version_id ) ) - 1 );
+        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index );
+        $wpdb->update( $t['versions'], [
+            'pdf_status' => 'processing',
+            'pdf_filename' => $pdf_filename,
+        ], [ 'id' => $version_id ] );
+
+        $pdf_result = teinvit_generate_pdf_for_version( $token, $order_id, $pdf_filename );
+        if ( is_wp_error( $pdf_result ) ) {
+            $pdf_status = 'failed';
+        } else {
+            $pdf_status = 'ready';
+            $pdf_url = (string) ( $pdf_result['pdf_url'] ?? '' );
+        }
+
+        $wpdb->update( $t['versions'], [
+            'pdf_status' => $pdf_status,
+            'pdf_url' => $pdf_url,
+            'pdf_generated_at' => current_time( 'mysql' ),
+            'pdf_filename' => $pdf_filename,
+        ], [ 'id' => $version_id ] );
+    }
 
     $config['edits_free_remaining'] = max( 0, $remaining - 1 );
     teinvit_save_invitation_config( $token, [
