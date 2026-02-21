@@ -209,7 +209,30 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     return String(raw || '').split(',').map(s=>s.trim()).filter(Boolean);
   }
 
-  function setWapfValues(map){
+  function buildThemeLookup(){
+    const out = {};
+    const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
+    if(!themeSelect || !themeSelect.options) return out;
+    Array.from(themeSelect.options).forEach(opt=>{
+      const val = String(opt.value || '').trim();
+      const label = String(opt.text || '').trim();
+      if(val) out[val] = label;
+    });
+    return out;
+  }
+
+  function resolveThemeKey(raw, themeLookup){
+    const direct = String(raw || '').trim().toLowerCase();
+    const normalized = direct || String(themeLookup[String(raw || '').trim()] || '').trim().toLowerCase();
+    if(normalized === 'editorial' || normalized.includes('editorial')) return 'editorial';
+    if(normalized === 'romantic' || normalized.includes('romantic')) return 'romantic';
+    if(normalized === 'modern' || normalized.includes('modern')) return 'modern';
+    if(normalized === 'classic' || normalized.includes('classic')) return 'classic';
+    return 'editorial';
+  }
+
+  function setWapfValues(map, options){
+    const shouldTrigger = !(options && options.triggerEvents === false);
     const groups = {};
 
     document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
@@ -227,9 +250,13 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
       elements.forEach(el=>{
         if(el.type==='checkbox'){
           const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
-          el.checked = selected.includes(el.value) || selected.includes(label) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
+          const selectedLower = selected.map(v=>String(v).toLowerCase());
+          const valueLower = String(el.value || '').toLowerCase();
+          const labelLower = String(label || '').toLowerCase();
+          el.checked = selected.includes(el.value) || selected.includes(label) || selectedLower.includes(valueLower) || selectedLower.includes(labelLower) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
         } else if(el.type==='radio'){
-          el.checked = String(el.value) === String(raw);
+          const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
+          el.checked = String(el.value) === String(raw) || String(label).trim().toLowerCase() === String(raw).trim().toLowerCase();
         } else if(el.tagName === 'SELECT'){
           const opts = Array.from(el.options || []);
           const byValue = opts.find(o=>String(o.value)===String(raw));
@@ -239,10 +266,13 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
           el.value = String(raw);
         }
 
-        el.dispatchEvent(new Event('input', {bubbles:true}));
-        el.dispatchEvent(new Event('change', {bubbles:true}));
       });
     });
+
+    if (shouldTrigger) {
+      document.dispatchEvent(new Event('input', {bubbles:true}));
+      document.dispatchEvent(new Event('change', {bubbles:true}));
+    }
 
     if (window.jQuery) {
       const $form = window.jQuery('#teinvit-save-form');
@@ -256,7 +286,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     const get=(k)=> (w[k]||'').trim();
     const has=(k)=> get(k)!=='';
     const inv={theme:'editorial',names:[get('6963a95e66425'),get('6963aa37412e4')].filter(Boolean).join(' & '),message:get('6963aa782092d'),show_parents:false,parents:{},show_nasi:false,nasi:'',events:[]};
-    const theme=(get('6967752ab511b')||'').toLowerCase(); if(theme.includes('romantic'))inv.theme='romantic'; else if(theme.includes('modern'))inv.theme='modern'; else if(theme.includes('classic'))inv.theme='classic';
+    inv.theme = resolveThemeKey(get('6967752ab511b'), buildThemeLookup());
     if(has('696445d6a9ce9')){ inv.show_parents=true; inv.parents={mireasa:[get('6964461d67da5'),get('6964466afe4d1')].filter(Boolean).join(' & '),mire:[get('69644689ee7e1'),get('696446dfabb7b')].filter(Boolean).join(' & ')}; }
     if(has('696448f2ae763')){ inv.show_nasi=true; inv.nasi=[get('69644a3415fb9'),get('69644a5822ddc')].filter(Boolean).join(' & '); }
     if(has('69644d9e814ef')) inv.events.push({title:'Cununie civilă',loc:get('69644f2b40023'),date:[get('69644f85d865e'),get('8dec5e7')].filter(Boolean).join(' ora '),waze:get('69644fd5c832b')});
@@ -281,7 +311,8 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
   function applyVariant(id){
     const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
-    setWapfValues(variant.wapf_fields || {});
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false });
+    document.dispatchEvent(new Event('change', {bubbles:true}));
     refreshPreview();
   }
 

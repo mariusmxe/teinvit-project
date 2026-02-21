@@ -312,7 +312,83 @@ add_action( 'template_redirect', function() {
 }, 2 );
 
 
-function teinvit_build_invitation_from_wapf_map( array $wapf ) {
+function teinvit_theme_key_from_any_value( $raw ) {
+    $value = strtolower( trim( (string) $raw ) );
+    if ( $value === '' ) {
+        return '';
+    }
+
+    if ( in_array( $value, [ 'editorial', 'romantic', 'modern', 'classic' ], true ) ) {
+        return $value;
+    }
+
+    if ( strpos( $value, 'editorial' ) !== false ) {
+        return 'editorial';
+    }
+    if ( strpos( $value, 'romantic' ) !== false ) {
+        return 'romantic';
+    }
+    if ( strpos( $value, 'modern' ) !== false ) {
+        return 'modern';
+    }
+    if ( strpos( $value, 'classic' ) !== false ) {
+        return 'classic';
+    }
+
+    return '';
+}
+
+function teinvit_extract_theme_options_map_from_product( $product_id ) {
+    $product_id = (int) $product_id;
+    if ( $product_id <= 0 || ! function_exists( 'teinvit_extract_wapf_definitions_from_product' ) ) {
+        return [];
+    }
+
+    $defs = teinvit_extract_wapf_definitions_from_product( $product_id );
+    if ( ! is_array( $defs ) ) {
+        return [];
+    }
+
+    foreach ( $defs as $def ) {
+        if ( ! is_array( $def ) || (string) ( $def['id'] ?? '' ) !== '6967752ab511b' ) {
+            continue;
+        }
+
+        $map = [];
+        foreach ( (array) ( $def['options'] ?? [] ) as $opt ) {
+            if ( ! is_array( $opt ) ) {
+                continue;
+            }
+            $option_value = trim( (string) ( $opt['value'] ?? '' ) );
+            $option_label = trim( (string) ( $opt['label'] ?? $option_value ) );
+            if ( $option_value !== '' ) {
+                $map[ $option_value ] = $option_label;
+            }
+        }
+        return $map;
+    }
+
+    return [];
+}
+
+function teinvit_resolve_theme_key_from_wapf_value( $raw, array $theme_options_map = [] ) {
+    $direct = teinvit_theme_key_from_any_value( $raw );
+    if ( $direct !== '' ) {
+        return $direct;
+    }
+
+    $raw_string = trim( (string) $raw );
+    if ( $raw_string !== '' && isset( $theme_options_map[ $raw_string ] ) ) {
+        $from_label = teinvit_theme_key_from_any_value( $theme_options_map[ $raw_string ] );
+        if ( $from_label !== '' ) {
+            return $from_label;
+        }
+    }
+
+    return 'editorial';
+}
+
+function teinvit_build_invitation_from_wapf_map( array $wapf, array $theme_options_map = [] ) {
     $get = function( $id ) use ( $wapf ) {
         return isset( $wapf[ $id ] ) ? trim( (string) $wapf[ $id ] ) : '';
     };
@@ -342,14 +418,7 @@ function teinvit_build_invitation_from_wapf_map( array $wapf ) {
         'model_key'    => 'invn01',
     ];
 
-    $theme_label = strtolower( $get( '6967752ab511b' ) );
-    if ( strpos( $theme_label, 'romantic' ) !== false ) {
-        $invitation['theme'] = 'romantic';
-    } elseif ( strpos( $theme_label, 'modern' ) !== false ) {
-        $invitation['theme'] = 'modern';
-    } elseif ( strpos( $theme_label, 'classic' ) !== false ) {
-        $invitation['theme'] = 'classic';
-    }
+    $invitation['theme'] = teinvit_resolve_theme_key_from_wapf_value( $get( '6967752ab511b' ), $theme_options_map );
 
     if ( $has( '696445d6a9ce9' ) ) {
         $invitation['show_parents'] = true;
@@ -533,7 +602,9 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     }
 
     $wapf = teinvit_extract_posted_wapf_map( $_POST );
-    $snapshot_invitation = teinvit_build_invitation_from_wapf_map( $wapf );
+    $primary_product_id = teinvit_get_order_primary_product_id( $order );
+    $theme_options_map = teinvit_extract_theme_options_map_from_product( $primary_product_id );
+    $snapshot_invitation = teinvit_build_invitation_from_wapf_map( $wapf, $theme_options_map );
     if ( ! teinvit_wapf_payload_is_minimally_valid( $wapf, $snapshot_invitation ) ) {
         wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=invalid_snapshot' ) );
         exit;
