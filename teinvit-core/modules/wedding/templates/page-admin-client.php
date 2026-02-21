@@ -250,9 +250,13 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
       elements.forEach(el=>{
         if(el.type==='checkbox'){
           const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
-          el.checked = selected.includes(el.value) || selected.includes(label) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
+          const selectedLower = selected.map(v=>String(v).toLowerCase());
+          const valueLower = String(el.value || '').toLowerCase();
+          const labelLower = String(label || '').toLowerCase();
+          el.checked = selected.includes(el.value) || selected.includes(label) || selectedLower.includes(valueLower) || selectedLower.includes(labelLower) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
         } else if(el.type==='radio'){
-          el.checked = String(el.value) === String(raw);
+          const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
+          el.checked = String(el.value) === String(raw) || String(label).trim().toLowerCase() === String(raw).trim().toLowerCase();
         } else if(el.tagName === 'SELECT'){
           const opts = Array.from(el.options || []);
           const byValue = opts.find(o=>String(o.value)===String(raw));

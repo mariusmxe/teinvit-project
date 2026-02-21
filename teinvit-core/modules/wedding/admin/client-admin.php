@@ -267,8 +267,8 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
             if ( ! is_array( $opt ) ) {
                 continue;
             }
-            $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? '' );
-            $value = (string) ( $opt['value'] ?? $label );
+            $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? $opt['slug'] ?? '' );
+            $value = (string) ( $opt['value'] ?? $opt['slug'] ?? $label );
             if ( $label === '' && $value === '' ) {
                 continue;
             }
