@@ -209,6 +209,76 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     return String(raw || '').split(',').map(s=>s.trim()).filter(Boolean);
   }
 
+  function buildOptionLookups(elements){
+    const byValue = {};
+    const byLabel = {};
+    elements.forEach(el=>{
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options || []).forEach(opt=>{
+          const value = String(opt.value || '').trim();
+          const label = String(opt.text || '').trim();
+          if (value) byValue[value] = label;
+          if (label) byLabel[label.toLowerCase()] = value || label;
+        });
+        return;
+      }
+      const value = String(el.value || '').trim();
+      const labelNode = el.closest('label');
+      const label = labelNode && labelNode.textContent ? String(labelNode.textContent).trim() : '';
+      if (value && value !== '0') byValue[value] = label || value;
+      if (label) byLabel[label.toLowerCase()] = value || label;
+    });
+    return { byValue, byLabel };
+  }
+
+  function normalizeRawWithLookups(raw, lookups, allowMulti){
+    const rawString = String(raw || '').trim();
+    if (!rawString) return '';
+
+    const resolveSingle = (token)=>{
+      const t = String(token || '').trim();
+      if (!t || t === '0') return '';
+      if (Object.prototype.hasOwnProperty.call(lookups.byValue, t)) return t;
+      const byLabel = lookups.byLabel[t.toLowerCase()];
+      return byLabel ? String(byLabel) : '';
+    };
+
+    if (!allowMulti) {
+      return resolveSingle(rawString) || rawString;
+    }
+
+    const resolved = [];
+    const direct = resolveSingle(rawString);
+    if (direct) resolved.push(direct);
+    splitSelected(rawString).forEach(token=>{
+      const match = resolveSingle(token);
+      if (match) resolved.push(match);
+    });
+    return Array.from(new Set(resolved)).join(', ');
+  }
+
+  function normalizeMapToCurrentInputs(map){
+    const out = Object.assign({}, map || {});
+    const groups = {};
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
+      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
+      const id = m[1];
+      if(!groups[id]) groups[id] = [];
+      groups[id].push(el);
+    });
+
+    Object.keys(groups).forEach(id=>{
+      const elements = groups[id];
+      const raw = out[id] ?? '';
+      const nonHidden = elements.filter(el=>el.type !== 'hidden');
+      const lookups = buildOptionLookups(nonHidden);
+      const isMultiCheckbox = nonHidden.some(el=>el.type === 'checkbox');
+      out[id] = normalizeRawWithLookups(raw, lookups, isMultiCheckbox);
+    });
+
+    return out;
+  }
+
   function buildThemeLookup(){
     const out = {};
     const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
@@ -233,6 +303,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
   function setWapfValues(map, options){
     const shouldTrigger = !(options && options.triggerEvents === false);
+    const normalizedMap = normalizeMapToCurrentInputs(map || {});
     const groups = {};
 
     document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
@@ -244,7 +315,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
     Object.keys(groups).forEach(id=>{
       const elements = groups[id];
-      const raw = map[id] ?? '';
+      const raw = normalizedMap[id] ?? '';
       const selected = splitSelected(raw);
 
       elements.forEach(el=>{
@@ -309,15 +380,20 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
-  function applyVariant(id){
-    const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
-    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false });
+  function runPreviewCycle(){
     document.dispatchEvent(new Event('change', {bubbles:true}));
     refreshPreview();
+    document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
-  setWapfValues(initialWapf);
-  refreshPreview();
+  function applyVariant(id){
+    const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: true });
+    runPreviewCycle();
+  }
+
+  setWapfValues(initialWapf, { triggerEvents: true });
+  runPreviewCycle();
 
   document.querySelectorAll('.teinvit-variant-radio').forEach(r=>r.addEventListener('change',()=>applyVariant(r.value)));
   document.querySelectorAll('#teinvit-save-form input, #teinvit-save-form select, #teinvit-save-form textarea').forEach(el=>{
