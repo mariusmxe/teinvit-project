@@ -23,6 +23,7 @@ usort( $versions, static function( $a, $b ) {
 
 $order_wapf = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
 $order_invitation = TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order );
+$order_pdf_url = (string) $order->get_meta( '_teinvit_pdf_url' );
 
 $variants = [];
 foreach ( $versions as $index => $row ) {
@@ -37,12 +38,19 @@ foreach ( $versions as $index => $row ) {
         $snap_inv = $order_invitation;
     }
 
+    $pdf_url = (string) ( $row['pdf_url'] ?? '' );
+    if ( $index === 0 && $pdf_url === '' && $order_pdf_url !== '' ) {
+        $pdf_url = esc_url_raw( $order_pdf_url );
+    }
+
     $variants[] = [
         'id' => (int) $row['id'],
         'label' => 'Varianta ' . $index,
         'invitation' => $snap_inv,
         'wapf_fields' => $snap_wapf,
         'created_at' => (string) $row['created_at'],
+        'pdf_url' => $pdf_url,
+        'pdf_status' => (string) ( $row['pdf_status'] ?? 'none' ),
     ];
 }
 
@@ -75,6 +83,7 @@ $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_get_cart_url() );
+$global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1,.teinvit-admin-page .sub{text-align:center}
@@ -93,6 +102,12 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
   <div class="teinvit-admin-intro">
     <p>Aici poți modifica invitația rapid, vedea preview-ul în timp real și publica varianta dorită pentru invitați.</p>
   </div>
+
+  <?php if ( $global_admin_content !== '' ) : ?>
+  <div class="teinvit-zone teinvit-admin-global-zone">
+    <?php echo $global_admin_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+  </div>
+  <?php endif; ?>
 
   <div class="teinvit-zone">
     <h3>Data limită RSVP</h3>
@@ -121,6 +136,13 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
           <label style="display:block;margin-bottom:6px;">
             <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $active_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
+            <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
+              — <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener">Descarcă PDF</a>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
+              — <em>PDF în curs...</em>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
+              — <em>PDF eșuat</em>
+            <?php endif; ?>
           </label>
         <?php endforeach; ?>
         <button type="submit" class="button button-primary">Publică</button>
@@ -209,6 +231,76 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     return String(raw || '').split(',').map(s=>s.trim()).filter(Boolean);
   }
 
+  function buildOptionLookups(elements){
+    const byValue = {};
+    const byLabel = {};
+    elements.forEach(el=>{
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options || []).forEach(opt=>{
+          const value = String(opt.value || '').trim();
+          const label = String(opt.text || '').trim();
+          if (value) byValue[value] = label;
+          if (label) byLabel[label.toLowerCase()] = value || label;
+        });
+        return;
+      }
+      const value = String(el.value || '').trim();
+      const labelNode = el.closest('label');
+      const label = labelNode && labelNode.textContent ? String(labelNode.textContent).trim() : '';
+      if (value && value !== '0') byValue[value] = label || value;
+      if (label) byLabel[label.toLowerCase()] = value || label;
+    });
+    return { byValue, byLabel };
+  }
+
+  function normalizeRawWithLookups(raw, lookups, allowMulti){
+    const rawString = String(raw || '').trim();
+    if (!rawString) return '';
+
+    const resolveSingle = (token)=>{
+      const t = String(token || '').trim();
+      if (!t || t === '0') return '';
+      if (Object.prototype.hasOwnProperty.call(lookups.byValue, t)) return t;
+      const byLabel = lookups.byLabel[t.toLowerCase()];
+      return byLabel ? String(byLabel) : '';
+    };
+
+    if (!allowMulti) {
+      return resolveSingle(rawString) || rawString;
+    }
+
+    const resolved = [];
+    const direct = resolveSingle(rawString);
+    if (direct) resolved.push(direct);
+    splitSelected(rawString).forEach(token=>{
+      const match = resolveSingle(token);
+      if (match) resolved.push(match);
+    });
+    return Array.from(new Set(resolved)).join(', ');
+  }
+
+  function normalizeMapToCurrentInputs(map){
+    const out = Object.assign({}, map || {});
+    const groups = {};
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
+      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
+      const id = m[1];
+      if(!groups[id]) groups[id] = [];
+      groups[id].push(el);
+    });
+
+    Object.keys(groups).forEach(id=>{
+      const elements = groups[id];
+      const raw = out[id] ?? '';
+      const nonHidden = elements.filter(el=>el.type !== 'hidden');
+      const lookups = buildOptionLookups(nonHidden);
+      const isMultiCheckbox = nonHidden.some(el=>el.type === 'checkbox');
+      out[id] = normalizeRawWithLookups(raw, lookups, isMultiCheckbox);
+    });
+
+    return out;
+  }
+
   function buildThemeLookup(){
     const out = {};
     const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
@@ -222,17 +314,32 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
   }
 
   function resolveThemeKey(raw, themeLookup){
-    const direct = String(raw || '').trim().toLowerCase();
-    const normalized = direct || String(themeLookup[String(raw || '').trim()] || '').trim().toLowerCase();
-    if(normalized === 'editorial' || normalized.includes('editorial')) return 'editorial';
-    if(normalized === 'romantic' || normalized.includes('romantic')) return 'romantic';
-    if(normalized === 'modern' || normalized.includes('modern')) return 'modern';
-    if(normalized === 'classic' || normalized.includes('classic')) return 'classic';
+    const rawTrimmed = String(raw || '').trim();
+    const rawLower = rawTrimmed.toLowerCase();
+
+    const toKey = (value)=>{
+      const normalized = String(value || '').trim().toLowerCase();
+      if(!normalized) return '';
+      if(normalized === 'editorial' || normalized.includes('editorial')) return 'editorial';
+      if(normalized === 'romantic' || normalized.includes('romantic')) return 'romantic';
+      if(normalized === 'modern' || normalized.includes('modern')) return 'modern';
+      if(normalized === 'classic' || normalized.includes('classic')) return 'classic';
+      return '';
+    };
+
+    const directKey = toKey(rawLower);
+    if (directKey) return directKey;
+
+    const mappedLabel = String(themeLookup[rawTrimmed] || '').trim();
+    const mappedKey = toKey(mappedLabel);
+    if (mappedKey) return mappedKey;
+
     return 'editorial';
   }
 
   function setWapfValues(map, options){
     const shouldTrigger = !(options && options.triggerEvents === false);
+    const normalizedMap = normalizeMapToCurrentInputs(map || {});
     const groups = {};
 
     document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
@@ -244,7 +351,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 
     Object.keys(groups).forEach(id=>{
       const elements = groups[id];
-      const raw = map[id] ?? '';
+      const raw = normalizedMap[id] ?? '';
       const selected = splitSelected(raw);
 
       elements.forEach(el=>{
@@ -302,22 +409,25 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
     }
     const inv = buildInvitation(parsed);
     window.TEINVIT_INVITATION_DATA = inv;
-    const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
-    if (themeSelect) {
-      themeSelect.dispatchEvent(new Event('change', {bubbles:true}));
-    }
+    window.__TEINVIT_AUTOFIT_DONE__ = false;
+    document.dispatchEvent(new Event('input', {bubbles:true}));
+  }
+
+  function runPreviewCycle(){
+    window.__TEINVIT_AUTOFIT_DONE__ = false;
+    document.dispatchEvent(new Event('change', {bubbles:true}));
+    refreshPreview();
     document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
   function applyVariant(id){
     const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
-    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false });
-    document.dispatchEvent(new Event('change', {bubbles:true}));
-    refreshPreview();
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: true });
+    runPreviewCycle();
   }
 
-  setWapfValues(initialWapf);
-  refreshPreview();
+  setWapfValues(initialWapf, { triggerEvents: true });
+  runPreviewCycle();
 
   document.querySelectorAll('.teinvit-variant-radio').forEach(r=>r.addEventListener('change',()=>applyVariant(r.value)));
   document.querySelectorAll('#teinvit-save-form input, #teinvit-save-form select, #teinvit-save-form textarea').forEach(el=>{
