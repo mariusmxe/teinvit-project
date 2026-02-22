@@ -56,9 +56,22 @@ foreach ( $versions as $index => $row ) {
 
 $current = null;
 $active_id = (int) ( $inv['active_version_id'] ?? 0 );
+$selected_version_id = isset( $_GET['selected_version_id'] ) ? (int) $_GET['selected_version_id'] : 0;
+
+if ( $selected_version_id > 0 ) {
+    foreach ( $variants as $variant ) {
+        if ( (int) $variant['id'] === $selected_version_id ) {
+            $current = $variant;
+            break;
+        }
+    }
+}
+
 foreach ( $variants as $variant ) {
     if ( (int) $variant['id'] === $active_id ) {
-        $current = $variant;
+        if ( ! $current ) {
+            $current = $variant;
+        }
         break;
     }
 }
@@ -146,6 +159,9 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           </label>
         <?php endforeach; ?>
         <button type="submit" class="button button-primary">Publică</button>
+        <p style="margin-top:8px;">
+          <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+        </p>
       </form>
     </div>
 
