@@ -396,6 +396,40 @@ function teinvit_extract_theme_options_map_from_product( $product_id ) {
     return [];
 }
 
+function teinvit_wapf_is_zeroish_value( $raw ) {
+    $raw_string = trim( (string) $raw );
+    if ( $raw_string === '' ) {
+        return false;
+    }
+
+    $tokens = preg_split( '/\s*,\s*/', $raw_string );
+    if ( ! is_array( $tokens ) || empty( $tokens ) ) {
+        return false;
+    }
+
+    foreach ( $tokens as $token ) {
+        $token = strtolower( trim( (string) $token ) );
+        if ( $token === '' ) {
+            continue;
+        }
+        if ( ! in_array( $token, [ '0', 'false', 'off', 'no' ], true ) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function teinvit_wapf_boolean_field_ids() {
+    return [
+        '696445d6a9ce9',
+        '696448f2ae763',
+        '69644d9e814ef',
+        '69645088f4b73',
+        '696451a951467',
+    ];
+}
+
 function teinvit_extract_wapf_option_maps_from_product( $product_id ) {
     $product_id = (int) $product_id;
     if ( $product_id <= 0 || ! function_exists( 'teinvit_extract_wapf_definitions_from_product' ) ) {
@@ -412,7 +446,9 @@ function teinvit_extract_wapf_option_maps_from_product( $product_id ) {
         if ( ! is_array( $def ) ) {
             continue;
         }
-        $field_id = trim( (string) ( $def['id'] ?? '' ) );
+        $field_id = function_exists( 'teinvit_normalize_wapf_field_id' )
+            ? teinvit_normalize_wapf_field_id( $def['id'] ?? '' )
+            : trim( (string) ( $def['id'] ?? '' ) );
         if ( $field_id === '' ) {
             continue;
         }
@@ -427,8 +463,8 @@ function teinvit_extract_wapf_option_maps_from_product( $product_id ) {
             if ( ! is_array( $opt ) ) {
                 continue;
             }
-            $value = trim( (string) ( $opt['value'] ?? '' ) );
-            $label = trim( (string) ( $opt['label'] ?? $value ) );
+            $label = trim( (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? '' ) );
+            $value = trim( (string) ( $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? $opt['code'] ?? $label ) );
             if ( $value !== '' ) {
                 $field_map['by_value'][ $value ] = $label;
             }
@@ -446,7 +482,15 @@ function teinvit_extract_wapf_option_maps_from_product( $product_id ) {
 function teinvit_normalize_wapf_map_with_option_maps( array $wapf, array $option_maps ) {
     $normalized = $wapf;
 
+    $boolean_field_ids = array_fill_keys( teinvit_wapf_boolean_field_ids(), true );
+
     foreach ( $wapf as $field_id => $raw ) {
+        $raw_string = trim( (string) $raw );
+        if ( isset( $boolean_field_ids[ (string) $field_id ] ) && teinvit_wapf_is_zeroish_value( $raw_string ) ) {
+            $normalized[ $field_id ] = '';
+            continue;
+        }
+
         if ( ! isset( $option_maps[ $field_id ] ) || ! is_array( $option_maps[ $field_id ] ) ) {
             continue;
         }
@@ -455,7 +499,6 @@ function teinvit_normalize_wapf_map_with_option_maps( array $wapf, array $option
         $type = strtolower( trim( (string) ( $field_map['type'] ?? '' ) ) );
         $by_value = is_array( $field_map['by_value'] ?? null ) ? $field_map['by_value'] : [];
         $by_label = is_array( $field_map['by_label'] ?? null ) ? $field_map['by_label'] : [];
-        $raw_string = trim( (string) $raw );
 
         if ( $raw_string === '' || ( empty( $by_value ) && empty( $by_label ) ) ) {
             continue;
@@ -540,7 +583,7 @@ function teinvit_build_invitation_from_wapf_map( array $wapf, array $theme_optio
         }
 
         $value = trim( (string) $wapf[ $id ] );
-        if ( $value === '' || $value === '0' ) {
+        if ( $value === '' || teinvit_wapf_is_zeroish_value( $value ) ) {
             return false;
         }
 
