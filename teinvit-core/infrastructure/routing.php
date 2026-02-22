@@ -85,6 +85,34 @@ add_action( 'template_redirect', function () {
     echo '<!DOCTYPE html><html lang="ro" class="teinvit-pdf"><head><meta charset="utf-8"><meta name="viewport" content="width=148mm, height=210mm, initial-scale=1"><title>Invitație PDF</title></head><body style="display:flex;justify-content:center;">';
 
     $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
+
+    $requested_version_id = isset( $_GET['teinvit_version_id'] ) ? (int) $_GET['teinvit_version_id'] : 0;
+    if ( $requested_version_id > 0 ) {
+        global $wpdb;
+        $t = function_exists( 'teinvit_db_tables' ) ? teinvit_db_tables() : [];
+        if ( empty( $t['versions'] ) ) {
+            status_header( 404 );
+            echo 'PDF version invalid.';
+            exit;
+        }
+
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT snapshot FROM {$t['versions']} WHERE id = %d AND token = %s LIMIT 1", $requested_version_id, $token ), ARRAY_A );
+        if ( empty( $row['snapshot'] ) ) {
+            status_header( 404 );
+            echo 'PDF version invalid.';
+            exit;
+        }
+
+        $requested_payload = json_decode( (string) $row['snapshot'], true );
+        if ( empty( $requested_payload['invitation'] ) || ! is_array( $requested_payload['invitation'] ) ) {
+            status_header( 404 );
+            echo 'PDF version invalid.';
+            exit;
+        }
+
+        $payload = $requested_payload;
+    }
+
     if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
         echo TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
     } else {

@@ -120,6 +120,22 @@ function teinvit_get_modular_active_payload( $token ) {
     return is_array( $payload ) ? $payload : [];
 }
 
+
+function teinvit_render_admin_client_global_content() {
+    $page = get_page_by_path( 'teinvit-admin-client-global', OBJECT, 'page' );
+    if ( ! $page instanceof WP_Post ) {
+        return '';
+    }
+
+    $content = (string) $page->post_content;
+    if ( $content === '' ) {
+        return '';
+    }
+
+    return (string) apply_filters( 'the_content', $content );
+}
+
+
 add_action( 'init', function() {
     register_post_type( 'teinvit_invitation', [
         'labels' => [
@@ -371,6 +387,122 @@ function teinvit_extract_theme_options_map_from_product( $product_id ) {
     return [];
 }
 
+function teinvit_extract_wapf_option_maps_from_product( $product_id ) {
+    $product_id = (int) $product_id;
+    if ( $product_id <= 0 || ! function_exists( 'teinvit_extract_wapf_definitions_from_product' ) ) {
+        return [];
+    }
+
+    $defs = teinvit_extract_wapf_definitions_from_product( $product_id );
+    if ( ! is_array( $defs ) ) {
+        return [];
+    }
+
+    $maps = [];
+    foreach ( $defs as $def ) {
+        if ( ! is_array( $def ) ) {
+            continue;
+        }
+        $field_id = trim( (string) ( $def['id'] ?? '' ) );
+        if ( $field_id === '' ) {
+            continue;
+        }
+
+        $field_map = [
+            'type' => strtolower( trim( (string) ( $def['type'] ?? '' ) ) ),
+            'by_value' => [],
+            'by_label' => [],
+        ];
+
+        foreach ( (array) ( $def['options'] ?? [] ) as $opt ) {
+            if ( ! is_array( $opt ) ) {
+                continue;
+            }
+            $value = trim( (string) ( $opt['value'] ?? '' ) );
+            $label = trim( (string) ( $opt['label'] ?? $value ) );
+            if ( $value !== '' ) {
+                $field_map['by_value'][ $value ] = $label;
+            }
+            if ( $label !== '' ) {
+                $field_map['by_label'][ strtolower( $label ) ] = $value !== '' ? $value : $label;
+            }
+        }
+
+        $maps[ $field_id ] = $field_map;
+    }
+
+    return $maps;
+}
+
+function teinvit_normalize_wapf_map_with_option_maps( array $wapf, array $option_maps ) {
+    $normalized = $wapf;
+
+    foreach ( $wapf as $field_id => $raw ) {
+        if ( ! isset( $option_maps[ $field_id ] ) || ! is_array( $option_maps[ $field_id ] ) ) {
+            continue;
+        }
+
+        $field_map = $option_maps[ $field_id ];
+        $type = strtolower( trim( (string) ( $field_map['type'] ?? '' ) ) );
+        $by_value = is_array( $field_map['by_value'] ?? null ) ? $field_map['by_value'] : [];
+        $by_label = is_array( $field_map['by_label'] ?? null ) ? $field_map['by_label'] : [];
+        $raw_string = trim( (string) $raw );
+
+        if ( $raw_string === '' || ( empty( $by_value ) && empty( $by_label ) ) ) {
+            continue;
+        }
+
+        $resolve_single = static function( $value ) use ( $by_value, $by_label ) {
+            $candidate = trim( (string) $value );
+            if ( $candidate === '' ) {
+                return '';
+            }
+            if ( isset( $by_value[ $candidate ] ) ) {
+                return $candidate;
+            }
+            $candidate_lower = strtolower( $candidate );
+            if ( isset( $by_label[ $candidate_lower ] ) ) {
+                return (string) $by_label[ $candidate_lower ];
+            }
+            return '';
+        };
+
+        if ( in_array( $type, [ 'checkbox', 'checkboxes', 'multi-color-swatch', 'multi-image-swatch', 'multi-text-swatch', 'products-checkbox', 'products-card', 'products-image', 'products-vcard' ], true ) ) {
+            $tokens = array_filter( array_map( 'trim', explode( ',', $raw_string ) ), static function( $v ) {
+                return $v !== '' && $v !== '0';
+            } );
+            $resolved = [];
+
+            $direct = $resolve_single( $raw_string );
+            if ( $direct !== '' ) {
+                $resolved[] = $direct;
+            }
+
+            foreach ( $tokens as $token ) {
+                $match = $resolve_single( $token );
+                if ( $match !== '' ) {
+                    $resolved[] = $match;
+                }
+            }
+
+            $resolved = array_values( array_unique( $resolved ) );
+            if ( ! empty( $resolved ) ) {
+                $normalized[ $field_id ] = implode( ', ', $resolved );
+            } else {
+                $normalized[ $field_id ] = '';
+            }
+            continue;
+        }
+
+        $single = $resolve_single( $raw_string );
+        if ( $single !== '' ) {
+            $normalized[ $field_id ] = $single;
+        }
+    }
+
+    return $normalized;
+}
+
 function teinvit_resolve_theme_key_from_wapf_value( $raw, array $theme_options_map = [] ) {
     $direct = teinvit_theme_key_from_any_value( $raw );
     if ( $direct !== '' ) {
@@ -603,6 +735,8 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
 
     $wapf = teinvit_extract_posted_wapf_map( $_POST );
     $primary_product_id = teinvit_get_order_primary_product_id( $order );
+    $wapf_option_maps = teinvit_extract_wapf_option_maps_from_product( $primary_product_id );
+    $wapf = teinvit_normalize_wapf_map_with_option_maps( $wapf, $wapf_option_maps );
     $theme_options_map = teinvit_extract_theme_options_map_from_product( $primary_product_id );
     $snapshot_invitation = teinvit_build_invitation_from_wapf_map( $wapf, $theme_options_map );
     if ( ! teinvit_wapf_payload_is_minimally_valid( $wapf, $snapshot_invitation ) ) {
@@ -623,6 +757,33 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         'created_at' => current_time( 'mysql' ),
     ] );
     $version_id = (int) $wpdb->insert_id;
+
+    $pdf_status = 'none';
+    $pdf_url = '';
+    $pdf_filename = '';
+    if ( $version_id > 0 && function_exists( 'teinvit_pdf_filename_for_version' ) && function_exists( 'teinvit_generate_pdf_for_version' ) ) {
+        $version_index = max( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t['versions']} WHERE token = %s AND id <= %d", $token, $version_id ) ) - 1 );
+        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index );
+        $wpdb->update( $t['versions'], [
+            'pdf_status' => 'processing',
+            'pdf_filename' => $pdf_filename,
+        ], [ 'id' => $version_id ] );
+
+        $pdf_result = teinvit_generate_pdf_for_version( $token, $order_id, $pdf_filename, $version_id );
+        if ( is_wp_error( $pdf_result ) ) {
+            $pdf_status = 'failed';
+        } else {
+            $pdf_status = 'ready';
+            $pdf_url = (string) ( $pdf_result['pdf_url'] ?? '' );
+        }
+
+        $wpdb->update( $t['versions'], [
+            'pdf_status' => $pdf_status,
+            'pdf_url' => $pdf_url,
+            'pdf_generated_at' => current_time( 'mysql' ),
+            'pdf_filename' => $pdf_filename,
+        ], [ 'id' => $version_id ] );
+    }
 
     $config['edits_free_remaining'] = max( 0, $remaining - 1 );
     teinvit_save_invitation_config( $token, [

@@ -16,7 +16,7 @@ define( 'TEINVIT_CORE_VERSION', '1.0.0' );
 define( 'TEINVIT_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TEINVIT_CORE_URL', plugin_dir_url( __FILE__ ) );
 
-define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 3 );
+define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 4 );
 define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION', 'teinvit_client_admin_schema_version' );
 
 require_once TEINVIT_CORE_PATH . 'infrastructure/security.php';

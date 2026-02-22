@@ -235,6 +235,9 @@ function teinvit_normalize_wapf_field_id( $raw ) {
     if ( strpos( $id, 'wapf[field_' ) === 0 && substr( $id, -1 ) === ']' ) {
         $id = substr( $id, 11, -1 );
     }
+    if ( strpos( $id, '_' ) === 0 ) {
+        $id = substr( $id, 1 );
+    }
 
     return trim( $id );
 }
@@ -267,8 +270,8 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
             if ( ! is_array( $opt ) ) {
                 continue;
             }
-            $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? $opt['slug'] ?? '' );
-            $value = (string) ( $opt['value'] ?? $opt['slug'] ?? $label );
+            $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? '' );
+            $value = (string) ( $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? $opt['code'] ?? $label );
             if ( $label === '' && $value === '' ) {
                 continue;
             }
@@ -535,8 +538,11 @@ function teinvit_pdf_filename_for_version( WC_Order $order, $version ) {
     return $base . '.pdf';
 }
 
-function teinvit_generate_pdf_for_version( $token, $order_id, $filename ) {
+function teinvit_generate_pdf_for_version( $token, $order_id, $filename, $version_id = 0 ) {
     $payload = [ 'token' => $token, 'order_id' => (int) $order_id, 'filename' => $filename ];
+    if ( (int) $version_id > 0 ) {
+        $payload['version_id'] = (int) $version_id;
+    }
     $response = wp_remote_post( TEINVIT_NODE_ENDPOINT, [
         'timeout' => 240,
         'headers' => [ 'Content-Type' => 'application/json' ],
