@@ -767,7 +767,7 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
             'pdf_filename' => $pdf_filename,
         ], [ 'id' => $version_id ] );
 
-        $pdf_result = teinvit_generate_pdf_for_version( $token, $order_id, $pdf_filename );
+        $pdf_result = teinvit_generate_pdf_for_version( $token, $order_id, $pdf_filename, $version_id );
         if ( is_wp_error( $pdf_result ) ) {
             $pdf_status = 'failed';
         } else {

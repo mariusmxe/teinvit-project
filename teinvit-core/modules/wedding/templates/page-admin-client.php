@@ -23,6 +23,7 @@ usort( $versions, static function( $a, $b ) {
 
 $order_wapf = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
 $order_invitation = TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order );
+$order_pdf_url = (string) $order->get_meta( '_teinvit_pdf_url' );
 
 $variants = [];
 foreach ( $versions as $index => $row ) {
@@ -37,13 +38,18 @@ foreach ( $versions as $index => $row ) {
         $snap_inv = $order_invitation;
     }
 
+    $pdf_url = (string) ( $row['pdf_url'] ?? '' );
+    if ( $index === 0 && $pdf_url === '' && $order_pdf_url !== '' ) {
+        $pdf_url = esc_url_raw( $order_pdf_url );
+    }
+
     $variants[] = [
         'id' => (int) $row['id'],
         'label' => 'Varianta ' . $index,
         'invitation' => $snap_inv,
         'wapf_fields' => $snap_wapf,
         'created_at' => (string) $row['created_at'],
-        'pdf_url' => (string) ( $row['pdf_url'] ?? '' ),
+        'pdf_url' => $pdf_url,
         'pdf_status' => (string) ( $row['pdf_status'] ?? 'none' ),
     ];
 }

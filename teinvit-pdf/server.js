@@ -28,7 +28,7 @@ app.use('/pdf', express.static(OUTPUT_DIR));
 /* ================= RENDER ENDPOINT ================= */
 app.post('/api/render', async (req, res) => {
 
-    const { token, order_id, filename } = req.body || {};
+    const { token, order_id, filename, version_id } = req.body || {};
 
     if (!token || !order_id || !filename) {
         return res.status(400).json({
@@ -37,7 +37,10 @@ app.post('/api/render', async (req, res) => {
         });
     }
 
-    const targetUrl = `${PDF_BASE_URL}/pdf/${token}/`;
+    const parsedVersionId = parseInt(version_id, 10);
+    const hasVersion = Number.isFinite(parsedVersionId) && parsedVersionId > 0;
+    const versionQuery = hasVersion ? `?teinvit_version_id=${encodeURIComponent(parsedVersionId)}` : '';
+    const targetUrl = `${PDF_BASE_URL}/pdf/${token}/${versionQuery}`;
     const orderDir  = path.join(OUTPUT_DIR, String(order_id));
 
     if (!fs.existsSync(orderDir)) {
