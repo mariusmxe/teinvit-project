@@ -397,6 +397,9 @@ function formatNames(text) {
 
         var productInput = qs('[name="add-to-cart"]') || qs('input[name="product_id"]') || qs('[name="variation_id"]');
         var productId = productInput ? parseInt(productInput.value || '0', 10) : 0;
+        if (!(productId > 0) && window.teinvitPreviewConfig && window.teinvitPreviewConfig.productId) {
+            productId = parseInt(window.teinvitPreviewConfig.productId || '0', 10);
+        }
 
         canonicalPreviewInFlight = true;
         fetch(window.teinvitPreviewConfig.previewBuildUrl, {
@@ -404,6 +407,7 @@ function formatNames(text) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 product_id: productId > 0 ? productId : 0,
+                token: window.teinvitPreviewConfig && window.teinvitPreviewConfig.token ? window.teinvitPreviewConfig.token : '',
                 wapf_map: map
             })
         }).then(function(resp){
@@ -495,7 +499,18 @@ function formatNames(text) {
 
             if (hasWAPF()) {
             if (!canonicalPreviewData) {
-                scheduleCanonicalPreviewBuild();
+                if (window.teinvitPreviewConfig && window.teinvitPreviewConfig.previewBuildUrl) {
+                    scheduleCanonicalPreviewBuild();
+                    return null;
+                }
+
+                if (window.TEINVIT_INVITATION_DATA) {
+                    return {
+                        ...window.TEINVIT_INVITATION_DATA,
+                        names: formatNames(window.TEINVIT_INVITATION_DATA.names)
+                    };
+                }
+
                 return null;
             }
             return canonicalPreviewData;

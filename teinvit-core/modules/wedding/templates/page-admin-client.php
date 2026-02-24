@@ -189,6 +189,12 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 </div>
 <script>
 (function(){
+  window.teinvitPreviewConfig = Object.assign({}, window.teinvitPreviewConfig || {}, {
+    previewBuildUrl: <?php echo wp_json_encode( esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ); ?>,
+    token: <?php echo wp_json_encode( (string) $token ); ?>,
+    productId: <?php echo (int) $product_id; ?>
+  });
+
   const variants = <?php echo wp_json_encode( $variants ); ?>;
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
@@ -371,6 +377,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       const selected = splitSelected(raw);
 
       elements.forEach(el=>{
+        if (el.type === 'hidden' && el.classList.contains('wapf-tf-h')) {
+          return;
+        }
+
         if(el.type==='checkbox'){
           const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
           const selectedLower = selected.map(v=>String(v).toLowerCase());
