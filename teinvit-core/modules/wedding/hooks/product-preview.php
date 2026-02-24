@@ -34,6 +34,10 @@ add_action( 'wp_enqueue_scripts', function () {
         true
     );
 
+    wp_localize_script( 'teinvit-preview', 'teinvitPreviewConfig', [
+        'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ),
+    ] );
+
 }, 20 );
 
 /**

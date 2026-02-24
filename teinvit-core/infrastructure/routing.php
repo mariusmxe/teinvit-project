@@ -34,15 +34,17 @@ add_action( 'template_redirect', function () {
         exit;
     }
 
-    $html = '';
-    $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
-    if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
-        $html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+    $payload = function_exists( 'teinvit_ensure_active_snapshot_payload' )
+        ? teinvit_ensure_active_snapshot_payload( $token, $order )
+        : ( function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [] );
+
+    if ( empty( $payload['invitation'] ) || ! is_array( $payload['invitation'] ) ) {
+        status_header( 404 );
+        echo 'Invitația nu a fost găsită.';
+        exit;
     }
 
-    if ( $html === '' ) {
-        $html = TeInvit_Wedding_Preview_Renderer::render_from_order( $order );
-    }
+    $html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
 
     status_header( 200 );
     nocache_headers();
@@ -84,7 +86,9 @@ add_action( 'template_redirect', function () {
 
     echo '<!DOCTYPE html><html lang="ro" class="teinvit-pdf"><head><meta charset="utf-8"><meta name="viewport" content="width=148mm, height=210mm, initial-scale=1"><title>Invitație PDF</title></head><body style="display:flex;justify-content:center;">';
 
-    $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
+    $payload = function_exists( 'teinvit_ensure_active_snapshot_payload' )
+        ? teinvit_ensure_active_snapshot_payload( $token, $order )
+        : ( function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [] );
 
     $requested_version_id = isset( $_GET['teinvit_version_id'] ) ? (int) $_GET['teinvit_version_id'] : 0;
     if ( $requested_version_id > 0 ) {
@@ -113,11 +117,13 @@ add_action( 'template_redirect', function () {
         $payload = $requested_payload;
     }
 
-    if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
-        echo TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
-    } else {
-        echo TeInvit_Wedding_Preview_Renderer::render_from_order( $order );
+    if ( empty( $payload['invitation'] ) || ! is_array( $payload['invitation'] ) ) {
+        status_header( 404 );
+        echo 'PDF invalid.';
+        exit;
     }
+
+    echo TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
 
     echo '</body></html>';
     exit;

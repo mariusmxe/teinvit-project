@@ -354,6 +354,82 @@ function formatNames(text) {
     }
 
     /* ==================================================
+       CANONICAL PREVIEW PAYLOAD (server-side builder)
+    ================================================== */
+
+    var canonicalPreviewData = null;
+    var canonicalPreviewTimer = null;
+    var canonicalPreviewInFlight = false;
+
+    function collectWapfMapFromForm() {
+        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
+        if (!form) return {};
+
+        var fd = new FormData(form);
+        var out = {};
+
+        fd.forEach(function(value, key){
+            var m = key.match(/^wapf\[field_([^\]]+)\]/);
+            if(!m) return;
+            var id = String(m[1] || '').trim();
+            if(!id) return;
+
+            if (!Object.prototype.hasOwnProperty.call(out, id)) {
+                out[id] = [];
+            }
+            out[id].push(String(value || '').trim());
+        });
+
+        Object.keys(out).forEach(function(id){
+            out[id] = out[id].filter(function(v){ return v !== ''; }).join(', ');
+        });
+
+        return out;
+    }
+
+    function requestCanonicalPreviewBuild() {
+        if (canonicalPreviewInFlight) return;
+        if (!hasWAPF()) return;
+        if (!window.teinvitPreviewConfig || !window.teinvitPreviewConfig.previewBuildUrl) return;
+
+        var map = collectWapfMapFromForm();
+        if (!Object.keys(map).length) return;
+
+        var productInput = qs('[name="add-to-cart"]') || qs('input[name="product_id"]') || qs('[name="variation_id"]');
+        var productId = productInput ? parseInt(productInput.value || '0', 10) : 0;
+
+        canonicalPreviewInFlight = true;
+        fetch(window.teinvitPreviewConfig.previewBuildUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                product_id: productId > 0 ? productId : 0,
+                wapf_map: map
+            })
+        }).then(function(resp){
+            return resp.json();
+        }).then(function(data){
+            if (data && data.ok && data.invitation) {
+                canonicalPreviewData = data.invitation;
+                window.TEINVIT_INVITATION_DATA = data.invitation;
+                window.__TEINVIT_AUTOFIT_DONE__ = false;
+                render();
+            }
+        }).catch(function(){
+            // no-op
+        }).finally(function(){
+            canonicalPreviewInFlight = false;
+        });
+    }
+
+    function scheduleCanonicalPreviewBuild() {
+        if (canonicalPreviewTimer) {
+            clearTimeout(canonicalPreviewTimer);
+        }
+        canonicalPreviewTimer = setTimeout(requestCanonicalPreviewBuild, 180);
+    }
+
+    /* ==================================================
        DATA SOURCES
     ================================================== */
 
@@ -418,37 +494,11 @@ function formatNames(text) {
             function getInvitationData() {
 
             if (hasWAPF()) {
-            return {
-                names: formatNames(
-            join(
-            valWAPF('6963a95e66425'),
-            valWAPF('6963aa37412e4'),
-            ' & '
-        )
-    ),
-
-                message: limitMessage(valWAPF('6963aa782092d')),
-                show_parents: checkedWAPF('696445d6a9ce9'),
-                parents: {
-                    mireasa: join(
-                        valWAPF('6964461d67da5'),
-                        valWAPF('6964466afe4d1'),
-                        ' & '
-                    ),
-                    mire: join(
-                        valWAPF('69644689ee7e1'),
-                        valWAPF('696446dfabb7b'),
-                        ' & '
-                    )
-                },
-                show_nasi: checkedWAPF('696448f2ae763'),
-                nasi: join(
-                    valWAPF('69644a3415fb9'),
-                    valWAPF('69644a5822ddc'),
-                    ' & '
-                ),
-                events: buildEventsFromWAPF()
-            };
+            if (!canonicalPreviewData) {
+                scheduleCanonicalPreviewBuild();
+                return null;
+            }
+            return canonicalPreviewData;
         }
 
                 if (window.TEINVIT_INVITATION_DATA) {
@@ -718,10 +768,16 @@ applyAutoFit(canvas);
     }
 
     function onPreviewDataChange() {
+        if (hasWAPF()) {
+            scheduleCanonicalPreviewBuild();
+        }
         render();
         scheduleFinalProductPass();
     }
 
+    if (hasWAPF()) {
+        scheduleCanonicalPreviewBuild();
+    }
     render();
     scheduleFinalProductPass();
     document.addEventListener('input', onPreviewDataChange);

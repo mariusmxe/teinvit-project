@@ -24,12 +24,12 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
     $order_id = (int) teinvit_get_order_id_by_token( $token );
     $order = $order_id ? wc_get_order( $order_id ) : null;
     if ( $order ) {
-        $payload = function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [];
+        $payload = function_exists( 'teinvit_ensure_active_snapshot_payload' )
+            ? teinvit_ensure_active_snapshot_payload( $token, $order )
+            : ( function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [] );
 
         if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
             $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
-        } else {
-            $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_order( $order );
         }
     }
 
