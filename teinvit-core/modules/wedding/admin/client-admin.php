@@ -250,128 +250,137 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
 
     $allowed_invitation_only_ids = function_exists( 'teinvit_wedding_invitation_only_wapf_field_ids' ) ? teinvit_wedding_invitation_only_wapf_field_ids() : [];
     $allowed = array_fill_keys( $allowed_invitation_only_ids, true );
-    $raw_meta = get_post_meta( $product_id );
     $definitions = [];
 
-    $parse_options = function( $field ) {
-        $out = [];
-        $nodes = [];
-        if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
-            $nodes = $field['options'];
-        } elseif ( isset( $field['choices'] ) && is_array( $field['choices'] ) ) {
-            $nodes = $field['choices'];
-        }
+    if ( function_exists( 'wapf_get_field_groups_of_product' ) ) {
+        $groups = wapf_get_field_groups_of_product( $product_id );
+        if ( is_array( $groups ) ) {
+            foreach ( $groups as $group ) {
+                $fields = is_object( $group ) && isset( $group->fields ) ? (array) $group->fields : [];
+                foreach ( $fields as $field ) {
+                    if ( ! is_object( $field ) ) {
+                        continue;
+                    }
 
-        foreach ( $nodes as $opt ) {
-            if ( is_string( $opt ) ) {
-                $out[] = [ 'value' => $opt, 'label' => $opt ];
-                continue;
-            }
-            if ( ! is_array( $opt ) ) {
-                continue;
-            }
-            $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? '' );
-            $value = (string) ( $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? $opt['code'] ?? $label );
-            if ( $label === '' && $value === '' ) {
-                continue;
-            }
-            $out[] = [ 'value' => $value, 'label' => $label !== '' ? $label : $value ];
-        }
+                    $id = teinvit_normalize_wapf_field_id( $field->id ?? '' );
+                    if ( $id === '' || ! isset( $allowed[ $id ] ) ) {
+                        continue;
+                    }
 
-        return $out;
-    };
+                    if ( ! isset( $definitions[ $id ] ) ) {
+                        $definitions[ $id ] = [
+                            'id' => $id,
+                            'label' => (string) ( $field->label ?? ( 'Field ' . $id ) ),
+                            'type' => (string) ( $field->type ?? 'text' ),
+                            'options' => [],
+                            'conditions' => [],
+                            'order' => isset( $field->order ) ? (int) $field->order : 0,
+                        ];
+                    }
 
-    $parse_conditions = function( $field ) {
-        $candidates = [];
-        if ( isset( $field['conditions'] ) ) {
-            $candidates[] = $field['conditions'];
-        }
-        if ( isset( $field['conditionals'] ) ) {
-            $candidates[] = $field['conditionals'];
-        }
-        if ( isset( $field['conditional_logic'] ) ) {
-            $candidates[] = $field['conditional_logic'];
-        }
+                    $choices = [];
+                    if ( isset( $field->options ) && is_array( $field->options ) && isset( $field->options['choices'] ) && is_array( $field->options['choices'] ) ) {
+                        $choices = $field->options['choices'];
+                    }
 
-        $rules = [];
-        $walk = function( $node ) use ( &$walk, &$rules ) {
-            if ( is_array( $node ) ) {
-                $field = $node['field'] ?? $node['field_id'] ?? $node['id'] ?? null;
-                $value = $node['value'] ?? $node['compare'] ?? null;
-                if ( $field !== null ) {
-                    $fid = teinvit_normalize_wapf_field_id( $field );
-                    if ( $fid !== '' ) {
-                        $rules[] = [
-                            'field' => $fid,
-                            'operator' => (string) ( $node['operator'] ?? $node['comparison'] ?? '==' ),
-                            'value' => is_scalar( $value ) ? (string) $value : '',
+                    foreach ( $choices as $opt ) {
+                        if ( ! is_array( $opt ) && ! is_object( $opt ) ) {
+                            continue;
+                        }
+
+                        $opt_arr = is_object( $opt ) ? json_decode( wp_json_encode( $opt ), true ) : $opt;
+                        $label = trim( (string) ( $opt_arr['label'] ?? $opt_arr['text'] ?? $opt_arr['value'] ?? $opt_arr['slug'] ?? $opt_arr['id'] ?? $opt_arr['key'] ?? '' ) );
+                        $value = trim( (string) ( $opt_arr['value'] ?? $opt_arr['slug'] ?? $opt_arr['id'] ?? $opt_arr['key'] ?? $opt_arr['code'] ?? $label ) );
+                        if ( $label === '' && $value === '' ) {
+                            continue;
+                        }
+
+                        $definitions[ $id ]['options'][] = [
+                            'value' => $value !== '' ? $value : $label,
+                            'label' => $label !== '' ? $label : $value,
                         ];
                     }
                 }
-                foreach ( $node as $v ) {
-                    if ( is_array( $v ) || is_object( $v ) ) {
-                        $walk( $v );
-                    }
-                }
-            } elseif ( is_object( $node ) ) {
-                $walk( json_decode( wp_json_encode( $node ), true ) );
             }
+        }
+    }
+
+    if ( empty( $definitions ) ) {
+        $raw_meta = get_post_meta( $product_id );
+
+        $parse_options = function( $field ) {
+            $out = [];
+            $nodes = [];
+            if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
+                $nodes = $field['options'];
+            } elseif ( isset( $field['choices'] ) && is_array( $field['choices'] ) ) {
+                $nodes = $field['choices'];
+            }
+
+            foreach ( $nodes as $opt ) {
+                if ( is_string( $opt ) ) {
+                    $out[] = [ 'value' => $opt, 'label' => $opt ];
+                    continue;
+                }
+                if ( ! is_array( $opt ) ) {
+                    continue;
+                }
+                $label = (string) ( $opt['label'] ?? $opt['text'] ?? $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? '' );
+                $value = (string) ( $opt['value'] ?? $opt['slug'] ?? $opt['id'] ?? $opt['key'] ?? $opt['code'] ?? $label );
+                if ( $label === '' && $value === '' ) {
+                    continue;
+                }
+                $out[] = [ 'value' => $value, 'label' => $label !== '' ? $label : $value ];
+            }
+
+            return $out;
         };
 
-        foreach ( $candidates as $candidate ) {
-            $walk( $candidate );
-        }
-
-        return $rules;
-    };
-
-    $consume = function( $node ) use ( &$consume, &$definitions, $allowed, $parse_options, $parse_conditions ) {
-        if ( is_array( $node ) ) {
-            if ( isset( $node['id'] ) && isset( $node['type'] ) ) {
-                $id = teinvit_normalize_wapf_field_id( $node['id'] );
-                // Hard filter: Zona 2 admin randează doar câmpuri invitation-only.
-                if ( $id !== '' && isset( $allowed[ $id ] ) ) {
-                    if ( ! isset( $definitions[ $id ] ) ) {
+        $consume = function( $node ) use ( &$consume, &$definitions, $allowed, $parse_options ) {
+            if ( is_array( $node ) ) {
+                if ( isset( $node['id'] ) && isset( $node['type'] ) ) {
+                    $id = teinvit_normalize_wapf_field_id( $node['id'] );
+                    if ( $id !== '' && isset( $allowed[ $id ] ) && ! isset( $definitions[ $id ] ) ) {
                         $definitions[ $id ] = [
                             'id' => $id,
                             'label' => (string) ( $node['label'] ?? $node['title'] ?? ('Field ' . $id) ),
                             'type' => (string) $node['type'],
                             'options' => $parse_options( $node ),
-                            'conditions' => $parse_conditions( $node ),
+                            'conditions' => [],
                             'order' => isset( $node['order'] ) ? (int) $node['order'] : 0,
                         ];
                     }
                 }
-            }
 
-            foreach ( $node as $value ) {
-                if ( is_array( $value ) || is_object( $value ) ) {
-                    $consume( $value );
+                foreach ( $node as $value ) {
+                    if ( is_array( $value ) || is_object( $value ) ) {
+                        $consume( $value );
+                    }
                 }
+                return;
             }
-            return;
-        }
 
-        if ( is_object( $node ) ) {
-            $consume( json_decode( wp_json_encode( $node ), true ) );
-        }
-    };
+            if ( is_object( $node ) ) {
+                $consume( json_decode( wp_json_encode( $node ), true ) );
+            }
+        };
 
-    foreach ( $raw_meta as $meta_key => $meta_values ) {
-        if ( strpos( (string) $meta_key, 'wapf' ) === false && strpos( (string) $meta_key, '_wapf' ) === false ) {
-            continue;
-        }
+        foreach ( $raw_meta as $meta_key => $meta_values ) {
+            if ( strpos( (string) $meta_key, 'wapf' ) === false && strpos( (string) $meta_key, '_wapf' ) === false ) {
+                continue;
+            }
 
-        foreach ( (array) $meta_values as $meta_value ) {
-            $decoded = maybe_unserialize( $meta_value );
-            if ( is_string( $decoded ) ) {
-                $json = json_decode( $decoded, true );
-                if ( json_last_error() === JSON_ERROR_NONE ) {
-                    $decoded = $json;
+            foreach ( (array) $meta_values as $meta_value ) {
+                $decoded = maybe_unserialize( $meta_value );
+                if ( is_string( $decoded ) ) {
+                    $json = json_decode( $decoded, true );
+                    if ( json_last_error() === JSON_ERROR_NONE ) {
+                        $decoded = $json;
+                    }
                 }
-            }
-            if ( is_array( $decoded ) || is_object( $decoded ) ) {
-                $consume( $decoded );
+                if ( is_array( $decoded ) || is_object( $decoded ) ) {
+                    $consume( $decoded );
+                }
             }
         }
     }
@@ -398,6 +407,7 @@ function teinvit_extract_wapf_definitions_from_product( $product_id ) {
 
     return array_values( $definitions );
 }
+
 
 function teinvit_render_wapf_field_admin( array $def, array $values ) {
     $id = $def['id'];
