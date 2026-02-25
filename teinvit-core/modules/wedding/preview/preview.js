@@ -358,15 +358,18 @@ function formatNames(text) {
         restoreParentRaw(left);
         restoreParentRaw(right);
 
-        var needsSplit = isMultiLine(left) || isMultiLine(right);
+        var leftPair = splitParentPair(leftRaw) || splitParentBalanced(leftRaw);
+        var rightPair = splitParentPair(rightRaw) || splitParentBalanced(rightRaw);
+
+        var needsSplit = !!(leftPair || rightPair);
+        if (!needsSplit) {
+            needsSplit = isMultiLine(left) || isMultiLine(right);
+        }
 
         if (!needsSplit) {
             grid.classList.remove('parents-force-split');
             return;
         }
-
-        var leftPair = splitParentPair(leftRaw) || splitParentBalanced(leftRaw);
-        var rightPair = splitParentPair(rightRaw) || splitParentBalanced(rightRaw);
 
         if (leftPair) {
             applyForcedParentSplit(left, leftPair);
@@ -386,6 +389,7 @@ function formatNames(text) {
     var canonicalPreviewData = null;
     var canonicalPreviewTimer = null;
     var canonicalPreviewInFlight = false;
+    var canonicalPreviewQueued = false;
     var canonicalPreviewSeq = 0;
     var canonicalPreviewLastAppliedSeq = 0;
     var pdfReadyCheckTimer = null;
@@ -475,7 +479,10 @@ function formatNames(text) {
     }
 
     function requestCanonicalPreviewBuild() {
-        if (canonicalPreviewInFlight) return;
+        if (canonicalPreviewInFlight) {
+            canonicalPreviewQueued = true;
+            return;
+        }
         if (!hasWAPF()) return;
         if (!window.teinvitPreviewConfig || !window.teinvitPreviewConfig.previewBuildUrl) return;
 
@@ -515,6 +522,10 @@ function formatNames(text) {
             // no-op
         }).finally(function(){
             canonicalPreviewInFlight = false;
+            if (canonicalPreviewQueued) {
+                canonicalPreviewQueued = false;
+                scheduleCanonicalPreviewBuild();
+            }
         });
     }
 
@@ -593,6 +604,9 @@ function formatNames(text) {
             if (!canonicalPreviewData) {
                 if (window.teinvitPreviewConfig && window.teinvitPreviewConfig.previewBuildUrl) {
                     scheduleCanonicalPreviewBuild();
+                    if (window.TEINVIT_INVITATION_DATA) {
+                        return normalizeInvitationForRender(window.TEINVIT_INVITATION_DATA);
+                    }
                     return null;
                 }
 
