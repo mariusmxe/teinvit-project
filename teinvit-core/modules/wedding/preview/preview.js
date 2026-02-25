@@ -289,6 +289,24 @@ function formatNames(text) {
         };
     }
 
+    function splitParentBalanced(raw) {
+        var value = (raw || '').replace(/\s+/g, ' ').trim();
+        if (!value) return null;
+
+        var words = value.split(' ').filter(Boolean);
+        if (words.length < 2) return null;
+
+        var mid = Math.max(1, Math.floor(words.length / 2));
+        var left = words.slice(0, mid).join(' ').trim();
+        var right = words.slice(mid).join(' ').trim();
+        if (!left || !right) return null;
+
+        return {
+            mother: left,
+            father: right
+        };
+    }
+
     function restoreParentRaw(el) {
         if (!el) return;
         var raw = el.getAttribute('data-raw') || '';
@@ -347,8 +365,8 @@ function formatNames(text) {
             return;
         }
 
-        var leftPair = splitParentPair(leftRaw);
-        var rightPair = splitParentPair(rightRaw);
+        var leftPair = splitParentPair(leftRaw) || splitParentBalanced(leftRaw);
+        var rightPair = splitParentPair(rightRaw) || splitParentBalanced(rightRaw);
 
         if (leftPair) {
             applyForcedParentSplit(left, leftPair);
@@ -368,6 +386,24 @@ function formatNames(text) {
     var canonicalPreviewData = null;
     var canonicalPreviewTimer = null;
     var canonicalPreviewInFlight = false;
+    var canonicalPreviewSeq = 0;
+    var canonicalPreviewLastAppliedSeq = 0;
+    var pdfReadyCheckTimer = null;
+    var pdfReadyCheckAttempts = 0;
+
+    function invitationLayoutSignature(data) {
+        if (!data || typeof data !== 'object') return '';
+        return JSON.stringify({
+            theme: data.theme || '',
+            names: data.names || '',
+            message: data.message || '',
+            show_parents: !!data.show_parents,
+            parents: data.parents || {},
+            show_nasi: !!data.show_nasi,
+            nasi: data.nasi || '',
+            events: Array.isArray(data.events) ? data.events : []
+        });
+    }
 
     function normalizeInvitationForRender(data) {
         if (!data || typeof data !== 'object') return null;
@@ -452,6 +488,7 @@ function formatNames(text) {
             productId = parseInt(window.teinvitPreviewConfig.productId || '0', 10);
         }
 
+        var requestSeq = ++canonicalPreviewSeq;
         canonicalPreviewInFlight = true;
         fetch(window.teinvitPreviewConfig.previewBuildUrl, {
             method: 'POST',
@@ -464,10 +501,14 @@ function formatNames(text) {
         }).then(function(resp){
             return resp.json();
         }).then(function(data){
+            if (requestSeq < canonicalPreviewSeq) {
+                return;
+            }
             if (data && data.ok && data.invitation) {
                 canonicalPreviewData = data.invitation;
                 window.TEINVIT_INVITATION_DATA = data.invitation;
                 window.__TEINVIT_AUTOFIT_DONE__ = false;
+                canonicalPreviewLastAppliedSeq = requestSeq;
                 render();
             }
         }).catch(function(){
@@ -585,6 +626,32 @@ function syncBaseFontSize(canvas) {
     // NU modificăm nimic în PDF
 }
 
+    function schedulePdfReadyCheck(canvas) {
+        if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
+
+        if (pdfReadyCheckTimer) {
+            clearTimeout(pdfReadyCheckTimer);
+        }
+
+        pdfReadyCheckTimer = setTimeout(function () {
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(function () {
+                    var overflow = canvas.scrollHeight > canvas.clientHeight + 1;
+                    if (overflow && pdfReadyCheckAttempts < 4) {
+                        pdfReadyCheckAttempts++;
+                        window.__TEINVIT_AUTOFIT_DONE__ = false;
+                        applyAutoFit(canvas);
+                        schedulePdfReadyCheck(canvas);
+                        return;
+                    }
+
+                    window.TEINVIT_RENDER_READY = true;
+                    window.__TEINVIT_PDF_READY__ = true;
+                });
+            });
+        }, 40);
+    }
+
     /* ==================================================
        RENDER
     ================================================== */
@@ -593,6 +660,8 @@ function syncBaseFontSize(canvas) {
 
         var data = getInvitationData();
         if (!data) return;
+
+        window.__TEINVIT_LAYOUT_SIG__ = invitationLayoutSignature(data);
 
         if (data.message) data.message = limitMessage(data.message);
 
@@ -676,13 +745,10 @@ applyAutoFit(canvas);
         // ================================
         // 🔑 PDF HANDSHAKE – RENDER FINAL
         // ================================
-        window.TEINVIT_RENDER_READY = true;
-        if (
-            window.__TEINVIT_PDF_MODE__ &&
-            window.__TEINVIT_AUTOFIT_DONE__ &&
-            !window.__TEINVIT_PDF_READY__
-        ) {
-            window.__TEINVIT_PDF_READY__ = true;
+        if (window.__TEINVIT_PDF_MODE__) {
+            schedulePdfReadyCheck(canvas);
+        } else {
+            window.TEINVIT_RENDER_READY = true;
         }
     }
 
@@ -694,9 +760,13 @@ applyAutoFit(canvas);
 
     // Dacă suntem în i/{token} sau pdf/{token},
     // rulăm auto-fit o singură dată
+    var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
+    var lastSig = window.__TEINVIT_LAST_AUTOFIT_SIG__ || '';
     if (
         (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) &&
-        window.__TEINVIT_AUTOFIT_DONE__
+        window.__TEINVIT_AUTOFIT_DONE__ &&
+        currentSig !== '' &&
+        currentSig === lastSig
     ) {
         return;
     }
@@ -734,6 +804,7 @@ applyAutoFit(canvas);
     // Marcăm auto-fit ca fiind finalizat
     if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
         window.__TEINVIT_AUTOFIT_DONE__ = true;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
     }
 
 
@@ -837,11 +908,23 @@ applyAutoFit(canvas);
 
     document.addEventListener('teinvit:variant-applied', function(){
         canonicalPreviewData = null;
+        canonicalPreviewSeq++;
         finalizedSignature = '';
         lastStableSignature = '';
+        canonicalPreviewLastAppliedSeq = 0;
         window.__TEINVIT_AUTOFIT_DONE__ = false;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+        pdfReadyCheckAttempts = 0;
         scheduleCanonicalPreviewBuild();
     });
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function(){
+            window.__TEINVIT_AUTOFIT_DONE__ = false;
+            window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+            render();
+        }).catch(function(){});
+    }
 
     if (hasWAPF()) {
         scheduleCanonicalPreviewBuild();
