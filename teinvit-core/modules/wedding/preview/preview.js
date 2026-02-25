@@ -465,8 +465,8 @@ function formatNames(text) {
             return resp.json();
         }).then(function(data){
             if (data && data.ok && data.invitation) {
-                canonicalPreviewData = normalizeInvitationForRender(data.invitation);
-                window.TEINVIT_INVITATION_DATA = canonicalPreviewData;
+                canonicalPreviewData = data.invitation;
+                window.TEINVIT_INVITATION_DATA = data.invitation;
                 window.__TEINVIT_AUTOFIT_DONE__ = false;
                 render();
             }

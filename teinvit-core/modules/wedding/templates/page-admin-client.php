@@ -81,6 +81,7 @@ if ( ! $current && ! empty( $variants ) ) {
 
 $current_invitation = $current['invitation'] ?? $order_invitation;
 $current_wapf = $current['wapf_fields'] ?? $order_wapf;
+$ui_selected_version_id = (int) ( $current['id'] ?? $active_id );
 $subtitle = trim( (string) ( $current_invitation['names'] ?? '' ) );
 if ( $subtitle === '' ) {
     $subtitle = 'Nume Mireasă & Nume Mire';
@@ -147,7 +148,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
         <?php foreach ( $variants as $variant ) : ?>
           <label style="display:block;margin-bottom:6px;">
-            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $active_id ); ?> class="teinvit-variant-radio">
+            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
             <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
               — <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener">Descarcă PDF</a>
@@ -170,6 +171,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
         <input type="hidden" name="action" value="teinvit_save_version_snapshot">
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <input type="hidden" name="teinvit_parent_checked_json" id="teinvit-parent-checked-json" value="">
 
         <?php if ( $apf_html !== '' ) : ?>
           <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -198,6 +200,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const variants = <?php echo wp_json_encode( $variants ); ?>;
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
+  const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
 
   const deadlineCb = document.getElementById('show_rsvp_deadline');
   const deadlineWrap = document.getElementById('deadline-wrap');
@@ -481,7 +484,24 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   const saveForm = document.getElementById('teinvit-save-form');
   if(saveForm){
+    const serializeParentCheckedState = ()=>{
+      const payload = {};
+      parentBooleanIds.forEach((id)=>{
+        const checkboxes = Array.from(saveForm.querySelectorAll('[name="wapf[field_' + id + '][]"]')).filter((el)=>el && el.type === 'checkbox');
+        payload[id] = checkboxes.some((el)=>el.checked) ? 1 : 0;
+      });
+      const holder = saveForm.querySelector('#teinvit-parent-checked-json');
+      if (holder) {
+        holder.value = JSON.stringify(payload);
+      }
+    };
+
+    serializeParentCheckedState();
+    saveForm.addEventListener('input', serializeParentCheckedState);
+    saveForm.addEventListener('change', serializeParentCheckedState);
+
     saveForm.addEventListener('submit', function(e){
+      serializeParentCheckedState();
       if(editsRemaining <= 0){ e.preventDefault(); return; }
       const msg = editsRemaining === 1
         ? 'Aceasta este ultima modificare disponibilă. Poți achiziționa altele oricând. Salvezi modificările?'
