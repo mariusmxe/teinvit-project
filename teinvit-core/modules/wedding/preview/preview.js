@@ -1,5 +1,13 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+    var PARENT_BOOLEAN_FIELD_IDS = {
+        '696445d6a9ce9': true,
+        '696448f2ae763': true,
+        '69644d9e814ef': true,
+        '69645088f4b73': true,
+        '696451a951467': true
+    };
+
     /* ==================================================
        HELPERS
     ================================================== */
@@ -281,6 +289,24 @@ function formatNames(text) {
         };
     }
 
+    function splitParentBalanced(raw) {
+        var value = (raw || '').replace(/\s+/g, ' ').trim();
+        if (!value) return null;
+
+        var words = value.split(' ').filter(Boolean);
+        if (words.length < 2) return null;
+
+        var mid = Math.max(1, Math.floor(words.length / 2));
+        var left = words.slice(0, mid).join(' ').trim();
+        var right = words.slice(mid).join(' ').trim();
+        if (!left || !right) return null;
+
+        return {
+            mother: left,
+            father: right
+        };
+    }
+
     function restoreParentRaw(el) {
         if (!el) return;
         var raw = el.getAttribute('data-raw') || '';
@@ -332,15 +358,18 @@ function formatNames(text) {
         restoreParentRaw(left);
         restoreParentRaw(right);
 
-        var needsSplit = isMultiLine(left) || isMultiLine(right);
+        var leftPair = splitParentPair(leftRaw) || splitParentBalanced(leftRaw);
+        var rightPair = splitParentPair(rightRaw) || splitParentBalanced(rightRaw);
+
+        var needsSplit = !!(leftPair || rightPair);
+        if (!needsSplit) {
+            needsSplit = isMultiLine(left) || isMultiLine(right);
+        }
 
         if (!needsSplit) {
             grid.classList.remove('parents-force-split');
             return;
         }
-
-        var leftPair = splitParentPair(leftRaw);
-        var rightPair = splitParentPair(rightRaw);
 
         if (leftPair) {
             applyForcedParentSplit(left, leftPair);
@@ -360,6 +389,42 @@ function formatNames(text) {
     var canonicalPreviewData = null;
     var canonicalPreviewTimer = null;
     var canonicalPreviewInFlight = false;
+    var canonicalPreviewQueued = false;
+    var canonicalPreviewSeq = 0;
+    var canonicalPreviewLastAppliedSeq = 0;
+    var pdfReadyCheckTimer = null;
+    var pdfReadyCheckAttempts = 0;
+
+    function invitationLayoutSignature(data) {
+        if (!data || typeof data !== 'object') return '';
+        return JSON.stringify({
+            theme: data.theme || '',
+            names: data.names || '',
+            message: data.message || '',
+            show_parents: !!data.show_parents,
+            parents: data.parents || {},
+            show_nasi: !!data.show_nasi,
+            nasi: data.nasi || '',
+            events: Array.isArray(data.events) ? data.events : []
+        });
+    }
+
+    function normalizeInvitationForRender(data) {
+        if (!data || typeof data !== 'object') return null;
+
+        var normalized = {
+            theme: data.theme || 'editorial',
+            names: formatNames(data.names || ''),
+            message: data.message || '',
+            show_parents: !!data.show_parents,
+            parents: data.parents || {},
+            show_nasi: !!data.show_nasi,
+            nasi: data.nasi || '',
+            events: Array.isArray(data.events) ? data.events : []
+        };
+
+        return normalized;
+    }
 
     function collectWapfMapFromForm() {
         var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
@@ -374,21 +439,50 @@ function formatNames(text) {
             var id = String(m[1] || '').trim();
             if(!id) return;
 
+            if (Object.prototype.hasOwnProperty.call(PARENT_BOOLEAN_FIELD_IDS, id)) {
+                return;
+            }
+
             if (!Object.prototype.hasOwnProperty.call(out, id)) {
                 out[id] = [];
             }
             out[id].push(String(value || '').trim());
         });
 
+        Object.keys(PARENT_BOOLEAN_FIELD_IDS).forEach(function(id){
+            var inputs = qsa('[name="wapf[field_' + id + '][]"]', form);
+            if (!inputs.length) return;
+
+            var selected = inputs
+                .filter(function(input){
+                    return input && input.type === 'checkbox' && input.checked;
+                })
+                .map(function(input){
+                    return String(input.value || '').trim();
+                })
+                .filter(function(v){
+                    return v !== '';
+                });
+
+            out[id] = selected.join(', ');
+        });
+
         Object.keys(out).forEach(function(id){
-            out[id] = out[id].filter(function(v){ return v !== ''; }).join(', ');
+            if (Array.isArray(out[id])) {
+                out[id] = out[id].filter(function(v){ return v !== ''; }).join(', ');
+            } else {
+                out[id] = String(out[id] || '').trim();
+            }
         });
 
         return out;
     }
 
     function requestCanonicalPreviewBuild() {
-        if (canonicalPreviewInFlight) return;
+        if (canonicalPreviewInFlight) {
+            canonicalPreviewQueued = true;
+            return;
+        }
         if (!hasWAPF()) return;
         if (!window.teinvitPreviewConfig || !window.teinvitPreviewConfig.previewBuildUrl) return;
 
@@ -397,28 +491,41 @@ function formatNames(text) {
 
         var productInput = qs('[name="add-to-cart"]') || qs('input[name="product_id"]') || qs('[name="variation_id"]');
         var productId = productInput ? parseInt(productInput.value || '0', 10) : 0;
+        if (!(productId > 0) && window.teinvitPreviewConfig && window.teinvitPreviewConfig.productId) {
+            productId = parseInt(window.teinvitPreviewConfig.productId || '0', 10);
+        }
 
+        var requestSeq = ++canonicalPreviewSeq;
         canonicalPreviewInFlight = true;
         fetch(window.teinvitPreviewConfig.previewBuildUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 product_id: productId > 0 ? productId : 0,
+                token: window.teinvitPreviewConfig && window.teinvitPreviewConfig.token ? window.teinvitPreviewConfig.token : '',
                 wapf_map: map
             })
         }).then(function(resp){
             return resp.json();
         }).then(function(data){
+            if (requestSeq < canonicalPreviewSeq) {
+                return;
+            }
             if (data && data.ok && data.invitation) {
                 canonicalPreviewData = data.invitation;
                 window.TEINVIT_INVITATION_DATA = data.invitation;
                 window.__TEINVIT_AUTOFIT_DONE__ = false;
+                canonicalPreviewLastAppliedSeq = requestSeq;
                 render();
             }
         }).catch(function(){
             // no-op
         }).finally(function(){
             canonicalPreviewInFlight = false;
+            if (canonicalPreviewQueued) {
+                canonicalPreviewQueued = false;
+                scheduleCanonicalPreviewBuild();
+            }
         });
     }
 
@@ -491,21 +598,29 @@ function formatNames(text) {
         return events;
     }
 
-            function getInvitationData() {
+    function getInvitationData() {
 
             if (hasWAPF()) {
             if (!canonicalPreviewData) {
-                scheduleCanonicalPreviewBuild();
+                if (window.teinvitPreviewConfig && window.teinvitPreviewConfig.previewBuildUrl) {
+                    scheduleCanonicalPreviewBuild();
+                    if (window.TEINVIT_INVITATION_DATA) {
+                        return normalizeInvitationForRender(window.TEINVIT_INVITATION_DATA);
+                    }
+                    return null;
+                }
+
+                if (window.TEINVIT_INVITATION_DATA) {
+                    return normalizeInvitationForRender(window.TEINVIT_INVITATION_DATA);
+                }
+
                 return null;
             }
-            return canonicalPreviewData;
+            return normalizeInvitationForRender(canonicalPreviewData);
         }
 
                 if (window.TEINVIT_INVITATION_DATA) {
-                return {
-            ...window.TEINVIT_INVITATION_DATA,
-            names: formatNames(window.TEINVIT_INVITATION_DATA.names)
-            };
+                return normalizeInvitationForRender(window.TEINVIT_INVITATION_DATA);
         }
 
                 return null;
@@ -525,6 +640,32 @@ function syncBaseFontSize(canvas) {
     // NU modificăm nimic în PDF
 }
 
+    function schedulePdfReadyCheck(canvas) {
+        if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
+
+        if (pdfReadyCheckTimer) {
+            clearTimeout(pdfReadyCheckTimer);
+        }
+
+        pdfReadyCheckTimer = setTimeout(function () {
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(function () {
+                    var overflow = canvas.scrollHeight > canvas.clientHeight + 1;
+                    if (overflow && pdfReadyCheckAttempts < 4) {
+                        pdfReadyCheckAttempts++;
+                        window.__TEINVIT_AUTOFIT_DONE__ = false;
+                        applyAutoFit(canvas);
+                        schedulePdfReadyCheck(canvas);
+                        return;
+                    }
+
+                    window.TEINVIT_RENDER_READY = true;
+                    window.__TEINVIT_PDF_READY__ = true;
+                });
+            });
+        }, 40);
+    }
+
     /* ==================================================
        RENDER
     ================================================== */
@@ -533,6 +674,8 @@ function syncBaseFontSize(canvas) {
 
         var data = getInvitationData();
         if (!data) return;
+
+        window.__TEINVIT_LAYOUT_SIG__ = invitationLayoutSignature(data);
 
         if (data.message) data.message = limitMessage(data.message);
 
@@ -616,13 +759,10 @@ applyAutoFit(canvas);
         // ================================
         // 🔑 PDF HANDSHAKE – RENDER FINAL
         // ================================
-        window.TEINVIT_RENDER_READY = true;
-        if (
-            window.__TEINVIT_PDF_MODE__ &&
-            window.__TEINVIT_AUTOFIT_DONE__ &&
-            !window.__TEINVIT_PDF_READY__
-        ) {
-            window.__TEINVIT_PDF_READY__ = true;
+        if (window.__TEINVIT_PDF_MODE__) {
+            schedulePdfReadyCheck(canvas);
+        } else {
+            window.TEINVIT_RENDER_READY = true;
         }
     }
 
@@ -634,9 +774,13 @@ applyAutoFit(canvas);
 
     // Dacă suntem în i/{token} sau pdf/{token},
     // rulăm auto-fit o singură dată
+    var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
+    var lastSig = window.__TEINVIT_LAST_AUTOFIT_SIG__ || '';
     if (
         (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) &&
-        window.__TEINVIT_AUTOFIT_DONE__
+        window.__TEINVIT_AUTOFIT_DONE__ &&
+        currentSig !== '' &&
+        currentSig === lastSig
     ) {
         return;
     }
@@ -674,6 +818,7 @@ applyAutoFit(canvas);
     // Marcăm auto-fit ca fiind finalizat
     if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
         window.__TEINVIT_AUTOFIT_DONE__ = true;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
     }
 
 
@@ -773,6 +918,26 @@ applyAutoFit(canvas);
         }
         render();
         scheduleFinalProductPass();
+    }
+
+    document.addEventListener('teinvit:variant-applied', function(){
+        canonicalPreviewData = null;
+        canonicalPreviewSeq++;
+        finalizedSignature = '';
+        lastStableSignature = '';
+        canonicalPreviewLastAppliedSeq = 0;
+        window.__TEINVIT_AUTOFIT_DONE__ = false;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+        pdfReadyCheckAttempts = 0;
+        scheduleCanonicalPreviewBuild();
+    });
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function(){
+            window.__TEINVIT_AUTOFIT_DONE__ = false;
+            window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+            render();
+        }).catch(function(){});
     }
 
     if (hasWAPF()) {

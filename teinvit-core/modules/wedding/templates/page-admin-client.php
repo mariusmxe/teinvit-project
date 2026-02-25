@@ -31,10 +31,10 @@ foreach ( $versions as $index => $row ) {
     $snap_inv = ( isset( $snap['invitation'] ) && is_array( $snap['invitation'] ) ) ? $snap['invitation'] : [];
     $snap_wapf = ( isset( $snap['wapf_fields'] ) && is_array( $snap['wapf_fields'] ) ) ? $snap['wapf_fields'] : [];
 
-    if ( empty( $snap_wapf ) && 0 === $index ) {
+    if ( empty( $snap_wapf ) && 0 === $index && empty( $row['snapshot'] ) ) {
         $snap_wapf = $order_wapf;
     }
-    if ( empty( $snap_inv ) && 0 === $index ) {
+    if ( empty( $snap_inv ) && 0 === $index && empty( $row['snapshot'] ) ) {
         $snap_inv = $order_invitation;
     }
 
@@ -81,6 +81,7 @@ if ( ! $current && ! empty( $variants ) ) {
 
 $current_invitation = $current['invitation'] ?? $order_invitation;
 $current_wapf = $current['wapf_fields'] ?? $order_wapf;
+$ui_selected_version_id = (int) ( $current['id'] ?? $active_id );
 $subtitle = trim( (string) ( $current_invitation['names'] ?? '' ) );
 if ( $subtitle === '' ) {
     $subtitle = 'Nume Mireasă & Nume Mire';
@@ -147,7 +148,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
         <?php foreach ( $variants as $variant ) : ?>
           <label style="display:block;margin-bottom:6px;">
-            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $active_id ); ?> class="teinvit-variant-radio">
+            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
             <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
               — <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener">Descarcă PDF</a>
@@ -170,6 +171,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
         <input type="hidden" name="action" value="teinvit_save_version_snapshot">
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <input type="hidden" name="teinvit_parent_checked_json" id="teinvit-parent-checked-json" value="">
 
         <?php if ( $apf_html !== '' ) : ?>
           <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -189,9 +191,18 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 </div>
 <script>
 (function(){
+  window.teinvitPreviewConfig = Object.assign({}, window.teinvitPreviewConfig || {}, {
+    previewBuildUrl: <?php echo wp_json_encode( esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ); ?>,
+    token: <?php echo wp_json_encode( (string) $token ); ?>,
+    productId: <?php echo (int) $product_id; ?>
+  });
+
   const variants = <?php echo wp_json_encode( $variants ); ?>;
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
+  const initialInvitation = <?php echo wp_json_encode( $current_invitation ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
+  const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
+  let isApplyingVariant = false;
 
   const deadlineCb = document.getElementById('show_rsvp_deadline');
   const deadlineWrap = document.getElementById('deadline-wrap');
@@ -353,8 +364,14 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
     return 'editorial';
   }
 
+  function isParentBooleanField(id){
+    return parentBooleanIds.includes(String(id || ''));
+  }
+
   function setWapfValues(map, options){
     const shouldTrigger = !(options && options.triggerEvents === false);
+    const batchMode = !!(options && options.batchMode);
+    const phase = options && options.phase ? String(options.phase) : 'all';
     const normalizedMap = normalizeMapToCurrentInputs(map || {});
     const groups = {};
 
@@ -366,11 +383,18 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
     });
 
     Object.keys(groups).forEach(id=>{
+      if (phase === 'parents_only' && !isParentBooleanField(id)) return;
+      if (phase === 'non_parents_only' && isParentBooleanField(id)) return;
+
       const elements = groups[id];
       const raw = normalizedMap[id] ?? '';
       const selected = splitSelected(raw);
 
       elements.forEach(el=>{
+        if (el.type === 'hidden' && el.classList.contains('wapf-tf-h')) {
+          return;
+        }
+
         if(el.type==='checkbox'){
           const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
           const selectedLower = selected.map(v=>String(v).toLowerCase());
@@ -392,12 +416,12 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       });
     });
 
-    if (shouldTrigger) {
+    if (shouldTrigger && !batchMode) {
       document.dispatchEvent(new Event('input', {bubbles:true}));
       document.dispatchEvent(new Event('change', {bubbles:true}));
     }
 
-    if (window.jQuery) {
+    if (window.jQuery && !batchMode) {
       const $form = window.jQuery('#teinvit-save-form');
       window.jQuery(document).trigger('wapf/init', [$form]);
       window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
@@ -427,6 +451,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   }
 
   function refreshPreview(){
+    if (isApplyingVariant) {
+      return;
+    }
+
     const parsed = parseWapfForm();
     if (Object.keys(parsed).length === 0) {
       return;
@@ -437,21 +465,65 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
     document.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
-  function runPreviewCycle(){
+  function runPreviewCycle(options){
+    const skipFormRefresh = !!(options && options.skipFormRefresh);
+
     window.__TEINVIT_AUTOFIT_DONE__ = false;
+    const form = document.getElementById('teinvit-save-form');
+    if (window.jQuery && form) {
+      const $form = window.jQuery(form);
+      window.jQuery(document).trigger('wapf/init', [$form]);
+      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+      document.dispatchEvent(new CustomEvent('wapf:init', { detail: { wrapper: $form[0] || null } }));
+    }
     document.dispatchEvent(new Event('change', {bubbles:true}));
-    refreshPreview();
+    if (!skipFormRefresh) {
+      refreshPreview();
+    }
     document.dispatchEvent(new Event('input', {bubbles:true}));
+    document.dispatchEvent(new CustomEvent('teinvit:variant-applied', { bubbles: true }));
+  }
+
+  function flushWapfDependencies(){
+    const form = document.getElementById('teinvit-save-form');
+    if (!form) return;
+
+    const parentCheckboxes = parentBooleanIds
+      .map(id => Array.from(form.querySelectorAll('[name="wapf[field_' + id + '][]"]')).filter(el => el && el.type === 'checkbox'))
+      .flat();
+
+    parentCheckboxes.forEach((cb)=>{
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
   }
 
   function applyVariant(id){
     const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
-    setWapfValues(variant.wapf_fields || {}, { triggerEvents: true });
-    runPreviewCycle();
+    isApplyingVariant = true;
+
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false, batchMode: true, phase: 'parents_only' });
+    flushWapfDependencies();
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false, batchMode: true, phase: 'non_parents_only' });
+
+    window.TEINVIT_INVITATION_DATA = variant.invitation || null;
+    runPreviewCycle({ skipFormRefresh: true });
+
+    window.setTimeout(()=>{
+      isApplyingVariant = false;
+      refreshPreview();
+    }, 0);
   }
 
-  setWapfValues(initialWapf, { triggerEvents: true });
-  runPreviewCycle();
+  isApplyingVariant = true;
+  setWapfValues(initialWapf, { triggerEvents: false, batchMode: true, phase: 'parents_only' });
+  flushWapfDependencies();
+  setWapfValues(initialWapf, { triggerEvents: false, batchMode: true, phase: 'non_parents_only' });
+  window.TEINVIT_INVITATION_DATA = initialInvitation || (variants.find(v => String(v.id)===String(<?php echo (int)($current['id'] ?? 0); ?>)) || {}).invitation || null;
+  runPreviewCycle({ skipFormRefresh: true });
+  window.setTimeout(()=>{
+    isApplyingVariant = false;
+    refreshPreview();
+  }, 0);
 
   document.querySelectorAll('.teinvit-variant-radio').forEach(r=>r.addEventListener('change',()=>applyVariant(r.value)));
   document.querySelectorAll('#teinvit-save-form input, #teinvit-save-form select, #teinvit-save-form textarea').forEach(el=>{
@@ -460,7 +532,24 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   const saveForm = document.getElementById('teinvit-save-form');
   if(saveForm){
+    const serializeParentCheckedState = ()=>{
+      const payload = {};
+      parentBooleanIds.forEach((id)=>{
+        const checkboxes = Array.from(saveForm.querySelectorAll('[name="wapf[field_' + id + '][]"]')).filter((el)=>el && el.type === 'checkbox');
+        payload[id] = checkboxes.some((el)=>el.checked) ? 1 : 0;
+      });
+      const holder = saveForm.querySelector('#teinvit-parent-checked-json');
+      if (holder) {
+        holder.value = JSON.stringify(payload);
+      }
+    };
+
+    serializeParentCheckedState();
+    saveForm.addEventListener('input', serializeParentCheckedState);
+    saveForm.addEventListener('change', serializeParentCheckedState);
+
     saveForm.addEventListener('submit', function(e){
+      serializeParentCheckedState();
       if(editsRemaining <= 0){ e.preventDefault(); return; }
       const msg = editsRemaining === 1
         ? 'Aceasta este ultima modificare disponibilă. Poți achiziționa altele oricând. Salvezi modificările?'
