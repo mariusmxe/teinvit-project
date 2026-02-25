@@ -1,5 +1,13 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+    var PARENT_BOOLEAN_FIELD_IDS = {
+        '696445d6a9ce9': true,
+        '696448f2ae763': true,
+        '69644d9e814ef': true,
+        '69645088f4b73': true,
+        '696451a951467': true
+    };
+
     /* ==================================================
        HELPERS
     ================================================== */
@@ -361,6 +369,23 @@ function formatNames(text) {
     var canonicalPreviewTimer = null;
     var canonicalPreviewInFlight = false;
 
+    function normalizeInvitationForRender(data) {
+        if (!data || typeof data !== 'object') return null;
+
+        var normalized = {
+            theme: data.theme || 'editorial',
+            names: formatNames(data.names || ''),
+            message: data.message || '',
+            show_parents: !!data.show_parents,
+            parents: data.parents || {},
+            show_nasi: !!data.show_nasi,
+            nasi: data.nasi || '',
+            events: Array.isArray(data.events) ? data.events : []
+        };
+
+        return normalized;
+    }
+
     function collectWapfMapFromForm() {
         var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
         if (!form) return {};
@@ -374,14 +399,40 @@ function formatNames(text) {
             var id = String(m[1] || '').trim();
             if(!id) return;
 
+            if (Object.prototype.hasOwnProperty.call(PARENT_BOOLEAN_FIELD_IDS, id)) {
+                return;
+            }
+
             if (!Object.prototype.hasOwnProperty.call(out, id)) {
                 out[id] = [];
             }
             out[id].push(String(value || '').trim());
         });
 
+        Object.keys(PARENT_BOOLEAN_FIELD_IDS).forEach(function(id){
+            var inputs = qsa('[name="wapf[field_' + id + '][]"]', form);
+            if (!inputs.length) return;
+
+            var selected = inputs
+                .filter(function(input){
+                    return input && input.type === 'checkbox' && input.checked;
+                })
+                .map(function(input){
+                    return String(input.value || '').trim();
+                })
+                .filter(function(v){
+                    return v !== '';
+                });
+
+            out[id] = selected.join(', ');
+        });
+
         Object.keys(out).forEach(function(id){
-            out[id] = out[id].filter(function(v){ return v !== ''; }).join(', ');
+            if (Array.isArray(out[id])) {
+                out[id] = out[id].filter(function(v){ return v !== ''; }).join(', ');
+            } else {
+                out[id] = String(out[id] || '').trim();
+            }
         });
 
         return out;
@@ -414,8 +465,8 @@ function formatNames(text) {
             return resp.json();
         }).then(function(data){
             if (data && data.ok && data.invitation) {
-                canonicalPreviewData = data.invitation;
-                window.TEINVIT_INVITATION_DATA = data.invitation;
+                canonicalPreviewData = normalizeInvitationForRender(data.invitation);
+                window.TEINVIT_INVITATION_DATA = canonicalPreviewData;
                 window.__TEINVIT_AUTOFIT_DONE__ = false;
                 render();
             }
@@ -495,7 +546,7 @@ function formatNames(text) {
         return events;
     }
 
-            function getInvitationData() {
+    function getInvitationData() {
 
             if (hasWAPF()) {
             if (!canonicalPreviewData) {
@@ -505,22 +556,16 @@ function formatNames(text) {
                 }
 
                 if (window.TEINVIT_INVITATION_DATA) {
-                    return {
-                        ...window.TEINVIT_INVITATION_DATA,
-                        names: formatNames(window.TEINVIT_INVITATION_DATA.names)
-                    };
+                    return normalizeInvitationForRender(window.TEINVIT_INVITATION_DATA);
                 }
 
                 return null;
             }
-            return canonicalPreviewData;
+            return normalizeInvitationForRender(canonicalPreviewData);
         }
 
                 if (window.TEINVIT_INVITATION_DATA) {
-                return {
-            ...window.TEINVIT_INVITATION_DATA,
-            names: formatNames(window.TEINVIT_INVITATION_DATA.names)
-            };
+                return normalizeInvitationForRender(window.TEINVIT_INVITATION_DATA);
         }
 
                 return null;
@@ -789,6 +834,14 @@ applyAutoFit(canvas);
         render();
         scheduleFinalProductPass();
     }
+
+    document.addEventListener('teinvit:variant-applied', function(){
+        canonicalPreviewData = null;
+        finalizedSignature = '';
+        lastStableSignature = '';
+        window.__TEINVIT_AUTOFIT_DONE__ = false;
+        scheduleCanonicalPreviewBuild();
+    });
 
     if (hasWAPF()) {
         scheduleCanonicalPreviewBuild();

@@ -31,10 +31,10 @@ foreach ( $versions as $index => $row ) {
     $snap_inv = ( isset( $snap['invitation'] ) && is_array( $snap['invitation'] ) ) ? $snap['invitation'] : [];
     $snap_wapf = ( isset( $snap['wapf_fields'] ) && is_array( $snap['wapf_fields'] ) ) ? $snap['wapf_fields'] : [];
 
-    if ( empty( $snap_wapf ) && 0 === $index ) {
+    if ( empty( $snap_wapf ) && 0 === $index && empty( $row['snapshot'] ) ) {
         $snap_wapf = $order_wapf;
     }
-    if ( empty( $snap_inv ) && 0 === $index ) {
+    if ( empty( $snap_inv ) && 0 === $index && empty( $row['snapshot'] ) ) {
         $snap_inv = $order_invitation;
     }
 
@@ -361,6 +361,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   function setWapfValues(map, options){
     const shouldTrigger = !(options && options.triggerEvents === false);
+    const batchMode = !!(options && options.batchMode);
     const normalizedMap = normalizeMapToCurrentInputs(map || {});
     const groups = {};
 
@@ -402,12 +403,12 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       });
     });
 
-    if (shouldTrigger) {
+    if (shouldTrigger && !batchMode) {
       document.dispatchEvent(new Event('input', {bubbles:true}));
       document.dispatchEvent(new Event('change', {bubbles:true}));
     }
 
-    if (window.jQuery) {
+    if (window.jQuery && !batchMode) {
       const $form = window.jQuery('#teinvit-save-form');
       window.jQuery(document).trigger('wapf/init', [$form]);
       window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
@@ -449,18 +450,28 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   function runPreviewCycle(){
     window.__TEINVIT_AUTOFIT_DONE__ = false;
+    const form = document.getElementById('teinvit-save-form');
+    if (window.jQuery && form) {
+      const $form = window.jQuery(form);
+      window.jQuery(document).trigger('wapf/init', [$form]);
+      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+      document.dispatchEvent(new CustomEvent('wapf:init', { detail: { wrapper: $form[0] || null } }));
+    }
     document.dispatchEvent(new Event('change', {bubbles:true}));
     refreshPreview();
     document.dispatchEvent(new Event('input', {bubbles:true}));
+    document.dispatchEvent(new CustomEvent('teinvit:variant-applied', { bubbles: true }));
   }
 
   function applyVariant(id){
     const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
-    setWapfValues(variant.wapf_fields || {}, { triggerEvents: true });
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: true, batchMode: true });
+    window.TEINVIT_INVITATION_DATA = variant.invitation || null;
     runPreviewCycle();
   }
 
-  setWapfValues(initialWapf, { triggerEvents: true });
+  setWapfValues(initialWapf, { triggerEvents: true, batchMode: true });
+  window.TEINVIT_INVITATION_DATA = (variants.find(v => String(v.id)===String(<?php echo (int)($current['id'] ?? 0); ?>)) || {}).invitation || null;
   runPreviewCycle();
 
   document.querySelectorAll('.teinvit-variant-radio').forEach(r=>r.addEventListener('change',()=>applyVariant(r.value)));

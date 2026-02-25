@@ -830,6 +830,7 @@ function teinvit_build_invitation_from_wapf_map( array $wapf, array $theme_optio
 
 function teinvit_extract_posted_wapf_map( array $source ) {
     $out = [];
+    $boolean_field_lookup = array_fill_keys( teinvit_wapf_boolean_field_ids(), true );
 
     if ( isset( $source['wapf'] ) && is_array( $source['wapf'] ) ) {
         foreach ( $source['wapf'] as $field_key => $field_value ) {
@@ -840,7 +841,22 @@ function teinvit_extract_posted_wapf_map( array $source ) {
             $field_id = sanitize_text_field( substr( $field_key, 6 ) );
             if ( is_array( $field_value ) ) {
                 $flat = array_map( 'sanitize_text_field', array_map( 'wp_unslash', $field_value ) );
-                $out[ $field_id ] = implode( ', ', array_filter( $flat, static function( $v ) { return $v !== ''; } ) );
+                $flat = array_values( array_filter( $flat, static function( $v ) { return $v !== ''; } ) );
+                if ( isset( $boolean_field_lookup[ $field_id ] ) ) {
+                    $counts = array_count_values( $flat );
+                    $selected = [];
+                    foreach ( $counts as $value => $count ) {
+                        if ( $value === '' || teinvit_wapf_is_zeroish_value( (string) $value ) ) {
+                            continue;
+                        }
+                        if ( $count >= 2 ) {
+                            $selected[] = (string) $value;
+                        }
+                    }
+                    $out[ $field_id ] = implode( ', ', $selected );
+                } else {
+                    $out[ $field_id ] = implode( ', ', $flat );
+                }
             } else {
                 $out[ $field_id ] = sanitize_text_field( wp_unslash( (string) $field_value ) );
             }
@@ -855,7 +871,22 @@ function teinvit_extract_posted_wapf_map( array $source ) {
             $field_id = sanitize_text_field( $m[1] );
             if ( is_array( $value ) ) {
                 $flat = array_map( 'sanitize_text_field', array_map( 'wp_unslash', $value ) );
-                $out[ $field_id ] = implode( ', ', array_filter( $flat, static function( $v ) { return $v !== ''; } ) );
+                $flat = array_values( array_filter( $flat, static function( $v ) { return $v !== ''; } ) );
+                if ( isset( $boolean_field_lookup[ $field_id ] ) ) {
+                    $counts = array_count_values( $flat );
+                    $selected = [];
+                    foreach ( $counts as $token => $count ) {
+                        if ( $token === '' || teinvit_wapf_is_zeroish_value( (string) $token ) ) {
+                            continue;
+                        }
+                        if ( $count >= 2 ) {
+                            $selected[] = (string) $token;
+                        }
+                    }
+                    $out[ $field_id ] = implode( ', ', $selected );
+                } else {
+                    $out[ $field_id ] = implode( ', ', $flat );
+                }
             } else {
                 $out[ $field_id ] = sanitize_text_field( wp_unslash( (string) $value ) );
             }
