@@ -403,22 +403,42 @@ function teinvit_enqueue_wapf_assets_for_admin_client() {
     }
 }
 
-function teinvit_render_tokenized_invitation_template( $mode, $token, $invitation_post_id ) {
-    $template_path = TEINVIT_WEDDING_MODULE_PATH . 'templates/single-teinvit_invitation.php';
-    if ( ! file_exists( $template_path ) ) {
-        status_header( 500 );
-        echo 'Template missing.';
-        exit;
-    }
-
-    $GLOBALS['teinvit_tokenized_mode'] = $mode;
-    $GLOBALS['teinvit_tokenized_token'] = $token;
+function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitation_post_id ) {
+    $GLOBALS['teinvit_tokenized_mode'] = (string) $mode;
+    $GLOBALS['teinvit_tokenized_token'] = (string) $token;
     $GLOBALS['teinvit_tokenized_post_id'] = (int) $invitation_post_id;
+
+    add_filter( 'template_include', function( $template ) {
+        if ( empty( $GLOBALS['teinvit_tokenized_mode'] ) || empty( $GLOBALS['teinvit_tokenized_token'] ) || empty( $GLOBALS['teinvit_tokenized_post_id'] ) ) {
+            return $template;
+        }
+
+        $tokenized_template = TEINVIT_WEDDING_MODULE_PATH . 'templates/single-teinvit_invitation.php';
+        if ( file_exists( $tokenized_template ) ) {
+            return $tokenized_template;
+        }
+
+        status_header( 500 );
+        return $template;
+    }, 999 );
+
+    add_filter( 'body_class', function( $classes ) {
+        if ( ! empty( $GLOBALS['teinvit_tokenized_mode'] ) ) {
+            $classes[] = 'teinvit-tokenized-route';
+            $classes[] = 'teinvit-mode-' . sanitize_html_class( (string) $GLOBALS['teinvit_tokenized_mode'] );
+        }
+        return $classes;
+    } );
+
+    global $wp_query;
+    if ( $wp_query instanceof WP_Query ) {
+        $wp_query->is_404 = false;
+        $wp_query->is_singular = true;
+        $wp_query->is_single = true;
+    }
 
     status_header( 200 );
     nocache_headers();
-    include $template_path;
-    exit;
 }
 
 add_filter( 'query_vars', function( $vars ) {
@@ -467,7 +487,7 @@ add_action( 'template_redirect', function() {
         exit;
     }
 
-    teinvit_render_tokenized_invitation_template( 'admin-client', $token, $invitation_post_id );
+    teinvit_prepare_tokenized_invitation_request( 'admin-client', $token, $invitation_post_id );
 }, 2 );
 
 add_action( 'template_redirect', function() {
@@ -496,7 +516,7 @@ add_action( 'template_redirect', function() {
         exit;
     }
 
-    teinvit_render_tokenized_invitation_template( 'invitati', $token, $invitation_post_id );
+    teinvit_prepare_tokenized_invitation_request( 'invitati', $token, $invitation_post_id );
 }, 2 );
 
 
