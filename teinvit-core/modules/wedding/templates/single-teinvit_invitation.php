@@ -3,6 +3,54 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+if ( ! function_exists( 'teinvit_render_fse_template_part' ) ) {
+    function teinvit_render_fse_template_part( $slug, $tag_name, $class_name = '' ) {
+        $slug = sanitize_key( (string) $slug );
+        if ( $slug === '' ) {
+            return;
+        }
+
+        $attrs = [
+            'slug' => $slug,
+            'theme' => get_stylesheet(),
+            'tagName' => $tag_name,
+        ];
+
+        if ( $class_name !== '' ) {
+            $attrs['className'] = sanitize_html_class( $class_name );
+        }
+
+        $block = sprintf(
+            '<!-- wp:template-part %s /-->',
+            wp_json_encode( $attrs )
+        );
+
+        echo do_blocks( $block ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
+}
+
+if ( ! function_exists( 'teinvit_render_layout_header' ) ) {
+    function teinvit_render_layout_header() {
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            teinvit_render_fse_template_part( 'header', 'header', 'site-header' );
+            return;
+        }
+
+        get_header();
+    }
+}
+
+if ( ! function_exists( 'teinvit_render_layout_footer' ) ) {
+    function teinvit_render_layout_footer() {
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            teinvit_render_fse_template_part( 'footer', 'footer', 'site-footer' );
+            return;
+        }
+
+        get_footer();
+    }
+}
+
 $mode = isset( $GLOBALS['teinvit_tokenized_mode'] ) ? (string) $GLOBALS['teinvit_tokenized_mode'] : '';
 $token = isset( $GLOBALS['teinvit_tokenized_token'] ) ? (string) $GLOBALS['teinvit_tokenized_token'] : '';
 $post_id = isset( $GLOBALS['teinvit_tokenized_post_id'] ) ? (int) $GLOBALS['teinvit_tokenized_post_id'] : 0;
@@ -10,9 +58,9 @@ $post_id = isset( $GLOBALS['teinvit_tokenized_post_id'] ) ? (int) $GLOBALS['tein
 $post = $post_id ? get_post( $post_id ) : null;
 if ( ! $post || $post->post_type !== 'teinvit_invitation' ) {
     status_header( 404 );
-    get_header();
+    teinvit_render_layout_header();
     echo '<p>Invitația nu a fost găsită.</p>';
-    get_footer();
+    teinvit_render_layout_footer();
     return;
 }
 
@@ -36,7 +84,7 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
     $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] = true;
 }
 
-get_header();
+teinvit_render_layout_header();
 ?>
 <div class="teinvit-invitation-layout teinvit-mode-<?php echo esc_attr( $mode ); ?>">
   <div class="teinvit-invitation-content" style="max-width:1200px;margin:0 auto;padding:12px;">
@@ -57,6 +105,6 @@ get_header();
   <?php endif; ?>
 </div>
 <?php
-get_footer();
+teinvit_render_layout_footer();
 wp_reset_postdata();
 unset( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
