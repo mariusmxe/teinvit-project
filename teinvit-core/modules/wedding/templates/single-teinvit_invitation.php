@@ -32,7 +32,17 @@ if ( ! function_exists( 'teinvit_render_fse_template_part' ) ) {
 if ( ! function_exists( 'teinvit_render_layout_header' ) ) {
     function teinvit_render_layout_header() {
         if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
-            get_header();
+            echo '<!doctype html>';
+            ?>
+<html <?php language_attributes(); ?>>
+<head>
+	<meta charset="<?php bloginfo( 'charset' ); ?>">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+<?php
+            wp_body_open();
             echo '<div class="wp-site-blocks">';
             teinvit_render_fse_template_part( 'header', 'header', 'site-header' );
             return;
@@ -47,7 +57,8 @@ if ( ! function_exists( 'teinvit_render_layout_footer' ) ) {
         if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
             teinvit_render_fse_template_part( 'footer', 'footer', 'site-footer' );
             echo '</div>';
-            get_footer();
+            wp_footer();
+            echo '</body></html>';
             return;
         }
 
