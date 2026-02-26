@@ -56,9 +56,22 @@ foreach ( $versions as $index => $row ) {
 
 $current = null;
 $active_id = (int) ( $inv['active_version_id'] ?? 0 );
+$selected_version_id = isset( $_GET['selected_version_id'] ) ? (int) $_GET['selected_version_id'] : 0;
+
+if ( $selected_version_id > 0 ) {
+    foreach ( $variants as $variant ) {
+        if ( (int) $variant['id'] === $selected_version_id ) {
+            $current = $variant;
+            break;
+        }
+    }
+}
+
 foreach ( $variants as $variant ) {
     if ( (int) $variant['id'] === $active_id ) {
-        $current = $variant;
+        if ( ! $current ) {
+            $current = $variant;
+        }
         break;
     }
 }
@@ -146,6 +159,9 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           </label>
         <?php endforeach; ?>
         <button type="submit" class="button button-primary">Publică</button>
+        <p style="margin-top:8px;">
+          <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+        </p>
       </form>
     </div>
 
@@ -391,7 +407,15 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   function buildInvitation(w){
     const get=(k)=> (w[k]||'').trim();
-    const has=(k)=> get(k)!=='';
+    const isZeroish=(v)=>{
+      const tokens = String(v || '').split(',').map(t=>t.trim().toLowerCase()).filter(Boolean);
+      if(!tokens.length) return false;
+      return tokens.every(t => t === '0' || t === 'false' || t === 'off' || t === 'no');
+    };
+    const has=(k)=> {
+      const val = get(k);
+      return val !== '' && !isZeroish(val);
+    };
     const inv={theme:'editorial',names:[get('6963a95e66425'),get('6963aa37412e4')].filter(Boolean).join(' & '),message:get('6963aa782092d'),show_parents:false,parents:{},show_nasi:false,nasi:'',events:[]};
     inv.theme = resolveThemeKey(get('6967752ab511b'), buildThemeLookup());
     if(has('696445d6a9ce9')){ inv.show_parents=true; inv.parents={mireasa:[get('6964461d67da5'),get('6964466afe4d1')].filter(Boolean).join(' & '),mire:[get('69644689ee7e1'),get('696446dfabb7b')].filter(Boolean).join(' & ')}; }
