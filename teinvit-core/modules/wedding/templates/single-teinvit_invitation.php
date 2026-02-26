@@ -32,6 +32,8 @@ if ( ! function_exists( 'teinvit_render_fse_template_part' ) ) {
 if ( ! function_exists( 'teinvit_render_layout_header' ) ) {
     function teinvit_render_layout_header() {
         if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            get_header();
+            echo '<div class="wp-site-blocks">';
             teinvit_render_fse_template_part( 'header', 'header', 'site-header' );
             return;
         }
@@ -44,6 +46,8 @@ if ( ! function_exists( 'teinvit_render_layout_footer' ) ) {
     function teinvit_render_layout_footer() {
         if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
             teinvit_render_fse_template_part( 'footer', 'footer', 'site-footer' );
+            echo '</div>';
+            get_footer();
             return;
         }
 
@@ -87,19 +91,19 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
 teinvit_render_layout_header();
 ?>
 <div class="teinvit-invitation-layout teinvit-mode-<?php echo esc_attr( $mode ); ?>">
-  <div class="teinvit-invitation-content" style="max-width:1200px;margin:0 auto;padding:12px;">
+  <div class="teinvit-invitation-content">
     <?php the_content(); ?>
   </div>
 
   <?php if ( $mode === 'admin-client' ) : ?>
-    <div class="teinvit-slot teinvit-slot-admin" data-teinvit-slot="admin" style="max-width:1200px;margin:0 auto;padding:12px;">
+    <div class="teinvit-slot teinvit-slot-admin" data-teinvit-slot="admin">
       <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php'; ?>
     </div>
   <?php elseif ( $mode === 'invitati' ) : ?>
-    <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview" style="max-width:1200px;margin:0 auto;padding:12px;">
+    <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
       <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </div>
-    <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp" style="max-width:1200px;margin:0 auto;padding:12px;">
+    <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
       <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-invitati.php'; ?>
     </div>
   <?php endif; ?>
