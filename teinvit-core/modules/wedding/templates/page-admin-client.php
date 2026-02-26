@@ -100,7 +100,7 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
-.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1,.teinvit-admin-page .sub{text-align:center}
+.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1{text-align:center}
 .teinvit-admin-intro{border:1px solid #ddd;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
@@ -111,11 +111,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 </style>
 <div class="teinvit-admin-page">
   <h1>Administrare invitație</h1>
-  <p class="sub"><?php echo esc_html( $subtitle ); ?></p>
-
-  <div class="teinvit-admin-intro">
-    <p>Aici poți modifica invitația rapid, vedea preview-ul în timp real și publica varianta dorită pentru invitați.</p>
-  </div>
+  <h1><?php echo esc_html( $subtitle ); ?></h1>
 
   <?php if ( $global_admin_content !== '' ) : ?>
   <div class="teinvit-zone teinvit-admin-global-zone">

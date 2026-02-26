@@ -3,6 +3,93 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+if ( ! function_exists( 'teinvit_build_fse_template_part_block' ) ) {
+    function teinvit_build_fse_template_part_block( $slug, $tag_name, $class_name = '' ) {
+        $slug = sanitize_key( (string) $slug );
+        if ( $slug === '' ) {
+            return '';
+        }
+
+        $attrs = [
+            'slug' => $slug,
+            'theme' => get_stylesheet(),
+            'tagName' => $tag_name,
+        ];
+
+        if ( $class_name !== '' ) {
+            $attrs['className'] = sanitize_html_class( $class_name );
+        }
+
+        return sprintf(
+            '<!-- wp:template-part %s /-->',
+            wp_json_encode( $attrs )
+        );
+    }
+}
+
+if ( ! function_exists( 'teinvit_render_fse_template_part_to_string' ) ) {
+    function teinvit_render_fse_template_part_to_string( $slug, $tag_name, $class_name = '' ) {
+        $block = teinvit_build_fse_template_part_block( $slug, $tag_name, $class_name );
+        if ( $block === '' ) {
+            return '';
+        }
+
+        return (string) do_blocks( $block );
+    }
+}
+
+if ( ! function_exists( 'teinvit_prime_fse_template_part_cache' ) ) {
+    function teinvit_prime_fse_template_part_cache() {
+        if ( isset( $GLOBALS['teinvit_fse_header_html'], $GLOBALS['teinvit_fse_footer_html'] ) ) {
+            return;
+        }
+
+        $GLOBALS['teinvit_fse_header_html'] = teinvit_render_fse_template_part_to_string( 'header', 'header', 'site-header' );
+        $GLOBALS['teinvit_fse_footer_html'] = teinvit_render_fse_template_part_to_string( 'footer', 'footer', 'site-footer' );
+    }
+}
+
+if ( ! function_exists( 'teinvit_render_layout_header' ) ) {
+    function teinvit_render_layout_header() {
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            teinvit_prime_fse_template_part_cache();
+
+            echo '<!doctype html>';
+            ?>
+<html <?php language_attributes(); ?>>
+<head>
+	<meta charset="<?php bloginfo( 'charset' ); ?>">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+<?php
+            wp_body_open();
+            echo '<div class="wp-site-blocks">';
+            echo $GLOBALS['teinvit_fse_header_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            return;
+        }
+
+        get_header();
+    }
+}
+
+if ( ! function_exists( 'teinvit_render_layout_footer' ) ) {
+    function teinvit_render_layout_footer() {
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            teinvit_prime_fse_template_part_cache();
+
+            echo $GLOBALS['teinvit_fse_footer_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo '</div>';
+            wp_footer();
+            echo '</body></html>';
+            return;
+        }
+
+        get_footer();
+    }
+}
+
 $mode = isset( $GLOBALS['teinvit_tokenized_mode'] ) ? (string) $GLOBALS['teinvit_tokenized_mode'] : '';
 $token = isset( $GLOBALS['teinvit_tokenized_token'] ) ? (string) $GLOBALS['teinvit_tokenized_token'] : '';
 $post_id = isset( $GLOBALS['teinvit_tokenized_post_id'] ) ? (int) $GLOBALS['teinvit_tokenized_post_id'] : 0;
@@ -10,9 +97,9 @@ $post_id = isset( $GLOBALS['teinvit_tokenized_post_id'] ) ? (int) $GLOBALS['tein
 $post = $post_id ? get_post( $post_id ) : null;
 if ( ! $post || $post->post_type !== 'teinvit_invitation' ) {
     status_header( 404 );
-    get_header();
+    teinvit_render_layout_header();
     echo '<p>Invitația nu a fost găsită.</p>';
-    get_footer();
+    teinvit_render_layout_footer();
     return;
 }
 
@@ -36,27 +123,28 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
     $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] = true;
 }
 
-get_header();
+teinvit_render_layout_header();
 ?>
 <div class="teinvit-invitation-layout teinvit-mode-<?php echo esc_attr( $mode ); ?>">
-  <div class="teinvit-invitation-content" style="max-width:1200px;margin:0 auto;padding:12px;">
+  <div class="teinvit-invitation-content">
     <?php the_content(); ?>
   </div>
 
   <?php if ( $mode === 'admin-client' ) : ?>
-    <div class="teinvit-slot teinvit-slot-admin" data-teinvit-slot="admin" style="max-width:1200px;margin:0 auto;padding:12px;">
+    <div class="teinvit-slot teinvit-slot-admin" data-teinvit-slot="admin">
       <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php'; ?>
     </div>
   <?php elseif ( $mode === 'invitati' ) : ?>
-    <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview" style="max-width:1200px;margin:0 auto;padding:12px;">
+    <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
       <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </div>
-    <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp" style="max-width:1200px;margin:0 auto;padding:12px;">
+    <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
       <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-invitati.php'; ?>
     </div>
   <?php endif; ?>
 </div>
 <?php
-get_footer();
+teinvit_render_layout_footer();
 wp_reset_postdata();
 unset( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
+unset( $GLOBALS['teinvit_fse_header_html'], $GLOBALS['teinvit_fse_footer_html'] );
