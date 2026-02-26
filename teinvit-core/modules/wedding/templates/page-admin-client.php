@@ -92,6 +92,68 @@ $edits_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edi
 $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
+$active_snapshot = function_exists( 'teinvit_get_active_snapshot' ) ? teinvit_get_active_snapshot( $token ) : [];
+$active_payload = ! empty( $active_snapshot['snapshot'] ) ? json_decode( (string) $active_snapshot['snapshot'], true ) : [];
+$active_events = isset( $active_payload['invitation']['events'] ) && is_array( $active_payload['invitation']['events'] ) ? $active_payload['invitation']['events'] : [];
+$event_flags = [
+    'civil' => false,
+    'religious' => false,
+    'party' => false,
+];
+foreach ( $active_events as $event ) {
+    if ( ! is_array( $event ) ) {
+        continue;
+    }
+    $title = strtolower( trim( (string) ( $event['title'] ?? '' ) ) );
+    if ( strpos( $title, 'civil' ) !== false ) {
+        $event_flags['civil'] = true;
+    }
+    if ( strpos( $title, 'religio' ) !== false ) {
+        $event_flags['religious'] = true;
+    }
+    if ( strpos( $title, 'petrec' ) !== false ) {
+        $event_flags['party'] = true;
+    }
+}
+
+$admin_toggle_fields = [
+    'permite_confirmarea_pentru_cununia_civila' => [
+        'label' => 'Permite confirmarea pentru cununia civilă',
+        'config_key' => 'show_attending_civil',
+        'event_key' => 'civil',
+    ],
+    'permite_confirmarea_pentru_ceremonia_religioasa' => [
+        'label' => 'Permite confirmarea pentru ceremonia religioasă',
+        'config_key' => 'show_attending_religious',
+        'event_key' => 'religious',
+    ],
+    'permite_confirmarea_pentru_petrecere' => [
+        'label' => 'Permite confirmarea pentru petrecere',
+        'config_key' => 'show_attending_party',
+        'event_key' => 'party',
+    ],
+    'permite_confirmarea_copiilor' => [
+        'label' => 'Permite confirmarea copiilor',
+        'config_key' => 'show_kids',
+    ],
+    'permite_solicitarea_de_cazare' => [
+        'label' => 'Permite solicitarea de cazare',
+        'config_key' => 'show_accommodation',
+    ],
+    'permite_selectarea_meniului_vegetarian' => [
+        'label' => 'Permite selectarea meniului vegetarian',
+        'config_key' => 'show_vegetarian',
+    ],
+    'permite_mentionarea_alergiilor' => [
+        'label' => 'Permite menționarea alergiilor',
+        'config_key' => 'show_allergies',
+    ],
+    'permite_trimiterea_unui_mesaj_catre_miri' => [
+        'label' => 'Permite trimiterea unui mesaj către miri',
+        'config_key' => 'show_message',
+    ],
+];
+
 $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
 $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
@@ -100,8 +162,8 @@ $buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_ge
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
-.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1,.teinvit-admin-page .sub{text-align:center}
-.teinvit-admin-intro{border:1px solid #ddd;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
+.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1{text-align:center}
+.teinvit-deadline-title,.teinvit-rsvp-settings-title{text-align:center}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
 @media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
@@ -111,11 +173,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 </style>
 <div class="teinvit-admin-page">
   <h1>Administrare invitație</h1>
-  <p class="sub"><?php echo esc_html( $subtitle ); ?></p>
-
-  <div class="teinvit-admin-intro">
-    <p>Aici poți modifica invitația rapid, vedea preview-ul în timp real și publica varianta dorită pentru invitați.</p>
-  </div>
+  <h1><?php echo esc_html( $subtitle ); ?></h1>
 
   <?php if ( $global_admin_content !== '' ) : ?>
   <div class="teinvit-zone teinvit-admin-global-zone">
@@ -124,17 +182,17 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   <?php endif; ?>
 
   <div class="teinvit-zone">
-    <h3>Data limită RSVP</h3>
-    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+    <h3 class="teinvit-deadline-title">Data limită pentru confirmari</h3>
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-deadline-form">
       <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
       <input type="hidden" name="action" value="teinvit_save_invitation_info">
       <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
-      <label><input type="checkbox" id="show_rsvp_deadline" name="show_rsvp_deadline" <?php checked( $show_deadline ); ?>> Doresc afișarea datei limită pentru confirmări</label>
-      <div id="deadline-wrap" style="margin-top:10px;<?php echo $show_deadline ? '' : 'display:none;'; ?>">
-        <label>Completează data maximă a confirmării</label>
-        <input type="text" name="rsvp_deadline_date" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>">
+      <label><input type="checkbox" id="date_confirm" name="date_confirm" value="1" <?php checked( $show_deadline ); ?>> Doresc afișarea datei limită pentru confirmări în pagina invitaților</label>
+      <div id="selecteaza-data-wrap" style="margin-top:10px;<?php echo $show_deadline ? '' : 'display:none;'; ?>">
+        <label for="selecteaza_data">Selectează data</label>
+        <input type="text" id="selecteaza_data" name="selecteaza_data" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>" autocomplete="off">
       </div>
-      <p><button type="submit" class="button">Salvează data limită</button></p>
+      <p><button type="submit" class="button">Publica data limita</button></p>
     </form>
   </div>
 
@@ -160,6 +218,24 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           </label>
         <?php endforeach; ?>
         <button type="submit" class="button button-primary">Publică</button>
+
+        <div class="teinvit-zone teinvit-admin-rsvp-settings">
+          <h3 class="teinvit-rsvp-settings-title">Setări RSVP</h3>
+          <?php foreach ( $admin_toggle_fields as $field_name => $field_def ) : ?>
+            <?php
+            $event_key = isset( $field_def['event_key'] ) ? (string) $field_def['event_key'] : '';
+            if ( $event_key !== '' && empty( $event_flags[ $event_key ] ) ) {
+                continue;
+            }
+            $checked = ! empty( $config[ $field_def['config_key'] ] );
+            ?>
+            <label>
+              <input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $checked ); ?>>
+              <?php echo esc_html( $field_def['label'] ); ?>
+            </label><br>
+          <?php endforeach; ?>
+        </div>
+
         <p style="margin-top:8px;">
           <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
         </p>
@@ -204,9 +280,13 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
   let isApplyingVariant = false;
 
-  const deadlineCb = document.getElementById('show_rsvp_deadline');
-  const deadlineWrap = document.getElementById('deadline-wrap');
+  const deadlineCb = document.getElementById('date_confirm');
+  const deadlineWrap = document.getElementById('selecteaza-data-wrap');
   if(deadlineCb && deadlineWrap){ deadlineCb.addEventListener('change',()=>{ deadlineWrap.style.display = deadlineCb.checked ? '' : 'none'; }); }
+
+  if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.datepicker === 'function') {
+    window.jQuery('#selecteaza_data').datepicker({ dateFormat: 'dd/mm/yy' });
+  }
 
   function normalizeToArray(value){
     if (Array.isArray(value)) return value;
