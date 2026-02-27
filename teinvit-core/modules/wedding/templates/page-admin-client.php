@@ -160,7 +160,7 @@ $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $
 $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
-$buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1, 'teinvit_token' => $token ], home_url( '/cart/' ) );
+$buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
@@ -273,6 +273,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <?php if ( $edits_remaining > 0 ) : ?>
           <button type="submit" class="button button-primary" id="teinvit-save-btn">Salvează modificările</button>
         <?php else : ?>
+          <!-- teinvit-buy-edits-endpoint: <?php echo esc_url( $buy_edits_url ); ?> -->
           <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button" target="_blank" rel="noopener">Cumpără modificări suplimentare</a>
         <?php endif; ?>
       </form>

@@ -691,6 +691,27 @@ function teinvit_get_purchase_url( $type, $token ) {
     return add_query_arg( [ 'add-to-cart' => $pid, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ) ], wc_get_cart_url() );
 }
 
+add_action( 'template_redirect', function() {
+    $token = isset( $_GET['teinvit_buy_edits_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_edits_token'] ) ) : '';
+    if ( $token === '' ) {
+        return;
+    }
+
+    if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+        wp_safe_redirect( add_query_arg( [
+            'add-to-cart' => 301,
+            'quantity' => 1,
+            'teinvit_token' => $token,
+        ], wc_get_cart_url() ) );
+        exit;
+    }
+
+    $cart_item_data = [ 'teinvit_token' => $token ];
+    WC()->cart->add_to_cart( 301, 1, 0, [], $cart_item_data );
+    wp_safe_redirect( wc_get_cart_url() );
+    exit;
+}, 5 );
+
 function teinvit_credit_paid_edits_for_invitation( $target_token, $qty ) {
     $target_token = sanitize_text_field( (string) $target_token );
     $qty = max( 0, (int) $qty );
