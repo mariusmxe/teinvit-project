@@ -88,7 +88,9 @@ if ( $subtitle === '' ) {
 }
 
 $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
-$edits_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+$edits_free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+$edits_paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
+$edits_remaining = max( 0, $edits_free_remaining ) + max( 0, $edits_paid_remaining );
 $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
@@ -158,7 +160,7 @@ $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $
 $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
-$buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ) ], wc_get_cart_url() );
+$buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1, 'teinvit_token' => $token ], home_url( '/cart/' ) );
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
@@ -267,11 +269,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
         <?php endif; ?>
 
-        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări gratuite disponibile</p>
+        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
         <?php if ( $edits_remaining > 0 ) : ?>
           <button type="submit" class="button button-primary" id="teinvit-save-btn">Salvează modificările</button>
         <?php else : ?>
-          <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button">Cumpără modificări suplimentare</a>
+          <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button" target="_blank" rel="noopener">Cumpără modificări suplimentare</a>
         <?php endif; ?>
       </form>
     </div>

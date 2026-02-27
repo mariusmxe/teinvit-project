@@ -1097,6 +1097,9 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
     if ( ! isset( $config['edits_free_remaining'] ) ) {
         $config['edits_free_remaining'] = 2;
     }
+    if ( ! isset( $config['edits_paid_remaining'] ) ) {
+        $config['edits_paid_remaining'] = 0;
+    }
 
     teinvit_save_invitation_config( $token, [ 'config' => $config ] );
 
@@ -1113,6 +1116,9 @@ add_action( 'admin_post_teinvit_save_rsvp_config', function() {
     $config = teinvit_admin_client_merge_selection_toggles_from_post( $config, $_POST, teinvit_active_snapshot_event_flags( $token ) );
     if ( ! isset( $config['edits_free_remaining'] ) ) {
         $config['edits_free_remaining'] = 2;
+    }
+    if ( ! isset( $config['edits_paid_remaining'] ) ) {
+        $config['edits_paid_remaining'] = 0;
     }
 
     teinvit_save_invitation_config( $token, [ 'config' => $config ] );
@@ -1148,7 +1154,9 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     }
 
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
-    $remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+    $free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+    $paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
+    $remaining = max( 0, $free_remaining ) + max( 0, $paid_remaining );
     if ( $remaining <= 0 ) {
         wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=noedits' ) );
         exit;
@@ -1206,7 +1214,12 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         ], [ 'id' => $version_id ] );
     }
 
-    $config['edits_free_remaining'] = max( 0, $remaining - 1 );
+    if ( $free_remaining > 0 ) {
+        $config['edits_free_remaining'] = max( 0, $free_remaining - 1 );
+    } else {
+        $config['edits_paid_remaining'] = max( 0, $paid_remaining - 1 );
+    }
+
     teinvit_save_invitation_config( $token, [
         'config' => $config,
     ] );

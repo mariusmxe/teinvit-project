@@ -92,6 +92,9 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   .teinvit-rsvp-grid .teinvit-rsvp-field label,
   .teinvit-rsvp-grid .teinvit-rsvp-field input,
   .teinvit-rsvp-grid .teinvit-rsvp-field textarea { display: block; width: 100%; }
+  .teinvit-rsvp-attendees { max-width: 420px; margin: 10px auto 0; text-align: center; }
+  .teinvit-rsvp-attendees label { display: block; }
+  .teinvit-rsvp-attendees input { width: 100%; text-align: center; }
   .teinvit-rsvp-question { margin-bottom: 14px; }
   .teinvit-rsvp-zone2-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; align-items: start; }
   .teinvit-rsvp-zone2-col .teinvit-rsvp-question { margin-bottom: 12px; }
@@ -150,7 +153,10 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
           <input id="rsvp-email" name="email" type="email" required>
         </div>
 
-        <div class="teinvit-rsvp-field">
+      </div>
+
+      <div class="teinvit-rsvp-zone">
+        <div class="teinvit-rsvp-field teinvit-rsvp-attendees">
           <label for="rsvp-persoane">Pentru câte persoane faceți confirmarea (exceptând copii).</label>
           <input id="rsvp-persoane" name="pentru_cate_persoane_confirmati_prezenta" type="number" min="1" value="1">
         </div>
