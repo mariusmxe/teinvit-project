@@ -1088,6 +1088,19 @@ function teinvit_admin_post_guard( $token ) {
     return [ $order_id, $order ];
 }
 
+
+add_action( 'init', function() {
+    if ( function_exists( 'teinvit_ensure_rsvp_email_column' ) ) {
+        teinvit_ensure_rsvp_email_column();
+    }
+    if ( function_exists( 'teinvit_ensure_rsvp_marketing_column' ) ) {
+        teinvit_ensure_rsvp_marketing_column();
+    }
+    if ( function_exists( 'teinvit_ensure_gifts_publish_columns' ) ) {
+        teinvit_ensure_gifts_publish_columns();
+    }
+}, 1 );
+
 add_action( 'admin_post_teinvit_save_invitation_info', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
     teinvit_admin_post_guard( $token );

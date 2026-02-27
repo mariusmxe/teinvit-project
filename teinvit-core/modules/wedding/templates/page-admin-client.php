@@ -307,6 +307,38 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         </form>
 
 
+
+      </div>
+
+      <p style="margin-top:8px;">
+        <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+      </p>
+    </div>
+
+    <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+        <input type="hidden" name="action" value="teinvit_save_version_snapshot">
+        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <input type="hidden" name="teinvit_parent_checked_json" id="teinvit-parent-checked-json" value="">
+
+        <?php if ( $apf_html !== '' ) : ?>
+          <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php else : ?>
+          <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
+        <?php endif; ?>
+
+        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
+        <?php if ( $edits_remaining > 0 ) : ?>
+          <button type="submit" class="button button-primary" id="teinvit-save-btn">Salvează modificările</button>
+        <?php else : ?>
+          <!-- teinvit-buy-edits-endpoint: <?php echo esc_url( $buy_edits_url ); ?> -->
+          <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button" target="_blank" rel="noopener">Cumpără modificări suplimentare</a>
+        <?php endif; ?>
+      </form>
+    </div>
+  </div>
+
       <div class="teinvit-zone teinvit-admin-gifts">
         <h3 class="teinvit-gifts-title">Lista de cadouri</h3>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-gifts-form">
@@ -352,36 +384,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           <td data-reserved-by="1">Disponibil</td>
         </tr>
       </script>
-      </div>
 
-      <p style="margin-top:8px;">
-        <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
-      </p>
-    </div>
-
-    <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
-      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
-        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
-        <input type="hidden" name="action" value="teinvit_save_version_snapshot">
-        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
-        <input type="hidden" name="teinvit_parent_checked_json" id="teinvit-parent-checked-json" value="">
-
-        <?php if ( $apf_html !== '' ) : ?>
-          <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        <?php else : ?>
-          <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
-        <?php endif; ?>
-
-        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
-        <?php if ( $edits_remaining > 0 ) : ?>
-          <button type="submit" class="button button-primary" id="teinvit-save-btn">Salvează modificările</button>
-        <?php else : ?>
-          <!-- teinvit-buy-edits-endpoint: <?php echo esc_url( $buy_edits_url ); ?> -->
-          <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button" target="_blank" rel="noopener">Cumpără modificări suplimentare</a>
-        <?php endif; ?>
-      </form>
-    </div>
-  </div>
 </div>
 <script>
 (function(){
