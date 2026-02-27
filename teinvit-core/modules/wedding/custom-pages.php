@@ -401,6 +401,20 @@ function teinvit_enqueue_wapf_assets_for_admin_client() {
         wp_enqueue_script( 'wapf-dp', $assets_url . 'js/datepicker.min.js', [], $version, true );
         wp_enqueue_style( 'wapf-dp', $assets_url . 'css/datepicker.min.css', [], $version );
     }
+
+    if ( function_exists( 'acf_enqueue_scripts' ) ) {
+        acf_enqueue_scripts();
+    }
+
+    if ( wp_script_is( 'acf-input', 'registered' ) ) {
+        wp_enqueue_script( 'acf-input' );
+    }
+    if ( wp_style_is( 'acf-input', 'registered' ) ) {
+        wp_enqueue_style( 'acf-input' );
+    }
+
+    wp_enqueue_script( 'jquery-ui-datepicker' );
+    wp_enqueue_style( 'jquery-ui-base', 'https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css', [], '1.13.2' );
 }
 
 function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitation_post_id ) {
@@ -954,6 +968,84 @@ function teinvit_extract_posted_wapf_map( array $source ) {
     return $out;
 }
 
+
+function teinvit_active_snapshot_event_flags( $token ) {
+    $flags = [
+        'civil' => false,
+        'religious' => false,
+        'party' => false,
+    ];
+
+    $active = function_exists( 'teinvit_get_active_snapshot' ) ? teinvit_get_active_snapshot( $token ) : null;
+    $payload = $active && ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
+    $events = isset( $payload['invitation']['events'] ) && is_array( $payload['invitation']['events'] ) ? $payload['invitation']['events'] : [];
+
+    foreach ( $events as $event ) {
+        if ( ! is_array( $event ) ) {
+            continue;
+        }
+
+        $title = strtolower( trim( (string) ( $event['title'] ?? '' ) ) );
+        if ( $title === '' ) {
+            continue;
+        }
+
+        if ( strpos( $title, 'civil' ) !== false ) {
+            $flags['civil'] = true;
+        }
+        if ( strpos( $title, 'religio' ) !== false ) {
+            $flags['religious'] = true;
+        }
+        if ( strpos( $title, 'petrec' ) !== false ) {
+            $flags['party'] = true;
+        }
+    }
+
+    return $flags;
+}
+
+function teinvit_admin_client_read_checkbox( array $source, $key ) {
+    return isset( $source[ $key ] ) && ! empty( $source[ $key ] ) ? 1 : 0;
+}
+
+function teinvit_admin_client_merge_deadline_from_post( array $config, array $source ) {
+    $config['show_rsvp_deadline'] = teinvit_admin_client_read_checkbox( $source, 'date_confirm' );
+    $config['rsvp_deadline_date'] = sanitize_text_field( wp_unslash( $source['selecteaza_data'] ?? '' ) );
+
+    return $config;
+}
+
+function teinvit_admin_client_merge_selection_toggles_from_post( array $config, array $source, array $event_flags = [] ) {
+    $map = [
+        'permite_confirmarea_pentru_cununia_civila' => 'show_attending_civil',
+        'permite_confirmarea_pentru_ceremonia_religioasa' => 'show_attending_religious',
+        'permite_confirmarea_pentru_petrecere' => 'show_attending_party',
+        'permite_confirmarea_copiilor' => 'show_kids',
+        'permite_solicitarea_de_cazare' => 'show_accommodation',
+        'permite_selectarea_meniului_vegetarian' => 'show_vegetarian',
+        'permite_mentionarea_alergiilor' => 'show_allergies',
+        'permite_trimiterea_unui_mesaj_catre_miri' => 'show_message',
+    ];
+
+    foreach ( $map as $field_name => $config_key ) {
+        $config[ $config_key ] = teinvit_admin_client_read_checkbox( $source, $field_name );
+    }
+
+    if ( ! empty( $event_flags ) ) {
+        if ( empty( $event_flags['civil'] ) ) {
+            $config['show_attending_civil'] = 0;
+        }
+        if ( empty( $event_flags['religious'] ) ) {
+            $config['show_attending_religious'] = 0;
+        }
+        if ( empty( $event_flags['party'] ) ) {
+            $config['show_attending_party'] = 0;
+        }
+    }
+
+    return $config;
+}
+
 function teinvit_wapf_payload_is_minimally_valid( array $wapf, array $invitation ) {
     $name = trim( (string) ( $invitation['names'] ?? '' ) );
     $theme = trim( (string) ( $invitation['theme'] ?? '' ) );
@@ -991,8 +1083,7 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
 
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
-    $config['show_rsvp_deadline'] = isset( $_POST['show_rsvp_deadline'] ) ? 1 : 0;
-    $config['rsvp_deadline_date'] = sanitize_text_field( wp_unslash( $_POST['rsvp_deadline_date'] ?? '' ) );
+    $config = teinvit_admin_client_merge_deadline_from_post( $config, $_POST );
     if ( ! isset( $config['edits_free_remaining'] ) ) {
         $config['edits_free_remaining'] = 2;
     }
@@ -1007,13 +1098,11 @@ add_action( 'admin_post_teinvit_save_rsvp_config', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
     teinvit_admin_post_guard( $token );
 
-    $config = teinvit_default_rsvp_config();
-    foreach ( array_keys( $config ) as $key ) {
-        if ( $key === 'rsvp_deadline_text' ) {
-            $config[ $key ] = sanitize_text_field( wp_unslash( $_POST[ $key ] ?? '' ) );
-        } else {
-            $config[ $key ] = isset( $_POST[ $key ] ) ? 1 : 0;
-        }
+    $inv = teinvit_get_invitation( $token );
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
+    $config = teinvit_admin_client_merge_selection_toggles_from_post( $config, $_POST, teinvit_active_snapshot_event_flags( $token ) );
+    if ( ! isset( $config['edits_free_remaining'] ) ) {
+        $config['edits_free_remaining'] = 2;
     }
 
     teinvit_save_invitation_config( $token, [ 'config' => $config ] );
