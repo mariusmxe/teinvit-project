@@ -158,7 +158,7 @@ $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $
 $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
-$buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1 ], wc_get_cart_url() );
+$buy_edits_url = add_query_arg( [ 'add-to-cart' => 301, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ) ], wc_get_cart_url() );
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>

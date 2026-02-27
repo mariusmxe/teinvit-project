@@ -707,29 +707,66 @@ add_action( 'woocommerce_checkout_create_order_line_item', function( $item, $car
 
 add_action( 'woocommerce_order_status_completed', function( $order_id ) {
     $order = wc_get_order( $order_id );
-    if ( ! $order ) return;
+    if ( ! $order ) {
+        return;
+    }
 
-    $edits_name = 'Modificări suplimentare invitație';
+    $processed_key = '_teinvit_completed_item_ids_processed';
+    $processed = $order->get_meta( $processed_key, true );
+    if ( ! is_array( $processed ) ) {
+        $processed = [];
+    }
+
+    $edits_product_id = 301;
     $gifts_name = 'Pachet cadouri suplimentare (+10)';
+    $did_update = false;
 
-    foreach ( $order->get_items() as $item ) {
-        $target_token = $item->get_meta( '_teinvit_token_target', true );
-        if ( ! $target_token ) continue;
+    foreach ( $order->get_items() as $item_id => $item ) {
+        if ( in_array( (int) $item_id, array_map( 'intval', $processed ), true ) ) {
+            continue;
+        }
+
+        $target_token = sanitize_text_field( (string) $item->get_meta( '_teinvit_token_target', true ) );
+        if ( $target_token === '' ) {
+            continue;
+        }
+
         $settings = teinvit_get_settings( $target_token );
-        if ( ! $settings ) continue;
+        if ( ! $settings ) {
+            continue;
+        }
 
-        $qty = (int) $item->get_quantity();
-        $name = $item->get_name();
-        if ( $name === $edits_name ) {
+        $qty = max( 0, (int) $item->get_quantity() );
+        if ( $qty <= 0 ) {
+            $processed[] = (int) $item_id;
+            continue;
+        }
+
+        $product_id = (int) $item->get_product_id();
+        $name = (string) $item->get_name();
+
+        if ( $product_id === $edits_product_id ) {
             teinvit_update_settings( $target_token, [
                 'edits_paid_remaining' => (int) $settings['edits_paid_remaining'] + $qty,
             ] );
+            $processed[] = (int) $item_id;
+            $did_update = true;
+            continue;
         }
+
         if ( $name === $gifts_name ) {
             teinvit_update_settings( $target_token, [
                 'gifts_paid_capacity' => (int) $settings['gifts_paid_capacity'] + ( $qty * 10 ),
             ] );
+            $processed[] = (int) $item_id;
+            $did_update = true;
+            continue;
         }
+    }
+
+    if ( $did_update ) {
+        $order->update_meta_data( $processed_key, array_values( array_unique( array_map( 'intval', $processed ) ) ) );
+        $order->save();
     }
 }, 20 );
 

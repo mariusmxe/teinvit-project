@@ -1027,21 +1027,31 @@ function teinvit_admin_client_merge_selection_toggles_from_post( array $config, 
         'permite_trimiterea_unui_mesaj_catre_miri' => 'show_message',
     ];
 
+    $published_order = [];
     foreach ( $map as $field_name => $config_key ) {
-        $config[ $config_key ] = teinvit_admin_client_read_checkbox( $source, $field_name );
+        $enabled = teinvit_admin_client_read_checkbox( $source, $field_name );
+        $config[ $config_key ] = $enabled;
+        if ( $enabled ) {
+            $published_order[] = $config_key;
+        }
     }
 
     if ( ! empty( $event_flags ) ) {
         if ( empty( $event_flags['civil'] ) ) {
             $config['show_attending_civil'] = 0;
+            $published_order = array_values( array_filter( $published_order, static function( $k ) { return $k !== 'show_attending_civil'; } ) );
         }
         if ( empty( $event_flags['religious'] ) ) {
             $config['show_attending_religious'] = 0;
+            $published_order = array_values( array_filter( $published_order, static function( $k ) { return $k !== 'show_attending_religious'; } ) );
         }
         if ( empty( $event_flags['party'] ) ) {
             $config['show_attending_party'] = 0;
+            $published_order = array_values( array_filter( $published_order, static function( $k ) { return $k !== 'show_attending_party'; } ) );
         }
     }
+
+    $config['rsvp_zone2_order'] = $published_order;
 
     return $config;
 }
@@ -1321,6 +1331,12 @@ add_action( 'rest_api_init', function() {
             if ( ! preg_match( '/^07\d{8}$/', $phone ) ) {
                 return new WP_Error( 'phone_invalid', 'Telefon invalid', [ 'status' => 400 ] );
             }
+
+            $email = sanitize_email( (string) ( $p['guest_email'] ?? '' ) );
+            if ( $email === '' || ! is_email( $email ) ) {
+                return new WP_Error( 'email_invalid', 'Email invalid', [ 'status' => 400 ] );
+            }
+
             if ( empty( $p['gdpr_accepted'] ) ) {
                 return new WP_Error( 'gdpr_required', 'GDPR este obligatoriu', [ 'status' => 400 ] );
             }
@@ -1331,6 +1347,7 @@ add_action( 'rest_api_init', function() {
                 'token' => $token,
                 'guest_first_name' => sanitize_text_field( $p['guest_first_name'] ?? '' ),
                 'guest_last_name' => sanitize_text_field( $p['guest_last_name'] ?? '' ),
+                'guest_email' => $email,
                 'guest_phone' => $phone,
                 'attending_people_count' => max( 1, (int) ( $p['attending_people_count'] ?? 1 ) ),
                 'attending_civil' => empty( $p['attending_civil'] ) ? 0 : 1,
