@@ -401,6 +401,20 @@ function teinvit_enqueue_wapf_assets_for_admin_client() {
         wp_enqueue_script( 'wapf-dp', $assets_url . 'js/datepicker.min.js', [], $version, true );
         wp_enqueue_style( 'wapf-dp', $assets_url . 'css/datepicker.min.css', [], $version );
     }
+
+    if ( function_exists( 'acf_enqueue_scripts' ) ) {
+        acf_enqueue_scripts();
+    }
+
+    if ( wp_script_is( 'acf-input', 'registered' ) ) {
+        wp_enqueue_script( 'acf-input' );
+    }
+    if ( wp_style_is( 'acf-input', 'registered' ) ) {
+        wp_enqueue_style( 'acf-input' );
+    }
+
+    wp_enqueue_script( 'jquery-ui-datepicker' );
+    wp_enqueue_style( 'jquery-ui-base', 'https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css', [], '1.13.2' );
 }
 
 function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitation_post_id ) {
@@ -954,6 +968,95 @@ function teinvit_extract_posted_wapf_map( array $source ) {
     return $out;
 }
 
+
+function teinvit_active_snapshot_event_flags( $token ) {
+    $flags = [
+        'civil' => false,
+        'religious' => false,
+        'party' => false,
+    ];
+
+    $active = function_exists( 'teinvit_get_active_snapshot' ) ? teinvit_get_active_snapshot( $token ) : null;
+    $payload = $active && ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
+    $events = isset( $payload['invitation']['events'] ) && is_array( $payload['invitation']['events'] ) ? $payload['invitation']['events'] : [];
+
+    foreach ( $events as $event ) {
+        if ( ! is_array( $event ) ) {
+            continue;
+        }
+
+        $title = strtolower( trim( (string) ( $event['title'] ?? '' ) ) );
+        if ( $title === '' ) {
+            continue;
+        }
+
+        if ( strpos( $title, 'civil' ) !== false ) {
+            $flags['civil'] = true;
+        }
+        if ( strpos( $title, 'religio' ) !== false ) {
+            $flags['religious'] = true;
+        }
+        if ( strpos( $title, 'petrec' ) !== false ) {
+            $flags['party'] = true;
+        }
+    }
+
+    return $flags;
+}
+
+function teinvit_admin_client_read_checkbox( array $source, $key ) {
+    return isset( $source[ $key ] ) && ! empty( $source[ $key ] ) ? 1 : 0;
+}
+
+function teinvit_admin_client_merge_deadline_from_post( array $config, array $source ) {
+    $config['show_rsvp_deadline'] = teinvit_admin_client_read_checkbox( $source, 'date_confirm' );
+    $config['rsvp_deadline_date'] = sanitize_text_field( wp_unslash( $source['selecteaza_data'] ?? '' ) );
+
+    return $config;
+}
+
+function teinvit_admin_client_merge_selection_toggles_from_post( array $config, array $source, array $event_flags = [] ) {
+    $map = [
+        'permite_confirmarea_pentru_cununia_civila' => 'show_attending_civil',
+        'permite_confirmarea_pentru_ceremonia_religioasa' => 'show_attending_religious',
+        'permite_confirmarea_pentru_petrecere' => 'show_attending_party',
+        'permite_confirmarea_copiilor' => 'show_kids',
+        'permite_solicitarea_de_cazare' => 'show_accommodation',
+        'permite_selectarea_meniului_vegetarian' => 'show_vegetarian',
+        'permite_mentionarea_alergiilor' => 'show_allergies',
+        'permite_trimiterea_unui_mesaj_catre_miri' => 'show_message',
+        'activeaza_sectiunea_cadouri' => 'show_gifts_section',
+    ];
+
+    $published_order = [];
+    foreach ( $map as $field_name => $config_key ) {
+        $enabled = teinvit_admin_client_read_checkbox( $source, $field_name );
+        $config[ $config_key ] = $enabled;
+        if ( $enabled ) {
+            $published_order[] = $config_key;
+        }
+    }
+
+    if ( ! empty( $event_flags ) ) {
+        if ( empty( $event_flags['civil'] ) ) {
+            $config['show_attending_civil'] = 0;
+            $published_order = array_values( array_filter( $published_order, static function( $k ) { return $k !== 'show_attending_civil'; } ) );
+        }
+        if ( empty( $event_flags['religious'] ) ) {
+            $config['show_attending_religious'] = 0;
+            $published_order = array_values( array_filter( $published_order, static function( $k ) { return $k !== 'show_attending_religious'; } ) );
+        }
+        if ( empty( $event_flags['party'] ) ) {
+            $config['show_attending_party'] = 0;
+            $published_order = array_values( array_filter( $published_order, static function( $k ) { return $k !== 'show_attending_party'; } ) );
+        }
+    }
+
+    $config['rsvp_zone2_order'] = $published_order;
+
+    return $config;
+}
+
 function teinvit_wapf_payload_is_minimally_valid( array $wapf, array $invitation ) {
     $name = trim( (string) ( $invitation['names'] ?? '' ) );
     $theme = trim( (string) ( $invitation['theme'] ?? '' ) );
@@ -991,10 +1094,12 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
 
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
-    $config['show_rsvp_deadline'] = isset( $_POST['show_rsvp_deadline'] ) ? 1 : 0;
-    $config['rsvp_deadline_date'] = sanitize_text_field( wp_unslash( $_POST['rsvp_deadline_date'] ?? '' ) );
+    $config = teinvit_admin_client_merge_deadline_from_post( $config, $_POST );
     if ( ! isset( $config['edits_free_remaining'] ) ) {
         $config['edits_free_remaining'] = 2;
+    }
+    if ( ! isset( $config['edits_paid_remaining'] ) ) {
+        $config['edits_paid_remaining'] = 0;
     }
 
     teinvit_save_invitation_config( $token, [ 'config' => $config ] );
@@ -1007,13 +1112,14 @@ add_action( 'admin_post_teinvit_save_rsvp_config', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
     teinvit_admin_post_guard( $token );
 
-    $config = teinvit_default_rsvp_config();
-    foreach ( array_keys( $config ) as $key ) {
-        if ( $key === 'rsvp_deadline_text' ) {
-            $config[ $key ] = sanitize_text_field( wp_unslash( $_POST[ $key ] ?? '' ) );
-        } else {
-            $config[ $key ] = isset( $_POST[ $key ] ) ? 1 : 0;
-        }
+    $inv = teinvit_get_invitation( $token );
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
+    $config = teinvit_admin_client_merge_selection_toggles_from_post( $config, $_POST, teinvit_active_snapshot_event_flags( $token ) );
+    if ( ! isset( $config['edits_free_remaining'] ) ) {
+        $config['edits_free_remaining'] = 2;
+    }
+    if ( ! isset( $config['edits_paid_remaining'] ) ) {
+        $config['edits_paid_remaining'] = 0;
     }
 
     teinvit_save_invitation_config( $token, [ 'config' => $config ] );
@@ -1049,7 +1155,9 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     }
 
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
-    $remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+    $free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+    $paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
+    $remaining = max( 0, $free_remaining ) + max( 0, $paid_remaining );
     if ( $remaining <= 0 ) {
         wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=noedits' ) );
         exit;
@@ -1107,7 +1215,12 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         ], [ 'id' => $version_id ] );
     }
 
-    $config['edits_free_remaining'] = max( 0, $remaining - 1 );
+    if ( $free_remaining > 0 ) {
+        $config['edits_free_remaining'] = max( 0, $free_remaining - 1 );
+    } else {
+        $config['edits_paid_remaining'] = max( 0, $paid_remaining - 1 );
+    }
+
     teinvit_save_invitation_config( $token, [
         'config' => $config,
     ] );
@@ -1127,33 +1240,100 @@ add_action( 'admin_post_teinvit_save_gifts', function() {
     teinvit_admin_post_guard( $token );
 
     $inv = teinvit_get_invitation( $token );
-    if ( ! empty( $inv['gifts_locked'] ) ) {
-        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?saved=gifts_locked' ) );
+    if ( ! $inv ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=missing' ) );
         exit;
     }
 
-    $t = teinvit_db_tables();
-    $rows = isset( $_POST['gifts'] ) && is_array( $_POST['gifts'] ) ? $_POST['gifts'] : [];
-    $wpdb->delete( $t['gifts'], [ 'token' => $token ] );
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
+    $config['show_gifts_section'] = isset( $_POST['show_gifts_section'] ) ? 1 : 0;
 
+    $gifts_extra_slots = isset( $config['gifts_extra_slots'] ) ? max( 0, (int) $config['gifts_extra_slots'] ) : 0;
+    $max_slots = 20 + $gifts_extra_slots;
+
+    $t = teinvit_db_tables();
+    $existing_rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['gifts']} WHERE token=%s ORDER BY id ASC", $token ), ARRAY_A );
+    $existing_map = [];
+    foreach ( $existing_rows as $row ) {
+        $existing_map[ (string) $row['gift_id'] ] = $row;
+    }
+
+    $rows = isset( $_POST['gifts'] ) && is_array( $_POST['gifts'] ) ? $_POST['gifts'] : [];
+    $entered_count = 0;
+    foreach ( $rows as $gift ) {
+        $name = sanitize_text_field( wp_unslash( $gift['gift_name'] ?? '' ) );
+        $link = esc_url_raw( wp_unslash( $gift['gift_link'] ?? '' ) );
+        if ( $name !== '' && $link !== '' ) {
+            $entered_count++;
+        }
+    }
+
+    if ( $entered_count > $max_slots ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=gifts_limit' ) );
+        exit;
+    }
+
+    $posted_ids = [];
     foreach ( $rows as $index => $gift ) {
-        $gift_name = sanitize_text_field( wp_unslash( $gift['gift_name'] ?? '' ) );
-        if ( $gift_name === '' ) {
+        $gift_id = sanitize_text_field( wp_unslash( $gift['gift_id'] ?? '' ) );
+        if ( $gift_id === '' ) {
+            $gift_id = 'gift-' . wp_generate_password( 10, false, false ) . '-' . $index;
+        }
+        $posted_ids[] = $gift_id;
+
+        $include = ! empty( $gift['include_in_public'] ) ? 1 : 0;
+        $name = sanitize_text_field( wp_unslash( $gift['gift_name'] ?? '' ) );
+        $link = esc_url_raw( wp_unslash( $gift['gift_link'] ?? '' ) );
+        $address = sanitize_textarea_field( wp_unslash( $gift['gift_delivery_address'] ?? '' ) );
+        $is_complete = ( $name !== '' && $link !== '' );
+
+        $existing = isset( $existing_map[ $gift_id ] ) ? $existing_map[ $gift_id ] : null;
+        if ( $existing && ! empty( $existing['published_locked'] ) ) {
+            $wpdb->update( $t['gifts'], [
+                'include_in_public' => $include,
+            ], [ 'id' => (int) $existing['id'] ] );
             continue;
         }
-        $wpdb->insert( $t['gifts'], [
+
+        $payload = [
             'token' => $token,
-            'gift_id' => sanitize_text_field( wp_unslash( $gift['gift_id'] ?? ( 'gift-' . $index ) ) ),
-            'gift_name' => $gift_name,
-            'gift_link' => esc_url_raw( wp_unslash( $gift['gift_link'] ?? '' ) ),
-            'gift_delivery_address' => sanitize_text_field( wp_unslash( $gift['gift_delivery_address'] ?? '' ) ),
-            'status' => 'free',
-        ] );
+            'gift_id' => $gift_id,
+            'gift_name' => $name,
+            'gift_link' => $link,
+            'gift_delivery_address' => $address,
+            'include_in_public' => $include,
+            'published_locked' => ( $include && $is_complete ) ? 1 : 0,
+            'locked_at' => ( $include && $is_complete ) ? current_time( 'mysql' ) : null,
+            'status' => $existing ? (string) $existing['status'] : 'free',
+            'reserved_by_rsvp_id' => $existing ? (int) ( $existing['reserved_by_rsvp_id'] ?? 0 ) : null,
+            'reserved_at' => $existing ? ( $existing['reserved_at'] ?? null ) : null,
+        ];
+
+        if ( $existing ) {
+            $wpdb->update( $t['gifts'], $payload, [ 'id' => (int) $existing['id'] ] );
+        } else {
+            $wpdb->insert( $t['gifts'], $payload );
+        }
     }
+
+    if ( ! empty( $existing_rows ) ) {
+        foreach ( $existing_rows as $row ) {
+            if ( in_array( (string) $row['gift_id'], $posted_ids, true ) ) {
+                continue;
+            }
+            if ( ! empty( $row['published_locked'] ) ) {
+                continue;
+            }
+            $wpdb->delete( $t['gifts'], [ 'id' => (int) $row['id'] ] );
+        }
+    }
+
+    teinvit_save_invitation_config( $token, [ 'config' => $config ] );
 
     wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?saved=gifts' ) );
     exit;
 } );
+
 
 add_action( 'rest_api_init', function() {
     register_rest_route( 'teinvit/v2', '/preview/build', [
@@ -1228,10 +1408,22 @@ add_action( 'rest_api_init', function() {
             }
 
             $p = (array) $request->get_json_params();
-            $phone = preg_replace( '/\D+/', '', (string) ( $p['guest_phone'] ?? '' ) );
-            if ( ! preg_match( '/^07\d{8}$/', $phone ) ) {
+            $phone = trim( (string) ( $p['guest_phone'] ?? '' ) );
+            $phone = preg_replace( '/\s+/', '', $phone );
+            $is_ro = preg_match( '/^(?:07\d{8}|\+407\d{8})$/', $phone );
+            $is_intl = preg_match( '/^\+[1-9]\d{7,14}$/', $phone );
+            if ( ! $is_ro && ! $is_intl ) {
                 return new WP_Error( 'phone_invalid', 'Telefon invalid', [ 'status' => 400 ] );
             }
+            if ( strpos( $phone, '+407' ) === 0 ) {
+                $phone = '0' . substr( $phone, 3 );
+            }
+
+            $email = sanitize_email( (string) ( $p['guest_email'] ?? '' ) );
+            if ( $email === '' || ! is_email( $email ) ) {
+                return new WP_Error( 'email_invalid', 'Email invalid', [ 'status' => 400 ] );
+            }
+
             if ( empty( $p['gdpr_accepted'] ) ) {
                 return new WP_Error( 'gdpr_required', 'GDPR este obligatoriu', [ 'status' => 400 ] );
             }
@@ -1242,6 +1434,7 @@ add_action( 'rest_api_init', function() {
                 'token' => $token,
                 'guest_first_name' => sanitize_text_field( $p['guest_first_name'] ?? '' ),
                 'guest_last_name' => sanitize_text_field( $p['guest_last_name'] ?? '' ),
+                'guest_email' => $email,
                 'guest_phone' => $phone,
                 'attending_people_count' => max( 1, (int) ( $p['attending_people_count'] ?? 1 ) ),
                 'attending_civil' => empty( $p['attending_civil'] ) ? 0 : 1,
@@ -1256,6 +1449,7 @@ add_action( 'rest_api_init', function() {
                 'allergy_details' => sanitize_text_field( $p['allergy_details'] ?? '' ),
                 'message_to_couple' => sanitize_textarea_field( $p['message_to_couple'] ?? '' ),
                 'gdpr_accepted' => 1,
+                'marketing_consent' => empty( $p['marketing_consent'] ) ? 0 : 1,
                 'created_at' => current_time( 'mysql' ),
             ] );
 
@@ -1269,7 +1463,7 @@ add_action( 'rest_api_init', function() {
 
             foreach ( $selected as $gift_id ) {
                 $updated = $wpdb->query( $wpdb->prepare(
-                    "UPDATE {$t['gifts']} SET status='reserved', reserved_by_rsvp_id=%d, reserved_at=%s WHERE token=%s AND gift_id=%s AND status='free'",
+                    "UPDATE {$t['gifts']} SET status='reserved', reserved_by_rsvp_id=%d, reserved_at=%s WHERE token=%s AND gift_id=%s AND include_in_public=1 AND status='free'",
                     $rsvp_id,
                     current_time( 'mysql' ),
                     $token,
@@ -1283,7 +1477,6 @@ add_action( 'rest_api_init', function() {
             }
 
             $wpdb->query( 'COMMIT' );
-            teinvit_save_invitation_config( $token, [ 'gifts_locked' => 1 ] );
             teinvit_touch_invitation_activity( $token );
 
             return [ 'ok' => true ];

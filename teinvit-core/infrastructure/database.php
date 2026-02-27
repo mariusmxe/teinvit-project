@@ -60,6 +60,7 @@ function teinvit_install_modular_tables() {
         token varchar(191) NOT NULL,
         guest_first_name varchar(191) NOT NULL,
         guest_last_name varchar(191) NOT NULL,
+        guest_email varchar(191) NOT NULL,
         guest_phone varchar(20) NOT NULL,
         attending_people_count int NOT NULL DEFAULT 1,
         attending_civil tinyint(1) NOT NULL DEFAULT 0,
@@ -74,9 +75,11 @@ function teinvit_install_modular_tables() {
         allergy_details text NULL,
         message_to_couple text NULL,
         gdpr_accepted tinyint(1) NOT NULL DEFAULT 0,
+        marketing_consent tinyint(1) NOT NULL DEFAULT 0,
         created_at datetime NOT NULL,
         PRIMARY KEY (id),
         KEY token (token),
+        KEY guest_email (guest_email),
         KEY guest_phone (guest_phone)
     ) $charset;" );
 
@@ -87,6 +90,9 @@ function teinvit_install_modular_tables() {
         gift_name varchar(255) NOT NULL,
         gift_link text NULL,
         gift_delivery_address text NULL,
+        include_in_public tinyint(1) NOT NULL DEFAULT 0,
+        published_locked tinyint(1) NOT NULL DEFAULT 0,
+        locked_at datetime NULL,
         status varchar(20) NOT NULL DEFAULT 'free',
         reserved_by_rsvp_id bigint(20) unsigned NULL,
         reserved_at datetime NULL,
@@ -95,6 +101,61 @@ function teinvit_install_modular_tables() {
         KEY token_status (token, status)
     ) $charset;" );
     teinvit_ensure_versions_pdf_columns();
+    teinvit_ensure_rsvp_email_column();
+    teinvit_ensure_rsvp_marketing_column();
+    teinvit_ensure_gifts_publish_columns();
+}
+
+function teinvit_ensure_rsvp_email_column() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['rsvp'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'guest_email', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN guest_email varchar(191) NOT NULL DEFAULT '' AFTER guest_last_name" );
+    }
+}
+
+
+function teinvit_ensure_rsvp_marketing_column() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['rsvp'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'marketing_consent', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN marketing_consent tinyint(1) NOT NULL DEFAULT 0 AFTER gdpr_accepted" );
+    }
+}
+
+function teinvit_ensure_gifts_publish_columns() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['gifts'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'include_in_public', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN include_in_public tinyint(1) NOT NULL DEFAULT 0 AFTER gift_delivery_address" );
+    }
+    if ( ! in_array( 'published_locked', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN published_locked tinyint(1) NOT NULL DEFAULT 0 AFTER include_in_public" );
+    }
+    if ( ! in_array( 'locked_at', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN locked_at datetime NULL AFTER published_locked" );
+    }
 }
 
 function teinvit_ensure_versions_pdf_columns() {
@@ -222,6 +283,8 @@ function teinvit_default_rsvp_config() {
         'show_allergies' => 0,
         'show_rsvp_deadline' => 0,
         'rsvp_deadline_text' => '',
+        'show_gifts_section' => 0,
+        'gifts_extra_slots' => 0,
     ];
 }
 

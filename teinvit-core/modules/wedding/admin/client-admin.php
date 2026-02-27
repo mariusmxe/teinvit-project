@@ -691,6 +691,73 @@ function teinvit_get_purchase_url( $type, $token ) {
     return add_query_arg( [ 'add-to-cart' => $pid, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ) ], wc_get_cart_url() );
 }
 
+add_action( 'template_redirect', function() {
+    $buy_edits_token = isset( $_GET['teinvit_buy_edits_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_edits_token'] ) ) : '';
+    $buy_gifts_token = isset( $_GET['teinvit_buy_gifts_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_gifts_token'] ) ) : '';
+
+    if ( $buy_edits_token === '' && $buy_gifts_token === '' ) {
+        return;
+    }
+
+    $product_id = $buy_edits_token !== '' ? 301 : 298;
+    $token = $buy_edits_token !== '' ? $buy_edits_token : $buy_gifts_token;
+
+    if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+        wp_safe_redirect( add_query_arg( [
+            'add-to-cart' => $product_id,
+            'quantity' => 1,
+            'teinvit_token' => $token,
+        ], wc_get_cart_url() ) );
+        exit;
+    }
+
+    $cart_item_data = [ 'teinvit_token' => $token ];
+    WC()->cart->add_to_cart( $product_id, 1, 0, [], $cart_item_data );
+    wp_safe_redirect( wc_get_cart_url() );
+    exit;
+}, 5 );
+function teinvit_credit_gifts_extra_slots_for_invitation( $target_token, $qty ) {
+    $target_token = sanitize_text_field( (string) $target_token );
+    $qty = max( 0, (int) $qty );
+    if ( $target_token === '' || $qty <= 0 || ! function_exists( 'teinvit_get_invitation' ) || ! function_exists( 'teinvit_save_invitation_config' ) ) {
+        return false;
+    }
+
+    $inv = teinvit_get_invitation( $target_token );
+    if ( ! $inv ) {
+        return false;
+    }
+
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+    $current_extra = isset( $config['gifts_extra_slots'] ) ? (int) $config['gifts_extra_slots'] : 0;
+    $config['gifts_extra_slots'] = max( 0, $current_extra ) + ( $qty * 10 );
+
+    teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+
+    return true;
+}
+
+function teinvit_credit_paid_edits_for_invitation( $target_token, $qty ) {
+    $target_token = sanitize_text_field( (string) $target_token );
+    $qty = max( 0, (int) $qty );
+    if ( $target_token === '' || $qty <= 0 || ! function_exists( 'teinvit_get_invitation' ) || ! function_exists( 'teinvit_save_invitation_config' ) ) {
+        return false;
+    }
+
+    $inv = teinvit_get_invitation( $target_token );
+    if ( ! $inv ) {
+        return false;
+    }
+
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+    $current_paid = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
+    $config['edits_paid_remaining'] = max( 0, $current_paid ) + $qty;
+
+    teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+
+    return true;
+}
+
 add_filter( 'woocommerce_add_cart_item_data', function( $cart_item_data, $product_id ) {
     $token = isset( $_REQUEST['teinvit_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['teinvit_token'] ) ) : '';
     if ( $token ) {
@@ -705,31 +772,102 @@ add_action( 'woocommerce_checkout_create_order_line_item', function( $item, $car
     }
 }, 10, 3 );
 
+add_action( 'woocommerce_checkout_create_order', function( $order, $data ) {
+    if ( ! $order || ! WC()->cart ) {
+        return;
+    }
+
+    foreach ( WC()->cart->get_cart() as $cart_item ) {
+        if ( empty( $cart_item['teinvit_token'] ) ) {
+            continue;
+        }
+
+        $token = sanitize_text_field( (string) $cart_item['teinvit_token'] );
+        if ( $token === '' ) {
+            continue;
+        }
+
+        $order->update_meta_data( '_teinvit_token_target', $token );
+        break;
+    }
+}, 10, 2 );
+
 add_action( 'woocommerce_order_status_completed', function( $order_id ) {
     $order = wc_get_order( $order_id );
-    if ( ! $order ) return;
+    if ( ! $order ) {
+        return;
+    }
 
-    $edits_name = 'Modificări suplimentare invitație';
+    $processed_key = '_teinvit_completed_item_ids_processed';
+    $processed = $order->get_meta( $processed_key, true );
+    if ( ! is_array( $processed ) ) {
+        $processed = [];
+    }
+
+    $edits_product_id = 301;
     $gifts_name = 'Pachet cadouri suplimentare (+10)';
+    $gifts_product_id = 298;
+    $order_target_token = sanitize_text_field( (string) $order->get_meta( '_teinvit_token_target', true ) );
+    $did_update = false;
 
-    foreach ( $order->get_items() as $item ) {
-        $target_token = $item->get_meta( '_teinvit_token_target', true );
-        if ( ! $target_token ) continue;
-        $settings = teinvit_get_settings( $target_token );
-        if ( ! $settings ) continue;
+    foreach ( $order->get_items() as $item_id => $item ) {
+        if ( in_array( (int) $item_id, array_map( 'intval', $processed ), true ) ) {
+            continue;
+        }
 
-        $qty = (int) $item->get_quantity();
-        $name = $item->get_name();
-        if ( $name === $edits_name ) {
-            teinvit_update_settings( $target_token, [
-                'edits_paid_remaining' => (int) $settings['edits_paid_remaining'] + $qty,
-            ] );
+        $target_token = sanitize_text_field( (string) $item->get_meta( '_teinvit_token_target', true ) );
+        if ( $target_token === '' ) {
+            $target_token = $order_target_token;
         }
-        if ( $name === $gifts_name ) {
-            teinvit_update_settings( $target_token, [
-                'gifts_paid_capacity' => (int) $settings['gifts_paid_capacity'] + ( $qty * 10 ),
-            ] );
+
+        if ( $target_token === '' ) {
+            continue;
         }
+
+        $qty = max( 0, (int) $item->get_quantity() );
+        if ( $qty <= 0 ) {
+            $processed[] = (int) $item_id;
+            continue;
+        }
+
+        $product_id = (int) $item->get_product_id();
+        $name = (string) $item->get_name();
+
+        if ( $product_id === $edits_product_id ) {
+            teinvit_credit_paid_edits_for_invitation( $target_token, $qty );
+
+            $settings = teinvit_get_settings( $target_token );
+            if ( $settings ) {
+                teinvit_update_settings( $target_token, [
+                    'edits_paid_remaining' => (int) $settings['edits_paid_remaining'] + $qty,
+                ] );
+            }
+
+            $order->add_order_note( sprintf( 'TeInvit: +%d modificări alocate token-ului %s (produs 301).', $qty, $target_token ) );
+            $processed[] = (int) $item_id;
+            $did_update = true;
+            continue;
+        }
+
+        if ( $product_id === $gifts_product_id || $name === $gifts_name ) {
+            teinvit_credit_gifts_extra_slots_for_invitation( $target_token, $qty );
+
+            $settings = teinvit_get_settings( $target_token );
+            if ( $settings ) {
+                teinvit_update_settings( $target_token, [
+                    'gifts_paid_capacity' => (int) $settings['gifts_paid_capacity'] + ( $qty * 10 ),
+                ] );
+            }
+            $order->add_order_note( sprintf( 'TeInvit: +%d sloturi cadouri alocate token-ului %s (produs 298).', ( $qty * 10 ), $target_token ) );
+            $processed[] = (int) $item_id;
+            $did_update = true;
+            continue;
+        }
+    }
+
+    if ( $did_update ) {
+        $order->update_meta_data( $processed_key, array_values( array_unique( array_map( 'intval', $processed ) ) ) );
+        $order->save();
     }
 }, 20 );
 
