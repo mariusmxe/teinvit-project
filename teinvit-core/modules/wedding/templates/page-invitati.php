@@ -56,6 +56,24 @@ $t = teinvit_db_tables();
 $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link,gift_delivery_address,status FROM {$t['gifts']} WHERE token=%s ORDER BY id ASC", $token ), ARRAY_A );
 $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
+<style>
+  .teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  .teinvit-rsvp-zone label,
+  .teinvit-rsvp-zone input,
+  .teinvit-rsvp-zone textarea { display: block; }
+  .teinvit-rsvp-question { margin-bottom: 14px; }
+  .teinvit-rsvp-choice-group { margin-top: 6px; }
+  .teinvit-rsvp-choice-group label { display: block; margin-bottom: 4px; }
+  .teinvit-rsvp-dependent { margin-top: 8px; margin-left: 16px; }
+  .teinvit-rsvp-message-wrap { text-align: center; }
+  .teinvit-rsvp-message-wrap textarea { width: min(50%, 640px); min-height: 180px; resize: none; margin: 0 auto; }
+  .teinvit-rsvp-gdpr-wrap { margin-top: 12px; text-align: left; display: inline-block; max-width: min(50%, 640px); width: 100%; }
+  .teinvit-rsvp-submit-wrap { margin-top: 14px; text-align: center; }
+  @media (max-width: 900px) {
+    .teinvit-rsvp-message-wrap textarea,
+    .teinvit-rsvp-gdpr-wrap { width: 100%; max-width: 100%; }
+  }
+</style>
 <div class="teinvit-invitati-page" style="max-width:980px;margin:0 auto;">
   <?php if ( ! $in_cpt_template ) : ?>
   <div class="preview" style="position:relative;">
@@ -94,62 +112,89 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 
       <div class="teinvit-rsvp-zone">
         <?php if ( $show_civil ) : ?>
-          <label>Veți participa la cununia civilă?</label>
-          <label><input type="radio" name="veti_participa_la_cununia_civila" value="DA" required> DA</label>
-          <label><input type="radio" name="veti_participa_la_cununia_civila" value="NU"> NU</label>
+          <div class="teinvit-rsvp-question">
+            <label>Veți participa la cununia civilă?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="veti_participa_la_cununia_civila" value="DA" required> DA</label>
+              <label><input type="radio" name="veti_participa_la_cununia_civila" value="NU"> NU</label>
+            </div>
+          </div>
         <?php endif; ?>
 
         <?php if ( $show_religious ) : ?>
-          <label>Veți participa la ceremonia religioasă?</label>
-          <label><input type="radio" name="veti_participa_la_ceremonia_religioasa" value="DA" required> DA</label>
-          <label><input type="radio" name="veti_participa_la_ceremonia_religioasa" value="NU"> NU</label>
+          <div class="teinvit-rsvp-question">
+            <label>Veți participa la ceremonia religioasă?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="veti_participa_la_ceremonia_religioasa" value="DA" required> DA</label>
+              <label><input type="radio" name="veti_participa_la_ceremonia_religioasa" value="NU"> NU</label>
+            </div>
+          </div>
         <?php endif; ?>
 
         <?php if ( $show_party ) : ?>
-          <label>Veți participa la petrecere?</label>
-          <label><input type="radio" name="veti_participa_la_petrecere" value="DA" required> DA</label>
-          <label><input type="radio" name="veti_participa_la_petrecere" value="NU"> NU</label>
+          <div class="teinvit-rsvp-question">
+            <label>Veți participa la petrecere?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="veti_participa_la_petrecere" value="DA" required> DA</label>
+              <label><input type="radio" name="veti_participa_la_petrecere" value="NU"> NU</label>
+            </div>
+          </div>
         <?php endif; ?>
 
         <?php if ( $show_kids ) : ?>
-          <label>Veți veni însoțiți de copii?</label>
-          <label><input type="radio" name="veti_veni_insotiti_de_copii" value="DA"> DA</label>
-          <label><input type="radio" name="veti_veni_insotiti_de_copii" value="NU" checked> NU</label>
-          <div id="rsvp-kids-wrap" style="display:none;">
-            <label for="rsvp-kids-count">Câți copii vă vor însoți</label>
-            <input id="rsvp-kids-count" name="cati_copii_va_vor_insoti" type="number" min="0" value="0">
+          <div class="teinvit-rsvp-question">
+            <label>Veți veni însoțiți de copii?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="veti_veni_insotiti_de_copii" value="DA"> DA</label>
+              <label><input type="radio" name="veti_veni_insotiti_de_copii" value="NU" checked> NU</label>
+            </div>
+            <div id="rsvp-kids-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+              <label for="rsvp-kids-count">Câți copii vă vor însoți</label>
+              <input id="rsvp-kids-count" name="cati_copii_va_vor_insoti" type="number" min="0" value="0">
+            </div>
           </div>
         <?php endif; ?>
 
         <?php if ( $show_accommodation ) : ?>
-          <label>Aveți nevoie de cazare?</label>
-          <label><input type="radio" name="aveti_nevoie_de_cazare" value="DA"> DA</label>
-          <label><input type="radio" name="aveti_nevoie_de_cazare" value="NU" checked> NU</label>
-          <div id="rsvp-accommodation-wrap" style="display:none;">
-            <label for="rsvp-accommodation-count">Pentru câte persoane solicitați cazare</label>
-            <input id="rsvp-accommodation-count" name="pentru_cate_persoane_solicitati_cazare" type="number" min="0" value="0">
+          <div class="teinvit-rsvp-question">
+            <label>Aveți nevoie de cazare?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="aveti_nevoie_de_cazare" value="DA"> DA</label>
+              <label><input type="radio" name="aveti_nevoie_de_cazare" value="NU" checked> NU</label>
+            </div>
+            <div id="rsvp-accommodation-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+              <label for="rsvp-accommodation-count">Pentru câte persoane solicitați cazare</label>
+              <input id="rsvp-accommodation-count" name="pentru_cate_persoane_solicitati_cazare" type="number" min="0" value="0">
+            </div>
           </div>
         <?php endif; ?>
 
         <?php if ( $show_vegetarian ) : ?>
-          <label>Doriți meniu vegetarian?</label>
-          <label><input type="radio" name="doriti_meniu_vegetarian" value="DA"> DA</label>
-          <label><input type="radio" name="doriti_meniu_vegetarian" value="NU" checked> NU</label>
+          <div class="teinvit-rsvp-question">
+            <label>Doriți meniu vegetarian?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="doriti_meniu_vegetarian" value="DA"> DA</label>
+              <label><input type="radio" name="doriti_meniu_vegetarian" value="NU" checked> NU</label>
+            </div>
+          </div>
         <?php endif; ?>
 
         <?php if ( $show_allergies ) : ?>
-          <label>Aveți alergii alimentare?</label>
-          <label><input type="radio" name="aveti_alergii_alimentare" value="DA"> DA</label>
-          <label><input type="radio" name="aveti_alergii_alimentare" value="NU" checked> NU</label>
-          <div id="rsvp-allergies-wrap" style="display:none;">
-            <label for="rsvp-allergies-detail">Vă rugăm să specificați alergiile</label>
-            <input id="rsvp-allergies-detail" name="va_rugam_sa_specificati_alergiile">
+          <div class="teinvit-rsvp-question">
+            <label>Aveți alergii alimentare?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="radio" name="aveti_alergii_alimentare" value="DA"> DA</label>
+              <label><input type="radio" name="aveti_alergii_alimentare" value="NU" checked> NU</label>
+            </div>
+            <div id="rsvp-allergies-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+              <label for="rsvp-allergies-detail">Vă rugăm să specificați alergiile</label>
+              <input id="rsvp-allergies-detail" name="va_rugam_sa_specificati_alergiile">
+            </div>
           </div>
         <?php endif; ?>
       </div>
 
       <table>
-        <thead><tr><th>Select</th><th>Cadou</th><th>Link</th><th>Adresă</th><th>Status</th></tr></thead>
         <tbody>
         <?php foreach ( $gifts as $gift ) : ?>
           <tr>
@@ -165,29 +210,33 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 
       <hr>
 
-      <div class="teinvit-rsvp-zone">
+      <div class="teinvit-rsvp-zone teinvit-rsvp-message-wrap">
         <?php if ( $show_message ) : ?>
           <h3>Dacă doriți, lăsați un mesaj pentru miri</h3>
-          <textarea name="daca_doriti_lasati_un_mesaj_pentru_miri" rows="8" style="resize:none;min-height:180px;"></textarea>
+          <textarea name="daca_doriti_lasati_un_mesaj_pentru_miri" rows="8"></textarea>
         <?php endif; ?>
 
-        <label>
-          <input type="checkbox" name="gdpr_accept" required>
-          Sunt de acord cu prelucrarea datelor mele în scopul gestionării invitației și confirmării prezenței la eveniment și declar că am citit și accept
-          <?php if ( $policy_url ) : ?>
-            <a href="<?php echo esc_url( $policy_url ); ?>" target="_blank" rel="noopener">Politica de prelucrare a datelor</a>
-          <?php else : ?>
-            <span>Politica de prelucrare a datelor</span>
-          <?php endif; ?>
-          și
-          <?php if ( $terms_url ) : ?>
-            <a href="<?php echo esc_url( $terms_url ); ?>" target="_blank" rel="noopener">Termenii și condițiile</a>.
-          <?php else : ?>
-            <span>Termenii și condițiile</span>. <!-- TODO: configure URL pentru termenii și condițiile -->
-          <?php endif; ?>
-        </label>
+        <div class="teinvit-rsvp-gdpr-wrap">
+          <label>
+            <input type="checkbox" name="gdpr_accept" required>
+            Sunt de acord cu prelucrarea datelor mele în scopul gestionării invitației și confirmării prezenței la eveniment și declar că am citit și accept
+            <?php if ( $policy_url ) : ?>
+              <a href="<?php echo esc_url( $policy_url ); ?>" target="_blank" rel="noopener">Politica de prelucrare a datelor</a>
+            <?php else : ?>
+              <span>Politica de prelucrare a datelor</span>
+            <?php endif; ?>
+            și
+            <?php if ( $terms_url ) : ?>
+              <a href="<?php echo esc_url( $terms_url ); ?>" target="_blank" rel="noopener">Termenii și condițiile</a>.
+            <?php else : ?>
+              <span>Termenii și condițiile</span>. <!-- TODO: configure URL pentru termenii și condițiile -->
+            <?php endif; ?>
+          </label>
+        </div>
 
-        <button type="submit">Trimite formularul</button>
+        <div class="teinvit-rsvp-submit-wrap">
+          <button type="submit">Trimite formularul</button>
+        </div>
       </div>
     </fieldset>
   </form>
