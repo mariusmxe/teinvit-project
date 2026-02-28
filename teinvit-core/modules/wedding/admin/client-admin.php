@@ -711,6 +711,9 @@ add_action( 'template_redirect', function() {
         exit;
     }
 
+    if ( WC()->session ) {
+        WC()->session->set( 'teinvit_token_target', $token );
+    }
     $cart_item_data = [ 'teinvit_token' => $token ];
     WC()->cart->add_to_cart( $product_id, 1, 0, [], $cart_item_data );
     wp_safe_redirect( wc_get_cart_url() );
@@ -773,22 +776,30 @@ add_action( 'woocommerce_checkout_create_order_line_item', function( $item, $car
 }, 10, 3 );
 
 add_action( 'woocommerce_checkout_create_order', function( $order, $data ) {
-    if ( ! $order || ! WC()->cart ) {
+    if ( ! $order ) {
         return;
     }
 
-    foreach ( WC()->cart->get_cart() as $cart_item ) {
-        if ( empty( $cart_item['teinvit_token'] ) ) {
-            continue;
-        }
+    $token = '';
+    if ( function_exists( 'WC' ) && WC()->cart ) {
+        foreach ( WC()->cart->get_cart() as $cart_item ) {
+            if ( empty( $cart_item['teinvit_token'] ) ) {
+                continue;
+            }
 
-        $token = sanitize_text_field( (string) $cart_item['teinvit_token'] );
-        if ( $token === '' ) {
-            continue;
+            $token = sanitize_text_field( (string) $cart_item['teinvit_token'] );
+            if ( $token !== '' ) {
+                break;
+            }
         }
+    }
 
+    if ( $token === '' && function_exists( 'WC' ) && WC()->session ) {
+        $token = sanitize_text_field( (string) WC()->session->get( 'teinvit_token_target', '' ) );
+    }
+
+    if ( $token !== '' ) {
         $order->update_meta_data( '_teinvit_token_target', $token );
-        break;
     }
 }, 10, 2 );
 
@@ -812,6 +823,7 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
 
     foreach ( $order->get_items() as $item_id => $item ) {
         if ( in_array( (int) $item_id, array_map( 'intval', $processed ), true ) ) {
+            $order->add_order_note( sprintf( 'TeInvit: skip item %d (deja procesat/idempotency).', (int) $item_id ) );
             continue;
         }
 
@@ -821,8 +833,11 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
         }
 
         if ( $target_token === '' ) {
+            $order->add_order_note( sprintf( 'TeInvit: skip item %d (token lipsă).', (int) $item_id ) );
             continue;
         }
+
+        $order->add_order_note( sprintf( 'TeInvit: item %d token detectat %s.', (int) $item_id, $target_token ) );
 
         $qty = max( 0, (int) $item->get_quantity() );
         if ( $qty <= 0 ) {
@@ -858,7 +873,11 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
                     'gifts_paid_capacity' => (int) $settings['gifts_paid_capacity'] + ( $qty * 10 ),
                 ] );
             }
-            $order->add_order_note( sprintf( 'TeInvit: +%d sloturi cadouri alocate token-ului %s (produs 298).', ( $qty * 10 ), $target_token ) );
+
+            $inv = function_exists( 'teinvit_get_invitation' ) ? teinvit_get_invitation( $target_token ) : null;
+            $conf = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+            $new_total = isset( $conf['gifts_extra_slots'] ) ? (int) $conf['gifts_extra_slots'] : 0;
+            $order->add_order_note( sprintf( 'TeInvit: token=%s qty=%d -> +%d sloturi cadouri (produs 298), total extra=%d.', $target_token, $qty, ( $qty * 10 ), $new_total ) );
             $processed[] = (int) $item_id;
             $did_update = true;
             continue;
@@ -868,6 +887,8 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
     if ( $did_update ) {
         $order->update_meta_data( $processed_key, array_values( array_unique( array_map( 'intval', $processed ) ) ) );
         $order->save();
+    } else {
+        $order->add_order_note( 'TeInvit: completed hook fără creditări noi.' );
     }
 }, 20 );
 

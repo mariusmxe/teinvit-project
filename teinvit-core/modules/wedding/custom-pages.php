@@ -1276,7 +1276,7 @@ add_action( 'admin_post_teinvit_save_gifts', function() {
     foreach ( $rows as $gift ) {
         $name = sanitize_text_field( wp_unslash( $gift['gift_name'] ?? '' ) );
         $link = esc_url_raw( wp_unslash( $gift['gift_link'] ?? '' ) );
-        if ( $name !== '' && $link !== '' ) {
+        if ( $name !== '' || $link !== '' ) {
             $entered_count++;
         }
     }

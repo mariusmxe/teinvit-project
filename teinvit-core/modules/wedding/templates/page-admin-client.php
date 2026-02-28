@@ -108,7 +108,7 @@ $gifts_entered = 0;
 foreach ( $gift_rows as $row ) {
     $gift_name = trim( (string) ( $row['gift_name'] ?? '' ) );
     $gift_link = trim( (string) ( $row['gift_link'] ?? '' ) );
-    if ( $gift_name !== '' && $gift_link !== '' ) {
+    if ( $gift_name !== '' || $gift_link !== '' ) {
         $gifts_entered++;
     }
 
@@ -431,7 +431,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
     giftsBody.querySelectorAll('tr[data-gift-row="1"]').forEach((row)=>{
       const name = (row.querySelector('input[data-field="gift_name"]')?.value || '').trim();
       const link = (row.querySelector('input[data-field="gift_link"]')?.value || '').trim();
-      if (name && link) used++;
+      if (name || link) used++;
     });
     return used;
   }

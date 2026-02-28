@@ -107,6 +107,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   .teinvit-rsvp-message-wrap textarea { width: min(50%, 640px); min-height: 180px; resize: none; margin: 0 auto; }
   .teinvit-rsvp-gdpr-wrap { margin-top: 12px; text-align: left; display: inline-block; max-width: min(50%, 640px); width: 100%; }
   .teinvit-rsvp-submit-wrap { margin-top: 14px; text-align: center; }
+  #teinvit-rsvp-msg { margin-top: 10px; text-align: center; }
   @media (max-width: 900px) {
     .teinvit-rsvp-grid,
     .teinvit-rsvp-zone2-grid { grid-template-columns: 1fr; }
@@ -381,11 +382,11 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 
         <div class="teinvit-rsvp-submit-wrap">
           <button type="submit">Trimite formularul</button>
+          <div id="teinvit-rsvp-msg"></div>
         </div>
       </div>
     </fieldset>
   </form>
-  <div id="teinvit-rsvp-msg"></div>
 </div>
 <script>
 (function(){
@@ -522,7 +523,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       return;
     }
 
-    msg.textContent = 'Mulțumim! RSVP salvat.';
+    msg.textContent = 'Mulțumim! Informațiile au fost salvate.';
     form.querySelectorAll('input,textarea,button').forEach(el => el.disabled = true);
   });
 })();
