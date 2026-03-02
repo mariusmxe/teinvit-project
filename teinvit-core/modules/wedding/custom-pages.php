@@ -1366,6 +1366,42 @@ add_action( 'admin_post_teinvit_save_gifts', function() {
 
 
 
+function teinvit_normalize_phone_for_report( $phone ) {
+    $raw = trim( (string) $phone );
+    $digits = preg_replace( '/\D+/', '', $raw );
+    if ( $digits === '' ) {
+        return '';
+    }
+
+    if ( strpos( $digits, '0040' ) === 0 ) {
+        $local = substr( $digits, 4 );
+    } elseif ( strpos( $digits, '40' ) === 0 ) {
+        $local = substr( $digits, 2 );
+    } elseif ( strpos( $digits, '0' ) === 0 ) {
+        $local = substr( $digits, 1 );
+    } else {
+        $local = $digits;
+    }
+
+    if ( strpos( $local, '0' ) === 0 ) {
+        $local = substr( $local, 1 );
+    }
+
+    if ( preg_match( '/^7\d{8}$/', $local ) ) {
+        return '40' . $local;
+    }
+
+    return $digits;
+}
+
+function teinvit_format_report_datetime( $mysql_datetime ) {
+    $ts = strtotime( (string) $mysql_datetime );
+    if ( ! $ts ) {
+        return '';
+    }
+    return wp_date( 'd-m-Y H:i', $ts );
+}
+
 function teinvit_get_rsvp_rows_for_report( $token ) {
     global $wpdb;
     $t = teinvit_db_tables();
@@ -1378,10 +1414,12 @@ function teinvit_build_rsvp_report_sets( $token ) {
     $by_phone = [];
 
     foreach ( $rows as $row ) {
-        $phone = (string) ( $row['guest_phone'] ?? '' );
+        $phone = teinvit_normalize_phone_for_report( (string) ( $row['guest_phone'] ?? '' ) );
         if ( ! isset( $by_phone[ $phone ] ) ) {
             $by_phone[ $phone ] = [];
         }
+        $row['created_at_display'] = teinvit_format_report_datetime( $row['created_at'] ?? '' );
+        $row['normalized_phone'] = $phone;
         $by_phone[ $phone ][] = $row;
     }
 
@@ -1418,9 +1456,13 @@ function teinvit_build_rsvp_report_sets( $token ) {
     ];
 }
 
-add_action( 'admin_post_teinvit_export_guest_report', function() {
+function teinvit_export_guest_report_handler() {
     $token = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    $nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ?? '' ) );
+
+    if ( $token === '' || ! wp_verify_nonce( $nonce, 'teinvit_admin_' . $token ) ) {
+        wp_die( 'Nonce invalid' );
+    }
 
     $sets = teinvit_build_rsvp_report_sets( $token );
     $unique = $sets['unique'];
@@ -1430,24 +1472,37 @@ add_action( 'admin_post_teinvit_export_guest_report', function() {
         wp_die( 'ZipArchive lipsă pentru XLSX export.' );
     }
 
-    $headers = [ 'Status', 'Nume', 'Prenume', 'Telefon', 'Email', 'Data/ora submit', 'Nr persoane adulți', 'Cununie civilă?', 'Ceremonie religioasă?', 'Petrecere?', 'Copii?', 'Câți copii', 'Cazare?', 'Cazare nr. persoane', 'Vegetarian?', 'Câte meniuri?', 'Alergii?', 'Detalii alergii', 'Mesaj către miri' ];
+    $headers = [ 'Status', 'Nume', 'Prenume', 'Telefon', 'Email', 'Data/ora submit', 'Adulti Confirmati', 'Cununie civilă?', 'Ceremonie religioasă?', 'Petrecere?', 'Copii?', 'Câți copii', 'Cazare?', 'Cazare nr. persoane', 'Vegetarian?', 'Meniuri vegetariene', 'Alergii?', 'Detalii alergii', 'Mesaj către miri' ];
     $map_row = static function( $r ) {
         $yn = static function( $v ) { return (int) $v === 1 ? 'DA' : 'NU'; };
         return [
-            (string) ( $r['multi_badge'] ?? '' ), (string) ( $r['guest_last_name'] ?? '' ), (string) ( $r['guest_first_name'] ?? '' ), (string) ( $r['guest_phone'] ?? '' ), (string) ( $r['guest_email'] ?? '' ), (string) ( $r['created_at'] ?? '' ),
-            (string) ( $r['attending_people_count'] ?? '-' ), $yn( $r['attending_civil'] ?? 0 ), $yn( $r['attending_religious'] ?? 0 ), $yn( $r['attending_party'] ?? 0 ), $yn( $r['bringing_kids'] ?? 0 ),
-            (int) ( $r['bringing_kids'] ?? 0 ) ? (string) ( $r['kids_count'] ?? '-' ) : '-', $yn( $r['needs_accommodation'] ?? 0 ), (int) ( $r['needs_accommodation'] ?? 0 ) ? (string) ( $r['accommodation_people_count'] ?? '-' ) : '-',
+            (string) ( $r['multi_badge'] ?? '' ), (string) ( $r['guest_last_name'] ?? '' ), (string) ( $r['guest_first_name'] ?? '' ), (string) ( $r['guest_phone'] ?? '' ), (string) ( $r['guest_email'] ?? '' ), (string) ( $r['created_at_display'] ?? teinvit_format_report_datetime( $r['created_at'] ?? '' ) ),
+            (string) ( $r['attending_people_count'] ?? '-' ), $yn( $r['attending_civil'] ?? 0 ), $yn( $r['attending_religious'] ?? 0 ), $yn( $r['attending_party'] ?? 0 ),
+            $yn( $r['bringing_kids'] ?? 0 ), (int) ( $r['bringing_kids'] ?? 0 ) ? (string) ( $r['kids_count'] ?? '-' ) : '-', $yn( $r['needs_accommodation'] ?? 0 ), (int) ( $r['needs_accommodation'] ?? 0 ) ? (string) ( $r['accommodation_people_count'] ?? '-' ) : '-',
             $yn( $r['vegetarian_requested'] ?? 0 ), (int) ( $r['vegetarian_requested'] ?? 0 ) ? (string) ( $r['vegetarian_menus_count'] ?? '-' ) : '-', $yn( $r['has_allergies'] ?? 0 ),
             (int) ( $r['has_allergies'] ?? 0 ) ? (string) ( $r['allergy_details'] ?? '' ) : '-', trim( (string) ( $r['message_to_couple'] ?? '' ) ) !== '' ? (string) $r['message_to_couple'] : '-',
         ];
     };
     $rows_unique = array_map( $map_row, $unique );
     $rows_history = array_map( $map_row, $history );
-    $summary_rows = [ [ 'Metrică', 'Valoare' ], [ 'Total RSVP-uri unice', (string) ( $sets['unique_phones_count'] ?? 0 ) ], [ 'Total submiteri', (string) ( $sets['submissions_count'] ?? 0 ) ], [ 'Confirmări multiple (invitați)', (string) ( $sets['multiple_phones_count'] ?? 0 ) ] ];
+    $summary_rows = [ [ 'Metrică', 'Valoare' ], [ 'Confirmari totale unice', (string) ( $sets['unique_phones_count'] ?? 0 ) ], [ 'Confirmari totale completate', (string) ( $sets['submissions_count'] ?? 0 ) ], [ 'Confirmări multiple (invitați)', (string) ( $sets['multiple_phones_count'] ?? 0 ) ] ];
 
-    $sheet_xml = static function( $rows ) {
+    $sheet_xml = static function( $rows, $with_cols = false ) {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+        $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+        $max_col = 0;
+        foreach ( $rows as $r ) { $max_col = max( $max_col, count( $r ) ); }
+        if ( $with_cols ) {
+            $widths = [ 14,18,18,18,26,16,16,14,18,14,10,12,10,16,12,22,10,30,120 ];
+            $xml .= '<cols>';
+            foreach ( $widths as $i => $w ) {
+                $idx = $i + 1;
+                $xml .= '<col min="' . $idx . '" max="' . $idx . '" width="' . $w . '" customWidth="1"/>';
+            }
+            $xml .= '</cols>';
+        }
+        $xml .= '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" state="frozen"/></sheetView></sheetViews>';
+        $xml .= '<sheetData>';
         foreach ( $rows as $ri => $cells ) {
             $row_num = $ri + 1;
             $xml .= '<row r="' . $row_num . '">';
@@ -1461,9 +1516,22 @@ add_action( 'admin_post_teinvit_export_guest_report', function() {
             }
             $xml .= '</row>';
         }
-        $xml .= '</sheetData></worksheet>';
+        $xml .= '</sheetData>';
+        if ( $max_col > 0 ) {
+            $col = '';
+            $n = $max_col - 1;
+            do { $col = chr(65 + ($n % 26)) . $col; $n = intdiv($n, 26) - 1; } while ($n >= 0);
+            $xml .= '<autoFilter ref="A1:' . $col . '1"/>';
+        }
+        $xml .= '</worksheet>';
         return $xml;
     };
+
+    $active = function_exists( 'teinvit_get_active_snapshot' ) ? teinvit_get_active_snapshot( $token ) : null;
+    $payload = ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
+    $names = trim( (string) ( $payload['invitation']['names'] ?? '' ) );
+    $base_name = $names !== '' ? 'Raport invitati ' . $names : 'Raport invitati ' . $token;
+    $filename = sanitize_file_name( $base_name ) . '.xlsx';
 
     $tmp = wp_tempnam( 'teinvit-report-' . $token . '.xlsx' );
     $zip = new ZipArchive();
@@ -1472,18 +1540,20 @@ add_action( 'admin_post_teinvit_export_guest_report', function() {
     $zip->addFromString('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
     $zip->addFromString('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rezumat" sheetId="1" r:id="rId1"/><sheet name="Unic" sheetId="2" r:id="rId2"/><sheet name="Istoric" sheetId="3" r:id="rId3"/></sheets></workbook>');
     $zip->addFromString('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/></Relationships>');
-    $zip->addFromString('xl/worksheets/sheet1.xml', $sheet_xml( $summary_rows ));
-    $zip->addFromString('xl/worksheets/sheet2.xml', $sheet_xml( array_merge( [ $headers ], $rows_unique ) ));
-    $zip->addFromString('xl/worksheets/sheet3.xml', $sheet_xml( array_merge( [ $headers ], $rows_history ) ));
+    $zip->addFromString('xl/worksheets/sheet1.xml', $sheet_xml( $summary_rows, false ));
+    $zip->addFromString('xl/worksheets/sheet2.xml', $sheet_xml( array_merge( [ $headers ], $rows_unique ), true ));
+    $zip->addFromString('xl/worksheets/sheet3.xml', $sheet_xml( array_merge( [ $headers ], $rows_history ), true ));
     $zip->close();
 
     nocache_headers();
     header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
-    header( 'Content-Disposition: attachment; filename="raport-invitati-' . $token . '.xlsx"' );
+    header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
     readfile( $tmp );
     @unlink( $tmp );
     exit;
-} );
+}
+add_action( 'admin_post_teinvit_export_guest_report', 'teinvit_export_guest_report_handler' );
+add_action( 'admin_post_nopriv_teinvit_export_guest_report', 'teinvit_export_guest_report_handler' );
 
 add_action( 'rest_api_init', function() {
     register_rest_route( 'teinvit/v2', '/preview/build', [
