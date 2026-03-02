@@ -1402,6 +1402,13 @@ function teinvit_format_report_datetime( $mysql_datetime ) {
     return wp_date( 'd-m-Y H:i', $ts );
 }
 
+
+function teinvit_xlsx_safe_text( $value ) {
+    $text = wp_check_invalid_utf8( (string) $value, true );
+    $text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text );
+    return $text === null ? '' : $text;
+}
+
 function teinvit_get_rsvp_rows_for_report( $token ) {
     global $wpdb;
     $t = teinvit_db_tables();
@@ -1493,7 +1500,7 @@ function teinvit_export_guest_report_handler() {
         $max_col = 0;
         foreach ( $rows as $r ) { $max_col = max( $max_col, count( $r ) ); }
         if ( $with_cols ) {
-            $widths = [ 14,18,18,18,26,16,16,14,18,14,10,12,10,16,12,22,10,30,120 ];
+            $widths = [ 14,18,18,18,26,16,16,14,18,14,10,12,10,16,12,22,10,30,500 ];
             $xml .= '<cols>';
             foreach ( $widths as $i => $w ) {
                 $idx = $i + 1;
@@ -1511,7 +1518,8 @@ function teinvit_export_guest_report_handler() {
                 $n = $ci;
                 do { $col = chr(65 + ($n % 26)) . $col; $n = intdiv($n, 26) - 1; } while ($n >= 0);
                 $ref = $col . $row_num;
-                $val = htmlspecialchars( (string) $v, ENT_QUOTES | ENT_XML1 );
+                $safe = teinvit_xlsx_safe_text( $v );
+                $val = htmlspecialchars( $safe, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8' );
                 $xml .= '<c r="' . $ref . '" t="inlineStr"><is><t>' . $val . '</t></is></c>';
             }
             $xml .= '</row>';
@@ -1545,9 +1553,16 @@ function teinvit_export_guest_report_handler() {
     $zip->addFromString('xl/worksheets/sheet3.xml', $sheet_xml( array_merge( [ $headers ], $rows_history ), true ));
     $zip->close();
 
+    while ( ob_get_level() > 0 ) {
+        ob_end_clean();
+    }
+
     nocache_headers();
+    header( 'Content-Description: File Transfer' );
     header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
     header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+    header( 'Content-Transfer-Encoding: binary' );
+    header( 'Content-Length: ' . (string) filesize( $tmp ) );
     readfile( $tmp );
     @unlink( $tmp );
     exit;

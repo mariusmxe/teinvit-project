@@ -249,7 +249,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-gifts-table textarea{min-height:56px;resize:vertical}
 .teinvit-gifts-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .teinvit-gifts-cta{display:inline-block}
-.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}.teinvit-report-table{width:100%;border-collapse:collapse}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-row-multi{background:#fff2f2}
+.teinvit-report-kpi{max-width:980px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-table-zone{margin-top:12px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:12px}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-table th{white-space:nowrap}.teinvit-report-table td:nth-child(6),.teinvit-report-table th:nth-child(6){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-report-table td:nth-child(18),.teinvit-report-table th:nth-child(18){width:30ch;min-width:30ch;white-space:normal;word-break:break-word}.teinvit-report-table td:nth-child(19),.teinvit-report-table th:nth-child(19){width:120ch;min-width:120ch;white-space:normal;word-break:break-word}.teinvit-report-row-multi{background:#fff2f2}
 </style>
 <div class="teinvit-admin-page">
   <h1>Administrare invitație</h1>
@@ -408,17 +408,19 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   <div class="teinvit-zone teinvit-admin-report">
     <h3 class="teinvit-gifts-title">Raport invitați</h3>
+    <div class="teinvit-report-kpi">
     <div class="teinvit-report-grid">
-      <div class="teinvit-report-card"><strong>Total RSVP-uri unice:</strong> <?php echo (int) ( $report_sets['unique_phones_count'] ?? 0 ); ?></div>
-      <div class="teinvit-report-card"><strong>Total submiteri:</strong> <?php echo (int) ( $report_sets['submissions_count'] ?? 0 ); ?></div>
+      <div class="teinvit-report-card"><strong>Confirmari totale unice:</strong> <?php echo (int) ( $report_sets['unique_phones_count'] ?? 0 ); ?></div>
+      <div class="teinvit-report-card"><strong>Confirmari totale completate:</strong> <?php echo (int) ( $report_sets['submissions_count'] ?? 0 ); ?></div>
       <div class="teinvit-report-card"><strong>Confirmări multiple (invitați):</strong> <?php echo (int) ( $report_sets['multiple_phones_count'] ?? 0 ); ?></div>
       <div class="teinvit-report-card"><strong>Persoane Civilă/Religioasă/Petrecere:</strong> <?php echo (int) $sum_people_civil; ?> / <?php echo (int) $sum_people_religious; ?> / <?php echo (int) $sum_people_party; ?></div>
-      <div class="teinvit-report-card"><strong>DA Civilă/Religioasă/Petrecere:</strong> <?php echo (int) $count_da_civil; ?> / <?php echo (int) $count_da_religious; ?> / <?php echo (int) $count_da_party; ?></div>
-      <div class="teinvit-report-card"><strong>Total copii:</strong> <?php echo (int) $total_kids; ?></div>
+            <div class="teinvit-report-card"><strong>Total copii:</strong> <?php echo (int) $total_kids; ?></div>
       <div class="teinvit-report-card"><strong>Cazare DA / Persoane:</strong> <?php echo (int) $total_cazare_rsvp; ?> / <?php echo (int) $total_cazare_people; ?></div>
       <div class="teinvit-report-card"><strong>Vegetarian DA / Meniuri:</strong> <?php echo (int) $total_veg_rsvp; ?> / <?php echo (int) $total_veg_menus; ?></div>
       <div class="teinvit-report-card"><strong>Total mesaje:</strong> <?php echo (int) $total_messages; ?></div>
     </div>
+    </div>
+    <div class="teinvit-report-table-zone">
     <div class="teinvit-report-toolbar">
       <label><input type="radio" name="teinvit-report-view" value="unique" checked> Unic</label>
       <label><input type="radio" name="teinvit-report-view" value="history"> Istoric</label>
@@ -428,7 +430,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       <label><input type="checkbox" id="teinvit-filter-message"> Doar cu Mesaj completat</label>
       <a href="<?php echo esc_url( $report_export_url ); ?>" class="button">Descarcă raportul (XLSX)</a>
     </div>
-    <table class="teinvit-report-table" id="teinvit-report-table"><thead><tr><th>Status</th><th>Nume</th><th>Prenume</th><th>Telefon</th><th>Email</th><th>Data/ora submit</th><th>Nr persoane adulți</th><th>Cununie civilă?</th><th>Ceremonie religioasă?</th><th>Petrecere?</th><th>Copii?</th><th>Câți copii</th><th>Cazare?</th><th>Cazare nr. persoane</th><th>Vegetarian?</th><th>Câte meniuri?</th><th>Alergii?</th><th>Detalii alergii</th><th>Mesaj către miri</th></tr></thead><tbody></tbody></table>
+    <div class="teinvit-report-table-wrap">
+    <table class="teinvit-report-table" id="teinvit-report-table"><thead><tr><th>Status</th><th>Nume</th><th>Prenume</th><th>Telefon</th><th>Email</th><th>Data/ora submit</th><th>Adulti Confirmati</th><th>Cununie civilă?</th><th>Ceremonie religioasă?</th><th>Petrecere?</th><th>Copii?</th><th>Câți copii</th><th>Cazare?</th><th>Cazare nr. persoane</th><th>Vegetarian?</th><th>Meniuri vegetariene</th><th>Alergii?</th><th>Detalii alergii</th><th>Mesaj către miri</th></tr></thead><tbody></tbody></table>
+    </div>
+    </div>
   </div>
 
 </div>
@@ -557,7 +562,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const reportHistory = <?php echo wp_json_encode( $report_history ); ?>;
   const reportTableBody = document.querySelector('#teinvit-report-table tbody');
   function yn(v){ return Number(v) === 1 ? 'DA' : 'NU'; }
-  function mapReportRow(r){ return { is_multi: Number(r.is_multi||0)===1, party_da:Number(r.attending_party)===1, cazare_da:Number(r.needs_accommodation)===1, has_message:String(r.message_to_couple||'').trim()!=='', cells:[ r.multi_badge||'', r.guest_last_name||'', r.guest_first_name||'', r.guest_phone||'', r.guest_email||'', r.created_at||'', String(r.attending_people_count||'-'), yn(r.attending_civil), yn(r.attending_religious), yn(r.attending_party), yn(r.bringing_kids), Number(r.bringing_kids)===1?String(r.kids_count||'-'):'-', yn(r.needs_accommodation), Number(r.needs_accommodation)===1?String(r.accommodation_people_count||'-'):'-', yn(r.vegetarian_requested), Number(r.vegetarian_requested)===1?String(r.vegetarian_menus_count||'-'):'-', yn(r.has_allergies), Number(r.has_allergies)===1?(r.allergy_details||'-'):'-', String(r.message_to_couple||'').trim()!==''?r.message_to_couple:'-' ] }; }
+  function mapReportRow(r){ return { is_multi: Number(r.is_multi||0)===1, party_da:Number(r.attending_party)===1, cazare_da:Number(r.needs_accommodation)===1, has_message:String(r.message_to_couple||'').trim()!=='', cells:[ r.multi_badge||'', r.guest_last_name||'', r.guest_first_name||'', r.guest_phone||'', r.guest_email||'', (r.created_at_display||''), String(r.attending_people_count||'-'), yn(r.attending_civil), yn(r.attending_religious), yn(r.attending_party), yn(r.bringing_kids), Number(r.bringing_kids)===1?String(r.kids_count||'-'):'-', yn(r.needs_accommodation), Number(r.needs_accommodation)===1?String(r.accommodation_people_count||'-'):'-', yn(r.vegetarian_requested), Number(r.vegetarian_requested)===1?String(r.vegetarian_menus_count||'-'):'-', yn(r.has_allergies), Number(r.has_allergies)===1?(r.allergy_details||'-'):'-', String(r.message_to_couple||'').trim()!==''?r.message_to_couple:'-' ] }; }
   function renderReport(){ if(!reportTableBody) return; const view=document.querySelector('input[name="teinvit-report-view"]:checked')?.value||'unique'; const rows=(view==='history'?reportHistory:reportUnique).map(mapReportRow).filter(r=>!document.getElementById('teinvit-filter-multi')?.checked||r.is_multi).filter(r=>!document.getElementById('teinvit-filter-party')?.checked||r.party_da).filter(r=>!document.getElementById('teinvit-filter-cazare')?.checked||r.cazare_da).filter(r=>!document.getElementById('teinvit-filter-message')?.checked||r.has_message); reportTableBody.innerHTML=''; rows.forEach(r=>{ const tr=document.createElement('tr'); if(r.is_multi) tr.classList.add('teinvit-report-row-multi'); tr.innerHTML=r.cells.map(c=>`<td>${String(c||'').replace(/</g,'&lt;')}</td>`).join(''); reportTableBody.appendChild(tr); }); }
   document.querySelectorAll('input[name="teinvit-report-view"], #teinvit-filter-multi, #teinvit-filter-party, #teinvit-filter-cazare, #teinvit-filter-message').forEach(el=>{ if(el) el.addEventListener('change', renderReport); });
   renderReport();
