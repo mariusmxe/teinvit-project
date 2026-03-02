@@ -1405,8 +1405,59 @@ function teinvit_format_report_datetime( $mysql_datetime ) {
 
 function teinvit_xlsx_safe_text( $value ) {
     $text = wp_check_invalid_utf8( (string) $value, true );
-    $text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text );
-    return $text === null ? '' : $text;
+    if ( ! is_string( $text ) ) {
+        $text = '';
+    }
+
+    if ( function_exists( 'mb_convert_encoding' ) ) {
+        $text = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+    } elseif ( function_exists( 'iconv' ) ) {
+        $conv = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
+        if ( $conv !== false ) {
+            $text = $conv;
+        }
+    }
+
+    $clean = preg_replace( '/[^\x09\x0A\x0D\x20-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $text );
+    if ( $clean === null ) {
+        return '';
+    }
+
+    return $clean;
+}
+
+function teinvit_validate_generated_xlsx_xml( $xlsx_path ) {
+    if ( ! class_exists( 'ZipArchive' ) || ! class_exists( 'DOMDocument' ) ) {
+        return true;
+    }
+
+    $zip = new ZipArchive();
+    if ( $zip->open( $xlsx_path ) !== true ) {
+        return new WP_Error( 'xlsx_invalid_zip', 'Nu s-a putut deschide arhiva XLSX generată.' );
+    }
+
+    $sheets = [
+        'xl/worksheets/sheet1.xml',
+        'xl/worksheets/sheet2.xml',
+        'xl/worksheets/sheet3.xml',
+    ];
+
+    foreach ( $sheets as $sheet_path ) {
+        $xml = $zip->getFromName( $sheet_path );
+        if ( $xml === false || $xml === '' ) {
+            $zip->close();
+            return new WP_Error( 'xlsx_missing_sheet', 'Lipsește XML-ul pentru ' . $sheet_path );
+        }
+
+        $dom = new DOMDocument();
+        if ( ! @$dom->loadXML( $xml ) ) {
+            $zip->close();
+            return new WP_Error( 'xlsx_invalid_xml', 'XML invalid în ' . $sheet_path );
+        }
+    }
+
+    $zip->close();
+    return true;
 }
 
 function teinvit_get_rsvp_rows_for_report( $token ) {
@@ -1494,21 +1545,9 @@ function teinvit_export_guest_report_handler() {
     $rows_history = array_map( $map_row, $history );
     $summary_rows = [ [ 'Metrică', 'Valoare' ], [ 'Confirmari totale unice', (string) ( $sets['unique_phones_count'] ?? 0 ) ], [ 'Confirmari totale completate', (string) ( $sets['submissions_count'] ?? 0 ) ], [ 'Confirmări multiple (invitați)', (string) ( $sets['multiple_phones_count'] ?? 0 ) ] ];
 
-    $sheet_xml = static function( $rows, $with_cols = false ) {
+    $sheet_xml = static function( $rows ) {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
         $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
-        $max_col = 0;
-        foreach ( $rows as $r ) { $max_col = max( $max_col, count( $r ) ); }
-        if ( $with_cols ) {
-            $widths = [ 14,18,18,18,26,16,16,14,18,14,10,12,10,16,12,22,10,30,255 ];
-            $xml .= '<cols>';
-            foreach ( $widths as $i => $w ) {
-                $idx = $i + 1;
-                $xml .= '<col min="' . $idx . '" max="' . $idx . '" width="' . $w . '" customWidth="1"/>';
-            }
-            $xml .= '</cols>';
-        }
-        $xml .= '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" state="frozen"/></sheetView></sheetViews>';
         $xml .= '<sheetData>';
         foreach ( $rows as $ri => $cells ) {
             $row_num = $ri + 1;
@@ -1525,12 +1564,6 @@ function teinvit_export_guest_report_handler() {
             $xml .= '</row>';
         }
         $xml .= '</sheetData>';
-        if ( $max_col > 0 ) {
-            $col = '';
-            $n = $max_col - 1;
-            do { $col = chr(65 + ($n % 26)) . $col; $n = intdiv($n, 26) - 1; } while ($n >= 0);
-            $xml .= '<autoFilter ref="A1:' . $col . '1"/>';
-        }
         $xml .= '</worksheet>';
         return $xml;
     };
@@ -1548,11 +1581,17 @@ function teinvit_export_guest_report_handler() {
     $zip->addFromString('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
     $zip->addFromString('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rezumat" sheetId="1" r:id="rId1"/><sheet name="Unic" sheetId="2" r:id="rId2"/><sheet name="Istoric" sheetId="3" r:id="rId3"/></sheets></workbook>');
     $zip->addFromString('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/></Relationships>');
-    $zip->addFromString('xl/worksheets/sheet1.xml', $sheet_xml( $summary_rows, false ));
-    $zip->addFromString('xl/worksheets/sheet2.xml', $sheet_xml( array_merge( [ $headers ], $rows_unique ), true ));
-    $zip->addFromString('xl/worksheets/sheet3.xml', $sheet_xml( array_merge( [ $headers ], $rows_history ), true ));
+    $zip->addFromString('xl/worksheets/sheet1.xml', $sheet_xml( $summary_rows ));
+    $zip->addFromString('xl/worksheets/sheet2.xml', $sheet_xml( array_merge( [ $headers ], $rows_unique ) ));
+    $zip->addFromString('xl/worksheets/sheet3.xml', $sheet_xml( array_merge( [ $headers ], $rows_history ) ));
     $zip->close();
 
+    $xlsx_validation = teinvit_validate_generated_xlsx_xml( $tmp );
+    if ( is_wp_error( $xlsx_validation ) ) {
+        error_log( '[TeInvit] XLSX validation failed: ' . $xlsx_validation->get_error_message() );
+        @unlink( $tmp );
+        wp_die( 'Export XLSX invalid. Reîncearcă sau contactează suportul.' );
+    }
 
     $xlsx_md5 = md5_file( $tmp );
 
