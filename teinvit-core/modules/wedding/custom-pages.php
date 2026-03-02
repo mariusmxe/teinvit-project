@@ -1514,6 +1514,63 @@ function teinvit_build_rsvp_report_sets( $token ) {
     ];
 }
 
+
+function teinvit_build_rsvp_report_kpis( $sets ) {
+    $unique = is_array( $sets['unique'] ?? null ) ? $sets['unique'] : [];
+    $history = is_array( $sets['history'] ?? null ) ? $sets['history'] : [];
+
+    $sum_people_civil = 0;
+    $sum_people_religious = 0;
+    $sum_people_party = 0;
+    $total_kids = 0;
+    $total_cazare_rsvp = 0;
+    $total_cazare_people = 0;
+    $total_veg_rsvp = 0;
+    $total_veg_menus = 0;
+
+    foreach ( $unique as $r ) {
+        $adults = max( 0, (int) ( $r['attending_people_count'] ?? 0 ) );
+        if ( ! empty( $r['attending_civil'] ) ) {
+            $sum_people_civil += $adults;
+        }
+        if ( ! empty( $r['attending_religious'] ) ) {
+            $sum_people_religious += $adults;
+        }
+        if ( ! empty( $r['attending_party'] ) ) {
+            $sum_people_party += $adults;
+        }
+        if ( ! empty( $r['bringing_kids'] ) ) {
+            $total_kids += max( 0, (int) ( $r['kids_count'] ?? 0 ) );
+        }
+        if ( ! empty( $r['needs_accommodation'] ) ) {
+            $total_cazare_rsvp++;
+            $total_cazare_people += max( 0, (int) ( $r['accommodation_people_count'] ?? 0 ) );
+        }
+        if ( ! empty( $r['vegetarian_requested'] ) ) {
+            $total_veg_rsvp++;
+            $total_veg_menus += max( 0, (int) ( $r['vegetarian_menus_count'] ?? 0 ) );
+        }
+    }
+
+    $total_messages = 0;
+    foreach ( $history as $r ) {
+        if ( trim( (string) ( $r['message_to_couple'] ?? '' ) ) !== '' ) {
+            $total_messages++;
+        }
+    }
+
+    return [
+        'Confirmari totale unice' => (string) (int) ( $sets['unique_phones_count'] ?? 0 ),
+        'Confirmari totale completate' => (string) (int) ( $sets['submissions_count'] ?? 0 ),
+        'Confirmări multiple (invitați)' => (string) (int) ( $sets['multiple_phones_count'] ?? 0 ),
+        'Persoane Civilă/Religioasă/Petrecere' => sprintf( '%d / %d / %d', (int) $sum_people_civil, (int) $sum_people_religious, (int) $sum_people_party ),
+        'Total copii' => (string) (int) $total_kids,
+        'Cazare DA / Persoane' => sprintf( '%d / %d', (int) $total_cazare_rsvp, (int) $total_cazare_people ),
+        'Vegetarian DA / Meniuri' => sprintf( '%d / %d', (int) $total_veg_rsvp, (int) $total_veg_menus ),
+        'Total mesaje' => (string) (int) $total_messages,
+    ];
+}
+
 function teinvit_export_guest_report_handler() {
     $token = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
     $nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ?? '' ) );
@@ -1543,7 +1600,11 @@ function teinvit_export_guest_report_handler() {
     };
     $rows_unique = array_map( $map_row, $unique );
     $rows_history = array_map( $map_row, $history );
-    $summary_rows = [ [ 'Metrică', 'Valoare' ], [ 'Confirmari totale unice', (string) ( $sets['unique_phones_count'] ?? 0 ) ], [ 'Confirmari totale completate', (string) ( $sets['submissions_count'] ?? 0 ) ], [ 'Confirmări multiple (invitați)', (string) ( $sets['multiple_phones_count'] ?? 0 ) ] ];
+    $kpis = teinvit_build_rsvp_report_kpis( $sets );
+    $summary_rows = [ [ 'Metrică', 'Valoare' ] ];
+    foreach ( $kpis as $metric => $value ) {
+        $summary_rows[] = [ (string) $metric, (string) $value ];
+    }
 
     $sheet_xml = static function( $rows ) {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
