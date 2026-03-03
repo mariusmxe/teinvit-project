@@ -152,8 +152,8 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
         </div>
 
         <div class="teinvit-rsvp-field">
-          <label for="rsvp-email">Email*</label>
-          <input id="rsvp-email" name="email" type="email" required>
+          <label for="rsvp-email">Email</label>
+          <input id="rsvp-email" name="email" type="email">
         </div>
 
       </div>
@@ -204,7 +204,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
                 </div>
                 <div id="rsvp-kids-wrap" class="teinvit-rsvp-dependent" style="display:none;">
                   <label for="rsvp-kids-count">Câți copii vă vor însoți</label>
-                  <input id="rsvp-kids-count" name="cati_copii_va_vor_insoti" type="number" min="0" value="0">
+                  <input id="rsvp-kids-count" name="cati_copii_va_vor_insoti" type="number" min="1">
                 </div>
               </div>
             <?php elseif ( $question_type === 'accommodation' ) : ?>
@@ -216,7 +216,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
                 </div>
                 <div id="rsvp-accommodation-wrap" class="teinvit-rsvp-dependent" style="display:none;">
                   <label for="rsvp-accommodation-count">Pentru câte persoane solicitați cazare</label>
-                  <input id="rsvp-accommodation-count" name="pentru_cate_persoane_solicitati_cazare" type="number" min="0" value="0">
+                  <input id="rsvp-accommodation-count" name="pentru_cate_persoane_solicitati_cazare" type="number" min="1">
                 </div>
               </div>
             <?php elseif ( $question_type === 'vegetarian' ) : ?>
@@ -228,7 +228,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
                 </div>
                 <div id="rsvp-vegetarian-wrap" class="teinvit-rsvp-dependent" style="display:none;">
                   <label for="rsvp-vegetarian-count">Câte meniuri?</label>
-                  <input id="rsvp-vegetarian-count" name="cate_meniuri_vegetariene" type="number" min="1" value="1">
+                  <input id="rsvp-vegetarian-count" name="cate_meniuri_vegetariene" type="number" min="1">
                 </div>
               </div>
             <?php elseif ( $question_type === 'allergies' ) : ?>
@@ -283,7 +283,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
                 </div>
                 <div id="rsvp-kids-wrap" class="teinvit-rsvp-dependent" style="display:none;">
                   <label for="rsvp-kids-count">Câți copii vă vor însoți</label>
-                  <input id="rsvp-kids-count" name="cati_copii_va_vor_insoti" type="number" min="0" value="0">
+                  <input id="rsvp-kids-count" name="cati_copii_va_vor_insoti" type="number" min="1">
                 </div>
               </div>
             <?php elseif ( $question_type === 'accommodation' ) : ?>
@@ -295,7 +295,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
                 </div>
                 <div id="rsvp-accommodation-wrap" class="teinvit-rsvp-dependent" style="display:none;">
                   <label for="rsvp-accommodation-count">Pentru câte persoane solicitați cazare</label>
-                  <input id="rsvp-accommodation-count" name="pentru_cate_persoane_solicitati_cazare" type="number" min="0" value="0">
+                  <input id="rsvp-accommodation-count" name="pentru_cate_persoane_solicitati_cazare" type="number" min="1">
                 </div>
               </div>
             <?php elseif ( $question_type === 'vegetarian' ) : ?>
@@ -307,7 +307,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
                 </div>
                 <div id="rsvp-vegetarian-wrap" class="teinvit-rsvp-dependent" style="display:none;">
                   <label for="rsvp-vegetarian-count">Câte meniuri?</label>
-                  <input id="rsvp-vegetarian-count" name="cate_meniuri_vegetariene" type="number" min="1" value="1">
+                  <input id="rsvp-vegetarian-count" name="cate_meniuri_vegetariene" type="number" min="1">
                 </div>
               </div>
             <?php elseif ( $question_type === 'allergies' ) : ?>
@@ -405,7 +405,19 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 
     const refresh = ()=>{
       const selected = Array.from(radios).find(r => r.checked);
-      target.style.display = selected && selected.value === 'DA' ? '' : 'none';
+      const isDa = selected && selected.value === 'DA';
+      target.style.display = isDa ? '' : 'none';
+
+      const dependent = target.querySelector('input,textarea,select');
+      if (!dependent) return;
+
+      if (isDa) {
+        dependent.setAttribute('required', 'required');
+      } else {
+        dependent.removeAttribute('required');
+        dependent.value = '';
+        clearFieldError(dependent);
+      }
     };
 
     radios.forEach(r=>r.addEventListener('change', refresh));
@@ -422,6 +434,16 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       field.insertAdjacentElement('afterend', next);
     }
     next.textContent = message;
+  }
+
+
+  function clearFieldError(field) {
+    if (!field) return;
+    field.classList.remove('teinvit-field-error');
+    const next = field.nextElementSibling;
+    if (next && next.classList && next.classList.contains('teinvit-inline-error')) {
+      next.remove();
+    }
   }
 
   function clearFieldErrors(form) {
@@ -466,10 +488,12 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
     }
 
     const emailValue = email ? String(email.value || '').trim() : '';
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
-    if (!emailOk) {
-      errors.push('Email invalid.');
-      setFieldError(email, 'Email invalid.');
+    if (emailValue !== '') {
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+      if (!emailOk) {
+        errors.push('Email invalid.');
+        setFieldError(email, 'Email invalid.');
+      }
     }
 
     const adultsCount = Math.max(1, parseInt(form.querySelector('[name="pentru_cate_persoane_confirmati_prezenta"]')?.value || '1', 10) || 1);
@@ -489,12 +513,53 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       }
     }
 
+
+    const kidsInput = form.querySelector('[name="cati_copii_va_vor_insoti"]');
+    if (kidsAnswer === 'DA') {
+      const kidsRaw = String(kidsInput?.value || '').trim();
+      const kidsParsed = parseInt(kidsRaw || '0', 10);
+      if (kidsRaw === '' || !Number.isFinite(kidsParsed) || kidsParsed < 1) {
+        errors.push('Completati numarul de copii');
+        setFieldError(kidsInput, 'Completati numarul de copii');
+      }
+    }
+
+    const accommodationAnswer = form.querySelector('input[name="aveti_nevoie_de_cazare"]:checked')?.value || 'NU';
+    const accommodationInput = form.querySelector('[name="pentru_cate_persoane_solicitati_cazare"]');
+    if (accommodationAnswer === 'DA') {
+      const accRaw = String(accommodationInput?.value || '').trim();
+      const accParsed = parseInt(accRaw || '0', 10);
+      if (accRaw === '' || !Number.isFinite(accParsed) || accParsed < 1) {
+        errors.push('Completati numarul de persoane care au nevoie de cazare');
+        setFieldError(accommodationInput, 'Completati numarul de persoane care au nevoie de cazare');
+      }
+    }
+
+    if (vegAnswer === 'DA') {
+      const vegRaw = String(vegInput?.value || '').trim();
+      if (vegRaw === '') {
+        errors.push('Completati numarul de meniuri vegetariene');
+        setFieldError(vegInput, 'Completati numarul de meniuri vegetariene');
+      }
+    }
+
+    const allergyAnswer = form.querySelector('input[name="aveti_alergii_alimentare"]:checked')?.value || 'NU';
+    const allergyInput = form.querySelector('[name="va_rugam_sa_specificati_alergiile"]');
+    if (allergyAnswer === 'DA' && String(allergyInput?.value || '').trim() === '') {
+      errors.push('Completati alergiile');
+      setFieldError(allergyInput, 'Completati alergiile');
+    }
+
     if (!gdpr || !gdpr.checked) {
       errors.push('Trebuie să acceptați GDPR pentru trimitere.');
       setFieldError(gdpr, 'GDPR obligatoriu.');
     }
 
     if (errors.length) {
+      const firstInvalid = form.querySelector('.teinvit-field-error');
+      if (firstInvalid && typeof firstInvalid.focus === 'function') {
+        firstInvalid.focus();
+      }
       window.alert(errors.join('\n'));
       return;
     }
@@ -547,6 +612,21 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
     const msg = document.getElementById('teinvit-rsvp-msg');
     if (!res.ok) {
       msg.textContent = data.message || 'Eroare';
+      const fieldMap = {
+        guest_email: '[name="email"]',
+        kids_count: '[name="cati_copii_va_vor_insoti"]',
+        accommodation_people_count: '[name="pentru_cate_persoane_solicitati_cazare"]',
+        vegetarian_menus_count: '[name="cate_meniuri_vegetariene"]',
+        allergy_details: '[name="va_rugam_sa_specificati_alergiile"]'
+      };
+      const selector = fieldMap[data?.data?.field || ''];
+      if (selector) {
+        const field = form.querySelector(selector);
+        if (field) {
+          setFieldError(field, data.message || 'Valoare invalidă.');
+          if (typeof field.focus === 'function') field.focus();
+        }
+      }
       return;
     }
 

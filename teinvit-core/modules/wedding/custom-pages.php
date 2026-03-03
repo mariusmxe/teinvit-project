@@ -1511,6 +1511,9 @@ function teinvit_build_rsvp_report_sets( $token ) {
         'multiple_phones_count' => count( array_filter( $by_phone, static function( $list ) { return count( $list ) > 1; } ) ),
         'unique_phones_count' => count( $by_phone ),
         'submissions_count' => count( $rows ),
+        'messages_count_history' => count( array_filter( $rows, static function( $r ) {
+            return trim( (string) ( $r['message_to_couple'] ?? '' ) ) !== '';
+        } ) ),
     ];
 }
 
@@ -1552,11 +1555,9 @@ function teinvit_build_rsvp_report_kpis( $sets ) {
         }
     }
 
-    $total_messages = 0;
-    foreach ( $history as $r ) {
-        if ( trim( (string) ( $r['message_to_couple'] ?? '' ) ) !== '' ) {
-            $total_messages++;
-        }
+    $total_messages = isset( $sets['messages_count_history'] ) ? (int) $sets['messages_count_history'] : 0;
+    if ( $total_messages < 0 ) {
+        $total_messages = 0;
     }
 
     return [
@@ -1773,8 +1774,8 @@ add_action( 'rest_api_init', function() {
             }
 
             $email = sanitize_email( (string) ( $p['guest_email'] ?? '' ) );
-            if ( $email === '' || ! is_email( $email ) ) {
-                return new WP_Error( 'email_invalid', 'Email invalid', [ 'status' => 400 ] );
+            if ( $email !== '' && ! is_email( $email ) ) {
+                return new WP_Error( 'email_invalid', 'Email invalid', [ 'status' => 400, 'field' => 'guest_email' ] );
             }
 
             $attending_people_count = max( 1, (int) ( $p['attending_people_count'] ?? 1 ) );
@@ -1784,7 +1785,7 @@ add_action( 'rest_api_init', function() {
             $vegetarian_requested = empty( $p['vegetarian_requested'] ) ? 0 : 1;
             if ( $vegetarian_requested ) {
                 if ( $vegetarian_menus_count < 1 || $vegetarian_menus_count > $max_vegetarian_menus ) {
-                    return new WP_Error( 'vegetarian_menus_invalid', 'Numărul de meniuri vegetariene este invalid.', [
+                    return new WP_Error( 'vegetarian_menus_invalid', 'Completati numarul de meniuri vegetariene', [
                         'status' => 400,
                         'field' => 'vegetarian_menus_count',
                         'max' => $max_vegetarian_menus,
@@ -1796,6 +1797,24 @@ add_action( 'rest_api_init', function() {
 
             if ( empty( $p['gdpr_accepted'] ) ) {
                 return new WP_Error( 'gdpr_required', 'GDPR este obligatoriu', [ 'status' => 400 ] );
+            }
+
+            $bringing_kids = empty( $p['bringing_kids'] ) ? 0 : 1;
+            $kids_count = max( 0, (int) ( $p['kids_count'] ?? 0 ) );
+            if ( $bringing_kids && $kids_count < 1 ) {
+                return new WP_Error( 'kids_count_required', 'Completati numarul de copii', [ 'status' => 400, 'field' => 'kids_count' ] );
+            }
+
+            $needs_accommodation = empty( $p['needs_accommodation'] ) ? 0 : 1;
+            $accommodation_people_count = max( 0, (int) ( $p['accommodation_people_count'] ?? 0 ) );
+            if ( $needs_accommodation && $accommodation_people_count < 1 ) {
+                return new WP_Error( 'accommodation_people_count_required', 'Completati numarul de persoane care au nevoie de cazare', [ 'status' => 400, 'field' => 'accommodation_people_count' ] );
+            }
+
+            $has_allergies = empty( $p['has_allergies'] ) ? 0 : 1;
+            $allergy_details = sanitize_text_field( $p['allergy_details'] ?? '' );
+            if ( $has_allergies && trim( $allergy_details ) === '' ) {
+                return new WP_Error( 'allergy_details_required', 'Completati alergiile', [ 'status' => 400, 'field' => 'allergy_details' ] );
             }
 
             $t = teinvit_db_tables();
@@ -1810,14 +1829,14 @@ add_action( 'rest_api_init', function() {
                 'attending_civil' => empty( $p['attending_civil'] ) ? 0 : 1,
                 'attending_religious' => empty( $p['attending_religious'] ) ? 0 : 1,
                 'attending_party' => empty( $p['attending_party'] ) ? 0 : 1,
-                'bringing_kids' => empty( $p['bringing_kids'] ) ? 0 : 1,
+                'bringing_kids' => $bringing_kids,
                 'kids_count' => $kids_count,
-                'needs_accommodation' => empty( $p['needs_accommodation'] ) ? 0 : 1,
-                'accommodation_people_count' => max( 0, (int) ( $p['accommodation_people_count'] ?? 0 ) ),
+                'needs_accommodation' => $needs_accommodation,
+                'accommodation_people_count' => $accommodation_people_count,
                 'vegetarian_requested' => $vegetarian_requested,
                 'vegetarian_menus_count' => $vegetarian_menus_count,
-                'has_allergies' => empty( $p['has_allergies'] ) ? 0 : 1,
-                'allergy_details' => sanitize_text_field( $p['allergy_details'] ?? '' ),
+                'has_allergies' => $has_allergies,
+                'allergy_details' => $allergy_details,
                 'message_to_couple' => sanitize_textarea_field( $p['message_to_couple'] ?? '' ),
                 'gdpr_accepted' => 1,
                 'marketing_consent' => empty( $p['marketing_consent'] ) ? 0 : 1,
