@@ -107,6 +107,7 @@ $GLOBALS['post'] = $post;
 setup_postdata( $post );
 
 $preview_html = '';
+$preview_invitation_data = [];
 if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_order_id_by_token' ) ) {
     $order_id = (int) teinvit_get_order_id_by_token( $token );
     $order = $order_id ? wc_get_order( $order_id ) : null;
@@ -116,7 +117,10 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
             : ( function_exists( 'teinvit_get_modular_active_payload' ) ? teinvit_get_modular_active_payload( $token ) : [] );
 
         if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
+            $preview_invitation_data = $payload['invitation'];
             $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+            $preview_html = preg_replace( '/<script>\s*window\.TEINVIT_INVITATION_DATA\s*=.*?<\/script>/s', '', (string) $preview_html );
+            $preview_html = preg_replace( '/window\.TEINVIT_INVITATION_DATA\s*=\s*.*?;\s*/s', '', (string) $preview_html );
         }
     }
 
@@ -135,6 +139,9 @@ teinvit_render_layout_header();
       <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php'; ?>
     </div>
   <?php elseif ( $mode === 'invitati' ) : ?>
+    <?php if ( ! empty( $preview_invitation_data ) ) : ?>
+      <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
+    <?php endif; ?>
     <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
       <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </div>
