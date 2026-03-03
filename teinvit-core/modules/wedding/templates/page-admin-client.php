@@ -157,6 +157,9 @@ foreach ( $report_unique as $r ) {
     if ( ! empty( $r['bringing_kids'] ) ) { $total_kids += max( 0, (int) ( $r['kids_count'] ?? 0 ) ); }
     if ( ! empty( $r['needs_accommodation'] ) ) { $total_cazare_rsvp++; $total_cazare_people += max( 0, (int) ( $r['accommodation_people_count'] ?? 0 ) ); }
     if ( ! empty( $r['vegetarian_requested'] ) ) { $total_veg_rsvp++; $total_veg_menus += max( 0, (int) ( $r['vegetarian_menus_count'] ?? 0 ) ); }
+
+}
+foreach ( $report_history as $r ) {
     if ( trim( (string) ( $r['message_to_couple'] ?? '' ) ) !== '' ) { $total_messages++; }
 }
 

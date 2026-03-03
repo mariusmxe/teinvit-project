@@ -127,7 +127,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
     <p style="padding:10px;border:1px solid #cc0000;background:#fff3f3;color:#900;">Perioada de confirmare a expirat. Formularul RSVP este dezactivat.</p>
   <?php endif; ?>
 
-  <form id="teinvit-rsvp-form">
+  <form id="teinvit-rsvp-form" novalidate>
     <fieldset <?php disabled( $deadline_expired ); ?>>
       <?php if ( $deadline_active && $deadline_raw ) : ?>
         <h3 class="has-text-align-center"><?php echo esc_html( 'Data maximă pentru confirmări: ' . $deadline_raw ); ?></h3>
@@ -411,10 +411,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       const dependent = target.querySelector('input,textarea,select');
       if (!dependent) return;
 
-      if (isDa) {
-        dependent.setAttribute('required', 'required');
-      } else {
-        dependent.removeAttribute('required');
+      if (!isDa) {
         dependent.value = '';
         clearFieldError(dependent);
       }
