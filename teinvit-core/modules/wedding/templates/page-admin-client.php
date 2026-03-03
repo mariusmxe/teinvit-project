@@ -459,21 +459,21 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   function markMessageInvitationTextarea(){
     const scope = document.getElementById('teinvit-save-form') || document;
-    scope.querySelectorAll('.wapf-field textarea').forEach((textarea)=>{
-      const field = textarea.closest('.wapf-field');
-      if (!field) return;
-      const text = (field.textContent || '').toLowerCase();
-      const looksLikeMessage = text.includes('mesaj invita');
-      const hasExpectedLimit = Number(textarea.getAttribute('maxlength') || '0') === 255;
-      if (!looksLikeMessage && !hasExpectedLimit) return;
+    const candidates = Array.from(scope.querySelectorAll('textarea[name^="wapf[field_"]'));
+    if (!candidates.length) return;
 
+    const messageTextarea = candidates.find((el)=> Number(el.getAttribute('maxlength') || '0') === 255) || candidates[0];
+    const field = messageTextarea.closest('.wapf-field') || messageTextarea.parentElement;
+    if (field) {
       field.classList.add('teinvit-message-invitatie-field');
-      textarea.style.height = 'calc(1.5em * 6 + 22px)';
-      textarea.style.minHeight = 'calc(1.5em * 6 + 22px)';
-      textarea.style.maxHeight = 'calc(1.5em * 6 + 22px)';
-      textarea.style.resize = 'none';
-      textarea.style.overflow = 'auto';
-    });
+    }
+
+    messageTextarea.setAttribute('rows', '6');
+    messageTextarea.style.setProperty('height', 'calc(1.5em * 6 + 22px)', 'important');
+    messageTextarea.style.setProperty('min-height', 'calc(1.5em * 6 + 22px)', 'important');
+    messageTextarea.style.setProperty('max-height', 'calc(1.5em * 6 + 22px)', 'important');
+    messageTextarea.style.setProperty('resize', 'none', 'important');
+    messageTextarea.style.setProperty('overflow', 'auto', 'important');
   }
 
   const deadlineCb = document.getElementById('date_confirm');
