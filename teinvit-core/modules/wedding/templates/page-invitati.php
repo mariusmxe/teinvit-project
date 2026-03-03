@@ -88,7 +88,7 @@ $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link
 $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
 <style>
-  .teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
   .teinvit-rsvp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
   .teinvit-rsvp-grid .teinvit-rsvp-field label,
   .teinvit-rsvp-grid .teinvit-rsvp-field input,
@@ -108,6 +108,11 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   .teinvit-rsvp-gdpr-wrap { margin-top: 12px; text-align: left; display: inline-block; max-width: min(50%, 640px); width: 100%; }
   .teinvit-rsvp-submit-wrap { margin-top: 14px; text-align: center; }
   #teinvit-rsvp-msg { margin-top: 10px; text-align: center; }
+  .teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0;position:relative}
+  .teinvit-separator::after{content:"❦";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;color:#b09261;padding:0 10px;font-size:14px;line-height:1}
+  .teinvit-section-separator{position:relative;height:28px;margin:20px auto 18px;max-width:420px;text-align:center}
+  .teinvit-section-separator::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.75),transparent)}
+  .teinvit-section-separator span{position:relative;display:inline-block;padding:0 12px;background:#fff;color:#b09261;line-height:28px}
   @media (max-width: 900px) {
     .teinvit-rsvp-grid,
     .teinvit-rsvp-zone2-grid { grid-template-columns: 1fr; }
@@ -117,9 +122,11 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 </style>
 <div class="teinvit-invitati-page" style="max-width:980px;margin:0 auto;">
   <?php if ( ! $in_cpt_template ) : ?>
+  <div class="teinvit-surface-card teinvit-preview-card">
   <div class="preview" style="position:relative;">
     <img src="<?php echo esc_url( $bg ); ?>" alt="background" style="width:100%;height:auto;display:block;">
     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;"><?php echo esc_html( $invitation_data['names'] ?? '' ); ?></div>
+  </div>
   </div>
   <?php endif; ?>
 
@@ -127,6 +134,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
     <p style="padding:10px;border:1px solid #cc0000;background:#fff3f3;color:#900;">Perioada de confirmare a expirat. Formularul RSVP este dezactivat.</p>
   <?php endif; ?>
 
+  <div class="teinvit-surface-card teinvit-rsvp-card">
   <form id="teinvit-rsvp-form" novalidate>
     <fieldset <?php disabled( $deadline_expired ); ?>>
       <?php if ( $deadline_active && $deadline_raw ) : ?>
@@ -165,7 +173,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
         </div>
       </div>
 
-      <hr>
+      <hr class="teinvit-separator">
 
       <div class="teinvit-rsvp-zone teinvit-rsvp-zone2-grid">
         <div class="teinvit-rsvp-zone2-col">
@@ -328,6 +336,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       </div>
 
       <?php if ( $show_gifts_section && ! empty( $gifts ) ) : ?>
+        <div class="teinvit-section-separator" aria-hidden="true"><span>❦</span></div>
         <h3>Lista de cadouri disponibile</h3>
         <p>Poți alege un cadou pentru miri din lista lor de dorințe. Îl poți trimite prin curier la Adresa de livrare completată în dreptul cadoului, sau îl poți înmâna personal.</p>
         <table>
@@ -354,7 +363,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
           </tbody>
         </table>
 
-        <hr>
+        <hr class="teinvit-separator">
       <?php endif; ?>
 
       <div class="teinvit-rsvp-zone teinvit-rsvp-message-wrap">
@@ -395,6 +404,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       </div>
     </fieldset>
   </form>
+  </div>
 </div>
 <script>
 (function(){

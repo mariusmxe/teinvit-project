@@ -233,14 +233,14 @@ $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_ur
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
-.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1{text-align:center}
+.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1{text-align:center}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1 + h1{margin-top:6px}
 .teinvit-deadline-title,.teinvit-rsvp-settings-title{text-align:center}
 .teinvit-deadline-form{display:flex;flex-direction:column;align-items:center;gap:10px}
 .teinvit-deadline-form label{display:block;text-align:center}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
 @media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
-.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}
+.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}.teinvit-apf-col .teinvit-message-invitatie-field textarea{height:calc(1.5em * 6 + 22px);min-height:calc(1.5em * 6 + 22px);max-height:calc(1.5em * 6 + 22px);resize:none}
 .teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{max-width:100%;overflow:hidden}
 .teinvit-admin-page .teinvit-preview{max-width:760px;margin:0 auto;overflow:hidden}
 
@@ -255,8 +255,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-report-kpi{max-width:980px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-table-zone{margin-top:12px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:12px}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-table th{white-space:nowrap}.teinvit-report-table td:nth-child(6),.teinvit-report-table th:nth-child(6){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-report-table td:nth-child(18),.teinvit-report-table th:nth-child(18){width:30ch;min-width:30ch;white-space:normal;word-break:break-word}.teinvit-report-table td:nth-child(19),.teinvit-report-table th:nth-child(19){width:120ch;min-width:120ch;white-space:normal;word-break:break-word}.teinvit-report-row-multi{background:#fff2f2}
 </style>
 <div class="teinvit-admin-page">
-  <h1>Administrare invitație</h1>
-  <h1><?php echo esc_html( $subtitle ); ?></h1>
+  <div class="teinvit-admin-title-card">
+    <h1>Administrare invitație</h1>
+    <h1><?php echo esc_html( $subtitle ); ?></h1>
+  </div>
 
   <?php if ( $global_admin_content !== '' ) : ?>
   <div class="teinvit-zone teinvit-admin-global-zone">
@@ -455,6 +457,16 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
   let isApplyingVariant = false;
 
+  function markMessageInvitationTextarea(){
+    const scope = document.getElementById('teinvit-save-form') || document;
+    scope.querySelectorAll('.wapf-field').forEach((field)=>{
+      const labelText = (field.querySelector('label')?.textContent || '').toLowerCase();
+      if (labelText.includes('mesaj invita') && labelText.includes('optional')) {
+        field.classList.add('teinvit-message-invitatie-field');
+      }
+    });
+  }
+
   const deadlineCb = document.getElementById('date_confirm');
   const deadlineWrap = document.getElementById('selecteaza-data-wrap');
   if(deadlineCb && deadlineWrap){ deadlineCb.addEventListener('change',()=>{ deadlineWrap.style.display = deadlineCb.checked ? '' : 'none'; }); }
@@ -467,6 +479,8 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.datepicker === 'function') {
     window.jQuery('#selecteaza_data').datepicker({ dateFormat: 'dd/mm/yy' });
   }
+
+  markMessageInvitationTextarea();
 
 
   const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
