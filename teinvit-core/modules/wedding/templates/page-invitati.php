@@ -89,6 +89,10 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
 <style>
   .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px}.teinvit-slot-preview > *{display:block!important}.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container,.teinvit-slot-preview .teinvit-preview{max-width:100%!important;overflow:hidden}.teinvit-slot-preview img,.teinvit-slot-preview svg,.teinvit-slot-preview canvas{max-width:100%!important;height:auto!important}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  @media (min-width: 901px) {
+    .teinvit-slot-preview > .teinvit-wedding{display:flex!important;justify-content:center!important}
+    .teinvit-slot-preview .teinvit-page{margin-left:auto!important;margin-right:auto!important}
+  }
   .teinvit-rsvp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
   .teinvit-rsvp-grid .teinvit-rsvp-field label,
   .teinvit-rsvp-grid .teinvit-rsvp-field input,
@@ -110,6 +114,15 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   #teinvit-rsvp-msg { margin-top: 10px; text-align: center; }
   .teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0;position:relative}
   .teinvit-separator::after{content:"❦";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;color:#b09261;padding:0 10px;font-size:14px;line-height:1}
+
+  @media (max-width: 768px) {
+    .teinvit-invitati-page,.teinvit-surface-card,.teinvit-rsvp-card,#teinvit-rsvp-form,#teinvit-rsvp-form fieldset{max-width:100%;min-width:0;overflow-x:hidden}
+    .teinvit-rsvp-grid,.teinvit-rsvp-zone2-grid{grid-template-columns:1fr;min-width:0}
+    .teinvit-rsvp-zone,.teinvit-rsvp-zone2-col,.teinvit-rsvp-field,.teinvit-rsvp-question,.teinvit-rsvp-choice-group{min-width:0}
+    #teinvit-rsvp-form input,#teinvit-rsvp-form select,#teinvit-rsvp-form textarea{width:100%;max-width:100%;box-sizing:border-box;min-width:0}
+    .teinvit-rsvp-rinline{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .teinvit-rsvp-rinline label{width:100%;max-width:100%}
+  }
   @media (max-width: 900px) {
     .teinvit-slot-preview{padding:8px;margin-bottom:12px}
     .teinvit-rsvp-grid,
