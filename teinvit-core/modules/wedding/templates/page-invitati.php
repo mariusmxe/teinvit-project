@@ -89,6 +89,10 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
 <style>
   .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px}.teinvit-slot-preview > *{display:block!important}.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container,.teinvit-slot-preview .teinvit-preview{max-width:100%!important;overflow:hidden}.teinvit-slot-preview img,.teinvit-slot-preview svg,.teinvit-slot-preview canvas{max-width:100%!important;height:auto!important}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  @media (min-width: 901px) {
+    .teinvit-slot-preview > .teinvit-wedding{display:flex!important;justify-content:center!important}
+    .teinvit-slot-preview .teinvit-page{margin-left:auto!important;margin-right:auto!important}
+  }
   .teinvit-rsvp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
   .teinvit-rsvp-grid .teinvit-rsvp-field label,
   .teinvit-rsvp-grid .teinvit-rsvp-field input,

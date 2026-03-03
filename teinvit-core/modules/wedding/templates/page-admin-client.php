@@ -242,8 +242,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 @media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
 @media (max-width: 768px){.teinvit-admin-page{padding:10px}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:100%!important;min-height:280px;overflow:hidden}.teinvit-admin-preview-block{display:block!important;order:1}.teinvit-admin-page .teinvit-preview img,.teinvit-admin-page .teinvit-preview svg,.teinvit-admin-page .teinvit-preview canvas{max-width:100%!important;height:auto!important}.teinvit-report-grid{grid-template-columns:1fr}.teinvit-report-card{overflow-wrap:break-word;word-break:normal}.teinvit-report-card strong{display:block;margin-bottom:4px}}
 .teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}.teinvit-apf-col .teinvit-message-invitatie-field textarea{height:calc(1.5em * 6 + 22px) !important;min-height:calc(1.5em * 6 + 22px) !important;max-height:calc(1.5em * 6 + 22px) !important;resize:none !important;overflow:auto !important}
-.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{max-width:100%;overflow:hidden}
-.teinvit-admin-page .teinvit-preview{max-width:760px;margin:0 auto;overflow:hidden}.teinvit-admin-preview-block{display:block}
+.teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}
+.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}
+.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}
+.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 
 .teinvit-gifts-title{text-align:center}
 .teinvit-gifts-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0}
