@@ -110,9 +110,6 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   #teinvit-rsvp-msg { margin-top: 10px; text-align: center; }
   .teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0;position:relative}
   .teinvit-separator::after{content:"❦";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;color:#b09261;padding:0 10px;font-size:14px;line-height:1}
-  .teinvit-section-separator{position:relative;height:28px;margin:20px auto 18px;max-width:420px;text-align:center}
-  .teinvit-section-separator::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.75),transparent)}
-  .teinvit-section-separator span{position:relative;display:inline-block;padding:0 12px;background:#fff;color:#b09261;line-height:28px}
   @media (max-width: 900px) {
     .teinvit-rsvp-grid,
     .teinvit-rsvp-zone2-grid { grid-template-columns: 1fr; }
@@ -336,7 +333,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
       </div>
 
       <?php if ( $show_gifts_section && ! empty( $gifts ) ) : ?>
-        <div class="teinvit-section-separator" aria-hidden="true"><span>❦</span></div>
+        <hr class="teinvit-separator">
         <h3>Lista de cadouri disponibile</h3>
         <p>Poți alege un cadou pentru miri din lista lor de dorințe. Îl poți trimite prin curier la Adresa de livrare completată în dreptul cadoului, sau îl poți înmâna personal.</p>
         <table>

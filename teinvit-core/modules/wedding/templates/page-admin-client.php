@@ -240,7 +240,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
 @media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
-.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}.teinvit-apf-col .teinvit-message-invitatie-field textarea{height:calc(1.5em * 6 + 22px);min-height:calc(1.5em * 6 + 22px);max-height:calc(1.5em * 6 + 22px);resize:none}
+.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}.teinvit-apf-col .teinvit-message-invitatie-field textarea{height:calc(1.5em * 6 + 22px) !important;min-height:calc(1.5em * 6 + 22px) !important;max-height:calc(1.5em * 6 + 22px) !important;resize:none !important;overflow:auto !important}
 .teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{max-width:100%;overflow:hidden}
 .teinvit-admin-page .teinvit-preview{max-width:760px;margin:0 auto;overflow:hidden}
 
@@ -459,11 +459,20 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   function markMessageInvitationTextarea(){
     const scope = document.getElementById('teinvit-save-form') || document;
-    scope.querySelectorAll('.wapf-field').forEach((field)=>{
-      const labelText = (field.querySelector('label')?.textContent || '').toLowerCase();
-      if (labelText.includes('mesaj invita') && labelText.includes('optional')) {
-        field.classList.add('teinvit-message-invitatie-field');
-      }
+    scope.querySelectorAll('.wapf-field textarea').forEach((textarea)=>{
+      const field = textarea.closest('.wapf-field');
+      if (!field) return;
+      const text = (field.textContent || '').toLowerCase();
+      const looksLikeMessage = text.includes('mesaj invita');
+      const hasExpectedLimit = Number(textarea.getAttribute('maxlength') || '0') === 255;
+      if (!looksLikeMessage && !hasExpectedLimit) return;
+
+      field.classList.add('teinvit-message-invitatie-field');
+      textarea.style.height = 'calc(1.5em * 6 + 22px)';
+      textarea.style.minHeight = 'calc(1.5em * 6 + 22px)';
+      textarea.style.maxHeight = 'calc(1.5em * 6 + 22px)';
+      textarea.style.resize = 'none';
+      textarea.style.overflow = 'auto';
     });
   }
 
@@ -481,6 +490,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   }
 
   markMessageInvitationTextarea();
+  window.setTimeout(markMessageInvitationTextarea, 200);
 
 
   const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
