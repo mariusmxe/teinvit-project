@@ -15,6 +15,23 @@ function teinvit_generate_token_part( $length = 20 ) {
     return bin2hex( random_bytes( $length / 2 ) );
 }
 
+
+function teinvit_order_contains_invitation_product( $order ) {
+    if ( ! $order ) {
+        return false;
+    }
+
+    $allowed = [ 70, 286 ];
+    foreach ( $order->get_items() as $item ) {
+        $pid = (int) $item->get_product_id();
+        if ( in_array( $pid, $allowed, true ) ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /**
  * Attach token to order
  * Triggered ONLY when order becomes COMPLETED
@@ -38,6 +55,11 @@ function teinvit_attach_token_on_completed( $order_id ) {
 
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
+        return;
+    }
+
+    if ( ! teinvit_order_contains_invitation_product( $order ) ) {
+        $order->add_order_note( 'Skip PDF pipeline: order does not contain invitation product (70/286)' );
         return;
     }
 
