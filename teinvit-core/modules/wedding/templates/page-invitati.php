@@ -88,7 +88,7 @@ $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link
 $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
 <style>
-  .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-rsvp-zone-card{margin:0;padding:0;border:0;background:transparent;box-shadow:none}.teinvit-gifts-table-wrap{width:100%;overflow-x:auto}.teinvit-gifts-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px}.teinvit-slot-preview > *{display:block!important}.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container,.teinvit-slot-preview .teinvit-preview{max-width:100%!important;overflow:hidden}.teinvit-slot-preview img,.teinvit-slot-preview svg,.teinvit-slot-preview canvas{max-width:100%!important;height:auto!important}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-rsvp-zone-card{margin:0;padding:0;border:0;background:transparent;box-shadow:none}.teinvit-gifts-table-wrap{width:100%;overflow-x:auto}.teinvit-gifts-table{width:max-content;min-width:760px;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px}.teinvit-slot-preview > *{display:block!important}.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container,.teinvit-slot-preview .teinvit-preview{max-width:100%!important;overflow:hidden}.teinvit-slot-preview img,.teinvit-slot-preview svg,.teinvit-slot-preview canvas{max-width:100%!important;height:auto!important}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
   @media (min-width: 901px) {
     .teinvit-slot-preview > .teinvit-wedding{display:flex!important;justify-content:center!important}
     .teinvit-slot-preview .teinvit-page{margin-left:auto!important;margin-right:auto!important}
@@ -127,7 +127,6 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
     .teinvit-rsvp-zone-card-2b{padding:0;border:0;background:transparent;box-shadow:none}
     .teinvit-rsvp-zone-card-2a h3,.teinvit-rsvp-zone-card-2a p{text-align:center;word-break:normal;overflow-wrap:normal}
     .teinvit-gifts-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-    .teinvit-gifts-table{min-width:760px}
   }
   @media (max-width: 900px) {
     .teinvit-slot-preview{padding:8px;margin-bottom:12px}

@@ -1025,7 +1025,6 @@ function teinvit_admin_client_merge_selection_toggles_from_post( array $config, 
         'permite_selectarea_meniului_vegetarian' => 'show_vegetarian',
         'permite_mentionarea_alergiilor' => 'show_allergies',
         'permite_trimiterea_unui_mesaj_catre_miri' => 'show_message',
-        'activeaza_sectiunea_cadouri' => 'show_gifts_section',
     ];
 
     $published_order = [];
