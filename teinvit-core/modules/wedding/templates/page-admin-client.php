@@ -569,7 +569,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   if (showGiftsCheckbox && giftsEditor) {
     showGiftsCheckbox.addEventListener('change', ()=>{
-      giftsEditor.style.display = showGiftsCheckbox.checked ? '' : 'none';
+      const enabled = !!showGiftsCheckbox.checked;
+      giftsEditor.style.display = enabled ? '' : 'none';
+      if (!enabled && giftsForm) {
+        giftsForm.submit();
+      }
     });
   }
 
@@ -583,6 +587,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   if (giftsForm) {
     giftsForm.addEventListener('submit', (e)=>{
+      const shouldConfirm = !showGiftsCheckbox || !!showGiftsCheckbox.checked;
+      if (!shouldConfirm) {
+        return;
+      }
       const ok = window.confirm('După salvarea listei cadourile completate nu mai pot fi editate. Ești sigur că vrei să o salvezi?');
       if (!ok) {
         e.preventDefault();
