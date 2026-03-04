@@ -88,7 +88,11 @@ $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link
 $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>
 <style>
-  .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px}.teinvit-slot-preview > *{display:block!important}.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container,.teinvit-slot-preview .teinvit-preview{max-width:100%!important;overflow:hidden}.teinvit-slot-preview img,.teinvit-slot-preview svg,.teinvit-slot-preview canvas{max-width:100%!important;height:auto!important}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  .teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-preview-card{padding:10px;margin-bottom:16px}.teinvit-rsvp-card{margin-top:16px}.teinvit-rsvp-zone-card{margin:0;padding:0;border:0;background:transparent;box-shadow:none}.teinvit-gifts-table-wrap{width:100%;overflow-x:auto}.teinvit-gifts-table{width:max-content;min-width:760px;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px}.teinvit-slot-preview > *{display:block!important}.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container,.teinvit-slot-preview .teinvit-preview{max-width:100%!important;overflow:hidden}.teinvit-slot-preview img,.teinvit-slot-preview svg,.teinvit-slot-preview canvas{max-width:100%!important;height:auto!important}.teinvit-rsvp-zone { display: block; margin-bottom: 16px; }
+  @media (min-width: 901px) {
+    .teinvit-slot-preview > .teinvit-wedding{display:flex!important;justify-content:center!important}
+    .teinvit-slot-preview .teinvit-page{margin-left:auto!important;margin-right:auto!important}
+  }
   .teinvit-rsvp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
   .teinvit-rsvp-grid .teinvit-rsvp-field label,
   .teinvit-rsvp-grid .teinvit-rsvp-field input,
@@ -110,6 +114,20 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   #teinvit-rsvp-msg { margin-top: 10px; text-align: center; }
   .teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0;position:relative}
   .teinvit-separator::after{content:"❦";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;color:#b09261;padding:0 10px;font-size:14px;line-height:1}
+
+  @media (max-width: 768px) {
+    .teinvit-invitati-page,.teinvit-surface-card,.teinvit-rsvp-card,#teinvit-rsvp-form,#teinvit-rsvp-form fieldset{max-width:100%;min-width:0;overflow-x:hidden}
+    .teinvit-rsvp-grid,.teinvit-rsvp-zone2-grid{grid-template-columns:1fr;min-width:0}
+    .teinvit-rsvp-zone,.teinvit-rsvp-zone2-col,.teinvit-rsvp-field,.teinvit-rsvp-question,.teinvit-rsvp-choice-group{min-width:0}
+    #teinvit-rsvp-form input,#teinvit-rsvp-form select,#teinvit-rsvp-form textarea{width:100%;max-width:100%;box-sizing:border-box;min-width:0}
+    .teinvit-rsvp-rinline{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .teinvit-rsvp-rinline label{width:100%;max-width:100%}
+
+    .teinvit-rsvp-zone-card{margin-top:14px;padding:14px;border:1px solid rgba(0,0,0,.08);border-radius:12px;background:#fff}
+    .teinvit-rsvp-zone-card-2b{padding:0;border:0;background:transparent;box-shadow:none}
+    .teinvit-rsvp-zone-card-2a h3,.teinvit-rsvp-zone-card-2a p{text-align:center;word-break:normal;overflow-wrap:normal}
+    .teinvit-gifts-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  }
   @media (max-width: 900px) {
     .teinvit-slot-preview{padding:8px;margin-bottom:12px}
     .teinvit-rsvp-grid,
@@ -141,6 +159,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
         <h3 class="has-text-align-center">RSVP</h3>
       <?php endif; ?>
 
+      <div class="teinvit-rsvp-zone-card teinvit-rsvp-zone-card-1">
       <div class="teinvit-rsvp-zone teinvit-rsvp-grid">
         <div class="teinvit-rsvp-field">
           <label for="rsvp-nume">Nume*</label>
@@ -332,38 +351,45 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
           <?php endforeach; ?>
         </div>
       </div>
+      </div>
 
       <?php if ( $show_gifts_section && ! empty( $gifts ) ) : ?>
         <hr class="teinvit-separator">
-        <h3>Lista de cadouri disponibile</h3>
-        <p>Poți alege un cadou pentru miri din lista lor de dorințe. Îl poți trimite prin curier la Adresa de livrare completată în dreptul cadoului, sau îl poți înmâna personal.</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Selectează</th>
-              <th>Denumire produs</th>
-              <th>Link produs</th>
-              <th>Adresă de livrare</th>
-              <th>Status produs</th>
-            </tr>
-          </thead>
-          <tbody>
-          <?php foreach ( $gifts as $gift ) : ?>
-            <?php $is_reserved = ( (string) ( $gift['status'] ?? '' ) === 'reserved' ); ?>
-            <tr>
-              <td><?php if ( ! $is_reserved ) : ?><input type="checkbox" name="gift_ids[]" value="<?php echo esc_attr( $gift['gift_id'] ); ?>"><?php endif; ?></td>
-              <td><?php echo esc_html( $gift['gift_name'] ); ?></td>
-              <td><?php if ( $gift['gift_link'] ) : ?><a href="<?php echo esc_url( $gift['gift_link'] ); ?>" target="_blank" rel="noopener">Vezi produsul</a><?php endif; ?></td>
-              <td><?php echo esc_html( $gift['gift_delivery_address'] ); ?></td>
-              <td><?php echo $is_reserved ? 'Rezervat' : 'Disponibil'; ?></td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-
+        <div class="teinvit-rsvp-zone-card teinvit-rsvp-zone-card-2a">
+          <h3>Lista de cadouri disponibile</h3>
+          <p>Poți alege un cadou pentru miri din lista lor de dorințe. Îl poți trimite prin curier la Adresa de livrare completată în dreptul cadoului, sau îl poți înmâna personal.</p>
+        </div>
+        <div class="teinvit-rsvp-zone-card teinvit-rsvp-zone-card-2b">
+          <div class="teinvit-gifts-table-wrap">
+            <table class="teinvit-gifts-table">
+              <thead>
+                <tr>
+                  <th>Selectează</th>
+                  <th>Denumire produs</th>
+                  <th>Link produs</th>
+                  <th>Adresă de livrare</th>
+                  <th>Status produs</th>
+                </tr>
+              </thead>
+              <tbody>
+              <?php foreach ( $gifts as $gift ) : ?>
+                <?php $is_reserved = ( (string) ( $gift['status'] ?? '' ) === 'reserved' ); ?>
+                <tr>
+                  <td><?php if ( ! $is_reserved ) : ?><input type="checkbox" name="gift_ids[]" value="<?php echo esc_attr( $gift['gift_id'] ); ?>"><?php endif; ?></td>
+                  <td><?php echo esc_html( $gift['gift_name'] ); ?></td>
+                  <td><?php if ( $gift['gift_link'] ) : ?><a href="<?php echo esc_url( $gift['gift_link'] ); ?>" target="_blank" rel="noopener">Vezi produsul</a><?php endif; ?></td>
+                  <td><?php echo esc_html( $gift['gift_delivery_address'] ); ?></td>
+                  <td><?php echo $is_reserved ? 'Rezervat' : 'Disponibil'; ?></td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <hr class="teinvit-separator">
       <?php endif; ?>
 
+      <div class="teinvit-rsvp-zone-card teinvit-rsvp-zone-card-3">
       <div class="teinvit-rsvp-zone teinvit-rsvp-message-wrap">
         <?php if ( $show_message ) : ?>
           <h3>Dacă doriți, lăsați un mesaj pentru miri</h3>
@@ -399,6 +425,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
           <button type="submit">Trimite formularul</button>
           <div id="teinvit-rsvp-msg"></div>
         </div>
+      </div>
       </div>
     </fieldset>
   </form>
