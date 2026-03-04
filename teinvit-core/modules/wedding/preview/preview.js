@@ -27,6 +27,101 @@ document.addEventListener('DOMContentLoaded', function () {
         return a || b || '';
     }
 
+    function escapeHtmlAttr(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function normalizeWazeDeepLink(rawValue, locationText) {
+        var raw = (rawValue || '').toString().trim();
+        var location = (locationText || '').toString().trim();
+
+        function buildWazeUrl(params) {
+            var url = new URL('https://waze.com/ul');
+            Object.keys(params || {}).forEach(function (key) {
+                var val = (params[key] || '').toString().trim();
+                if (val) url.searchParams.set(key, val);
+            });
+
+            if (!url.searchParams.get('ll') && !url.searchParams.get('q') && location) {
+                url.searchParams.set('q', location);
+            }
+            if ((url.searchParams.get('ll') || url.searchParams.get('q')) && !url.searchParams.get('navigate')) {
+                url.searchParams.set('navigate', 'yes');
+            }
+            if (!url.searchParams.get('utm_source')) {
+                url.searchParams.set('utm_source', 'teinvit');
+            }
+
+            return url.toString();
+        }
+
+        if (raw) {
+            if (/^waze:\/\//i.test(raw)) {
+                var custom = raw.replace(/^waze:\/\//i, '');
+                var customQuery = '';
+                var qIndex = custom.indexOf('?');
+                if (qIndex >= 0) {
+                    customQuery = custom.slice(qIndex + 1);
+                } else if (custom.indexOf('&') >= 0) {
+                    customQuery = custom;
+                }
+
+                var customParams = new URLSearchParams(customQuery);
+                return buildWazeUrl({
+                    ll: customParams.get('ll') || '',
+                    q: customParams.get('q') || '',
+                    navigate: customParams.get('navigate') || customParams.get('n') || 'yes'
+                });
+            }
+
+            var candidate = raw;
+            if (!/^https?:\/\//i.test(candidate)) {
+                candidate = 'https://' + candidate.replace(/^\/+/, '');
+            }
+
+            try {
+                var parsed = new URL(candidate);
+                if (/waze\.com$/i.test(parsed.hostname) || /\.waze\.com$/i.test(parsed.hostname)) {
+                    var params = new URLSearchParams(parsed.search || '');
+                    var pathname = parsed.pathname || '';
+
+                    if (!/\/ul(\/|$)/i.test(pathname)) {
+                        pathname = '/ul';
+                    }
+
+                    var normalized = new URL('https://waze.com' + pathname);
+                    params.forEach(function (val, key) {
+                        normalized.searchParams.set(key, val);
+                    });
+
+                    if (!normalized.searchParams.get('ll') && !normalized.searchParams.get('q') && location) {
+                        normalized.searchParams.set('q', location);
+                    }
+                    if ((normalized.searchParams.get('ll') || normalized.searchParams.get('q')) && !normalized.searchParams.get('navigate')) {
+                        normalized.searchParams.set('navigate', 'yes');
+                    }
+                    if (!normalized.searchParams.get('utm_source')) {
+                        normalized.searchParams.set('utm_source', 'teinvit');
+                    }
+
+                    return normalized.toString();
+                }
+            } catch (e) {
+                // fallback to location-based deep link below
+            }
+        }
+
+        if (location) {
+            return buildWazeUrl({ q: location, navigate: 'yes' });
+        }
+
+        return '';
+    }
+
 
     function normalizeDisplayDate(dateValue) {
         var raw = (dateValue || '').trim();
@@ -740,12 +835,13 @@ function syncBaseFontSize(canvas) {
         bottom.innerHTML = '';
 
         data.events.forEach(function (e, i) {
+            var wazeLink = normalizeWazeDeepLink(e.waze, e.loc);
             var html =
                 '<div class="inv-event">' +
                 '<strong>' + e.title + '</strong>' +
                 '<div>' + e.loc + '</div>' +
                 '<div>' + e.date + '</div>' +
-                (e.waze ? '<a href="' + e.waze + '" target="_blank">Deschide în Waze</a>' : '') +
+                (wazeLink ? '<a href="' + escapeHtmlAttr(wazeLink) + '">Deschide în Waze</a>' : '') +
                 '</div>';
 
             (i < 2 ? top : bottom).insertAdjacentHTML('beforeend', html);
