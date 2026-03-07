@@ -60,6 +60,7 @@ function teinvit_install_modular_tables() {
         token varchar(191) NOT NULL,
         guest_first_name varchar(191) NOT NULL,
         guest_last_name varchar(191) NOT NULL,
+        guest_email varchar(191) NOT NULL,
         guest_phone varchar(20) NOT NULL,
         attending_people_count int NOT NULL DEFAULT 1,
         attending_civil tinyint(1) NOT NULL DEFAULT 0,
@@ -77,6 +78,7 @@ function teinvit_install_modular_tables() {
         created_at datetime NOT NULL,
         PRIMARY KEY (id),
         KEY token (token),
+        KEY guest_email (guest_email),
         KEY guest_phone (guest_phone)
     ) $charset;" );
 
@@ -95,6 +97,22 @@ function teinvit_install_modular_tables() {
         KEY token_status (token, status)
     ) $charset;" );
     teinvit_ensure_versions_pdf_columns();
+    teinvit_ensure_rsvp_email_column();
+}
+
+function teinvit_ensure_rsvp_email_column() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['rsvp'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'guest_email', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN guest_email varchar(191) NOT NULL DEFAULT '' AFTER guest_last_name" );
+    }
 }
 
 function teinvit_ensure_versions_pdf_columns() {
