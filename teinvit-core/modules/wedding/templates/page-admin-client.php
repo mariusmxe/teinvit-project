@@ -240,10 +240,12 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
 .teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
 @media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
-@media (max-width: 768px){.teinvit-admin-page{padding:10px}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:100%!important;min-height:280px;overflow:hidden}.teinvit-admin-preview-block{display:block!important;order:1}.teinvit-admin-page .teinvit-preview img,.teinvit-admin-page .teinvit-preview svg,.teinvit-admin-page .teinvit-preview canvas{max-width:100%!important;height:auto!important}.teinvit-report-grid{grid-template-columns:1fr}.teinvit-report-card{overflow-wrap:break-word;word-break:normal}.teinvit-report-card strong{display:block;margin-bottom:4px}}
+@media (max-width: 768px){.teinvit-admin-page{padding:10px}.teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-two-col>div{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-preview-block{display:block!important;order:1;min-width:0;max-width:100%!important}.teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-preview-block .teinvit-page,.teinvit-admin-preview-block .teinvit-container,.teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-preview-block .teinvit-wedding{display:block!important}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;min-height:280px;overflow:hidden}.teinvit-admin-page .teinvit-preview img,.teinvit-admin-page .teinvit-preview svg,.teinvit-admin-page .teinvit-preview canvas{max-width:100%!important;height:auto!important}.teinvit-report-grid{grid-template-columns:1fr}.teinvit-report-card{overflow-wrap:normal;word-break:normal}.teinvit-report-card strong{display:block;margin-bottom:4px;word-break:normal;overflow-wrap:normal;hyphens:none}}
 .teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}.teinvit-apf-col .teinvit-message-invitatie-field textarea{height:calc(1.5em * 6 + 22px) !important;min-height:calc(1.5em * 6 + 22px) !important;max-height:calc(1.5em * 6 + 22px) !important;resize:none !important;overflow:auto !important}
-.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{max-width:100%;overflow:hidden}
-.teinvit-admin-page .teinvit-preview{max-width:760px;margin:0 auto;overflow:hidden}.teinvit-admin-preview-block{display:block}
+.teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}
+.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}
+.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}
+.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 
 .teinvit-gifts-title{text-align:center}
 .teinvit-gifts-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0}
@@ -423,7 +425,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       <div class="teinvit-report-card"><strong>Confirmari totale unice:</strong> <?php echo (int) ( $report_sets['unique_phones_count'] ?? 0 ); ?></div>
       <div class="teinvit-report-card"><strong>Confirmari totale completate:</strong> <?php echo (int) ( $report_sets['submissions_count'] ?? 0 ); ?></div>
       <div class="teinvit-report-card"><strong>Confirmări multiple (invitați):</strong> <?php echo (int) ( $report_sets['multiple_phones_count'] ?? 0 ); ?></div>
-      <div class="teinvit-report-card"><strong>Persoane Civilă/Religioasă/Petrecere:</strong> <?php echo (int) $sum_people_civil; ?> / <?php echo (int) $sum_people_religious; ?> / <?php echo (int) $sum_people_party; ?></div>
+      <div class="teinvit-report-card"><strong>Persoane Civilă/ Religioasă/ Petrecere:</strong> <?php echo (int) $sum_people_civil; ?> / <?php echo (int) $sum_people_religious; ?> / <?php echo (int) $sum_people_party; ?></div>
             <div class="teinvit-report-card"><strong>Total copii:</strong> <?php echo (int) $total_kids; ?></div>
       <div class="teinvit-report-card"><strong>Cazare DA / Persoane:</strong> <?php echo (int) $total_cazare_rsvp; ?> / <?php echo (int) $total_cazare_people; ?></div>
       <div class="teinvit-report-card"><strong>Vegetarian DA / Meniuri:</strong> <?php echo (int) $total_veg_rsvp; ?> / <?php echo (int) $total_veg_menus; ?></div>
@@ -567,7 +569,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   if (showGiftsCheckbox && giftsEditor) {
     showGiftsCheckbox.addEventListener('change', ()=>{
-      giftsEditor.style.display = showGiftsCheckbox.checked ? '' : 'none';
+      const enabled = !!showGiftsCheckbox.checked;
+      giftsEditor.style.display = enabled ? '' : 'none';
+      if (!enabled && giftsForm) {
+        giftsForm.submit();
+      }
     });
   }
 
@@ -581,6 +587,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   if (giftsForm) {
     giftsForm.addEventListener('submit', (e)=>{
+      const shouldConfirm = !showGiftsCheckbox || !!showGiftsCheckbox.checked;
+      if (!shouldConfirm) {
+        return;
+      }
       const ok = window.confirm('După salvarea listei cadourile completate nu mai pot fi editate. Ești sigur că vrei să o salvezi?');
       if (!ok) {
         e.preventDefault();
