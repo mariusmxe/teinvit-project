@@ -1395,8 +1395,12 @@ add_filter(
                     ];
                 }
 
-                public function get_content_type() {
-                    return 'text/html';
+                public function get_content_type( $default_content_type = '' ) {
+                    if ( is_string( $default_content_type ) && $default_content_type !== '' ) {
+                        return 'text/html; charset=UTF-8';
+                    }
+
+                    return 'text/html; charset=UTF-8';
                 }
 
                 public function trigger( $send_id = '' ) {
