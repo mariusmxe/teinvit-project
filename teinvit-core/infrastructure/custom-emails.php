@@ -257,6 +257,30 @@ function teinvit_update_email_template( $template_id, array $data ) {
     update_option( TEINVIT_EMAIL_TEMPLATES_OPTION, $templates, false );
 }
 
+function teinvit_email_set_template_status( $template_id, $status ) {
+    $templates = teinvit_get_email_templates();
+    if ( empty( $templates[ $template_id ] ) || ! is_array( $templates[ $template_id ] ) ) {
+        return;
+    }
+
+    $templates[ $template_id ]['status'] = $status === 'active' ? 'active' : 'draft';
+    update_option( TEINVIT_EMAIL_TEMPLATES_OPTION, $templates, false );
+}
+
+function teinvit_email_duplicate_template( $template_id ) {
+    $template = teinvit_get_email_template( $template_id );
+    if ( ! $template ) {
+        return '';
+    }
+
+    $new_id = sanitize_key( $template_id . '_copy_' . wp_generate_password( 4, false, false ) );
+    $template['id'] = $new_id;
+    $template['name'] = (string) ( $template['name'] ?? $template_id ) . ' (Copy)';
+    teinvit_update_email_template( $new_id, $template );
+
+    return $new_id;
+}
+
 function teinvit_email_get_secret() {
     if ( defined( 'TEINVIT_EMAIL_HMAC_SECRET' ) && TEINVIT_EMAIL_HMAC_SECRET ) {
         return (string) TEINVIT_EMAIL_HMAC_SECRET;
@@ -891,29 +915,35 @@ function teinvit_email_queue_template( $template_id, array $args ) {
 
     $template = teinvit_get_email_template( $template_id );
     if ( ! $template || ( $template['status'] ?? 'draft' ) !== 'active' ) {
+        error_log( '[TeInvit Emails] skipped queue: template missing/inactive for ' . (string) $template_id );
         return null;
     }
 
     $recipient = sanitize_email( (string) ( $args['recipient_email'] ?? '' ) );
     if ( $recipient === '' || ! is_email( $recipient ) ) {
+        error_log( '[TeInvit Emails] skipped queue: invalid recipient for template ' . (string) $template_id );
         return null;
     }
 
     if ( ! empty( $template['is_marketing'] ) ) {
         if ( empty( $args['marketing_consent'] ) ) {
+            error_log( '[TeInvit Emails] skipped queue: missing marketing consent for template ' . (string) $template_id );
             return null;
         }
         if ( teinvit_email_is_suppressed( $recipient, 'marketing' ) ) {
+            error_log( '[TeInvit Emails] skipped queue: recipient suppressed for template ' . (string) $template_id );
             return null;
         }
     }
 
     if ( teinvit_email_send_rate_limited( $template, $recipient ) ) {
+        error_log( '[TeInvit Emails] skipped queue: rate limited for template ' . (string) $template_id . ' recipient ' . $recipient );
         return null;
     }
 
     $semantic_hash = (string) ( $args['semantic_hash'] ?? '' );
     if ( teinvit_email_has_recent_duplicate( $template, $recipient, $semantic_hash ) ) {
+        error_log( '[TeInvit Emails] skipped queue: dedupe hit for template ' . (string) $template_id . ' recipient ' . $recipient );
         return null;
     }
 
@@ -1257,17 +1287,43 @@ function teinvit_emails_page_all() {
         return;
     }
 
+    if ( isset( $_GET['teinvit_action'], $_GET['template_id'] ) && check_admin_referer( 'teinvit_emails_action' ) ) {
+        $action = sanitize_key( (string) wp_unslash( $_GET['teinvit_action'] ) );
+        $id     = sanitize_key( (string) wp_unslash( $_GET['template_id'] ) );
+
+        if ( $action === 'disable' ) {
+            teinvit_email_set_template_status( $id, 'draft' );
+            echo '<div class="notice notice-success"><p>Template dezactivat.</p></div>';
+        } elseif ( $action === 'enable' ) {
+            teinvit_email_set_template_status( $id, 'active' );
+            echo '<div class="notice notice-success"><p>Template activat.</p></div>';
+        } elseif ( $action === 'duplicate' ) {
+            $new_id = teinvit_email_duplicate_template( $id );
+            if ( $new_id !== '' ) {
+                echo '<div class="notice notice-success"><p>Template duplicat: ' . esc_html( $new_id ) . '</p></div>';
+            }
+        }
+    }
+
     $templates = teinvit_get_email_templates();
 
-    echo '<div class="wrap"><h1>Custom Emails</h1><table class="widefat striped"><thead><tr><th>Name</th><th>ID</th><th>Trigger</th><th>Audience</th><th>Status</th><th>Delay</th></tr></thead><tbody>';
+    echo '<div class="wrap"><h1>Custom Emails</h1><table class="widefat striped"><thead><tr><th>Name</th><th>ID</th><th>Trigger</th><th>Audience</th><th>Status</th><th>Delay</th><th>Actions</th></tr></thead><tbody>';
     foreach ( $templates as $tpl ) {
+        $id = sanitize_key( (string) ( $tpl['id'] ?? '' ) );
+        $edit_url = admin_url( 'admin.php?page=teinvit-custom-emails-new&template_id=' . rawurlencode( $id ) );
+        $dup_url = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=duplicate&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
+        $toggle_action = ( ( $tpl['status'] ?? 'draft' ) === 'active' ) ? 'disable' : 'enable';
+        $toggle_label  = $toggle_action === 'disable' ? 'Disable' : 'Enable';
+        $toggle_url    = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=' . $toggle_action . '&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
+
         echo '<tr>';
-        echo '<td>' . esc_html( $tpl['name'] ?? '' ) . '</td>';
-        echo '<td>' . esc_html( $tpl['id'] ?? '' ) . '</td>';
+        echo '<td><a href="' . esc_url( $edit_url ) . '"><strong>' . esc_html( $tpl['name'] ?? '' ) . '</strong></a></td>';
+        echo '<td>' . esc_html( $id ) . '</td>';
         echo '<td>' . esc_html( $tpl['trigger'] ?? '' ) . '</td>';
         echo '<td>' . esc_html( $tpl['audience'] ?? '' ) . '</td>';
         echo '<td>' . esc_html( $tpl['status'] ?? '' ) . '</td>';
         echo '<td>' . esc_html( (string) ( $tpl['delay_value'] ?? 0 ) . ' ' . (string) ( $tpl['delay_unit'] ?? 'hours' ) ) . '</td>';
+        echo '<td><a href="' . esc_url( $edit_url ) . '">Edit</a> | <a href="' . esc_url( $dup_url ) . '">Duplicate</a> | <a href="' . esc_url( $toggle_url ) . '">' . esc_html( $toggle_label ) . '</a></td>';
         echo '</tr>';
     }
     echo '</tbody></table></div>';
