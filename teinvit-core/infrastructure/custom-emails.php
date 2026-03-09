@@ -193,10 +193,45 @@ function teinvit_email_default_templates() {
     ];
 }
 
+function teinvit_email_default_blocks_for_template( $template_id ) {
+    $defaults = teinvit_email_default_templates();
+    $tpl      = $defaults[ $template_id ] ?? null;
+    if ( ! is_array( $tpl ) ) {
+        return [
+            [ 'type' => 'title', 'text' => 'TeInvit Email' ],
+            [ 'type' => 'text', 'html' => '<p>Acesta este un email TeInvit.</p>' ],
+            [ 'type' => 'button', 'label' => 'Deschide TeInvit', 'url' => home_url( '/' ), 'style' => 'primary' ],
+        ];
+    }
+
+    $blocks = is_array( $tpl['blocks'] ?? null ) ? $tpl['blocks'] : [];
+
+    return empty( $blocks ) ? [
+        [ 'type' => 'title', 'text' => 'TeInvit Email' ],
+        [ 'type' => 'text', 'html' => '<p>Acesta este un email TeInvit.</p>' ],
+    ] : $blocks;
+}
+
 function teinvit_get_email_templates() {
-    $templates = get_option( TEINVIT_EMAIL_TEMPLATES_OPTION, [] );
-    if ( ! is_array( $templates ) || empty( $templates ) ) {
-        $templates = teinvit_email_default_templates();
+    $defaults = teinvit_email_default_templates();
+    $stored   = get_option( TEINVIT_EMAIL_TEMPLATES_OPTION, [] );
+    if ( ! is_array( $stored ) ) {
+        $stored = [];
+    }
+
+    $templates = $defaults;
+    foreach ( $stored as $id => $tpl ) {
+        if ( ! is_array( $tpl ) ) {
+            continue;
+        }
+        $base = is_array( $templates[ $id ] ?? null ) ? $templates[ $id ] : [];
+        $templates[ $id ] = array_merge( $base, $tpl );
+    }
+
+    foreach ( $templates as $id => $tpl ) {
+        if ( empty( $tpl['blocks'] ) || ! is_array( $tpl['blocks'] ) ) {
+            $templates[ $id ]['blocks'] = teinvit_email_default_blocks_for_template( $id );
+        }
     }
 
     return $templates;
@@ -204,7 +239,16 @@ function teinvit_get_email_templates() {
 
 function teinvit_get_email_template( $template_id ) {
     $templates = teinvit_get_email_templates();
-    return $templates[ $template_id ] ?? null;
+    $template  = $templates[ $template_id ] ?? null;
+    if ( ! is_array( $template ) ) {
+        return null;
+    }
+
+    if ( empty( $template['blocks'] ) || ! is_array( $template['blocks'] ) ) {
+        $template['blocks'] = teinvit_email_default_blocks_for_template( $template_id );
+    }
+
+    return $template;
 }
 
 function teinvit_update_email_template( $template_id, array $data ) {
@@ -685,6 +729,68 @@ function teinvit_email_get_send( $send_id ) {
     return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$tables['sends']} WHERE send_id=%s", $send_id ), ARRAY_A );
 }
 
+function teinvit_email_resolve_template_id( $template_id, array $args = [] ) {
+    $template = teinvit_get_email_template( $template_id );
+    if ( $template ) {
+        return $template_id;
+    }
+
+    $trigger  = sanitize_key( (string) ( $args['trigger'] ?? '' ) );
+    $audience = sanitize_key( (string) ( $args['audience'] ?? '' ) );
+
+    foreach ( teinvit_get_email_templates() as $id => $tpl ) {
+        if ( ( $tpl['status'] ?? 'draft' ) !== 'active' ) {
+            continue;
+        }
+        if ( $trigger !== '' && sanitize_key( (string) ( $tpl['trigger'] ?? '' ) ) !== $trigger ) {
+            continue;
+        }
+        if ( $audience !== '' && sanitize_key( (string) ( $tpl['audience'] ?? '' ) ) !== $audience ) {
+            continue;
+        }
+        return (string) $id;
+    }
+
+    return $template_id;
+}
+
+function teinvit_email_template_id_for_wc_email_id( $wc_email_id ) {
+    $map = [
+        'teinvit_email_token_generated' => 'token_generated_customer',
+        'teinvit_email_rsvp_received' => 'rsvp_received_customer',
+        'teinvit_email_guest_marketing_1' => 'guest_marketing_consent_1',
+    ];
+
+    return $map[ $wc_email_id ] ?? '';
+}
+
+function teinvit_email_sample_context_args( $template_id, $recipient_email = '' ) {
+    return [
+        'token' => 'sample-token-123',
+        'order_id' => 0,
+        'rsvp_id' => 0,
+        'recipient_email' => $recipient_email !== '' ? $recipient_email : sanitize_email( get_option( 'admin_email' ) ),
+        'send_id' => teinvit_email_uuid_v4(),
+        'payload' => [
+            'guest_first_name' => 'Alex',
+            'guest_last_name' => 'Popescu',
+            'guest_phone' => '0712345678',
+            'guest_email' => 'alex@example.com',
+            'attending_people_count' => 2,
+            'kids_count' => 1,
+            'attending_civil' => 1,
+            'attending_religious' => 1,
+            'attending_party' => 1,
+            'needs_accommodation' => 0,
+            'vegetarian_requested' => 0,
+            'vegetarian_menus_count' => 0,
+            'allergy_details' => 'N/A',
+            'message_to_couple' => 'Casă de piatră!',
+            'marketing_consent' => 1,
+        ],
+    ];
+}
+
 function teinvit_email_attach_tracking( $send_id, $html ) {
     $html = preg_replace_callback(
         '/href\s*=\s*"([^"]+)"/i',
@@ -775,6 +881,14 @@ add_action(
 );
 
 function teinvit_email_queue_template( $template_id, array $args ) {
+    $template_id = teinvit_email_resolve_template_id(
+        $template_id,
+        [
+            'trigger'  => $args['trigger'] ?? '',
+            'audience' => $args['audience'] ?? '',
+        ]
+    );
+
     $template = teinvit_get_email_template( $template_id );
     if ( ! $template || ( $template['status'] ?? 'draft' ) !== 'active' ) {
         return null;
@@ -1185,10 +1299,10 @@ function teinvit_emails_page_new() {
         'blocks'           => [ [ 'type' => 'title', 'text' => '' ] ],
     ];
 
-    if ( isset( $_POST['teinvit_email_save'] ) && check_admin_referer( 'teinvit_email_new' ) ) {
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer( 'teinvit_email_new' ) ) {
         $id = sanitize_key( (string) ( $_POST['template_id'] ?? '' ) );
         if ( $id === '' ) {
-            $id = 'custom_' . wp_generate_password( 8, false, false );
+            $id = ! empty( $template['id'] ) ? sanitize_key( (string) $template['id'] ) : 'custom_' . wp_generate_password( 8, false, false );
         }
 
         $template = [
@@ -1210,8 +1324,40 @@ function teinvit_emails_page_new() {
             'blocks'           => teinvit_email_read_blocks_from_post(),
         ];
 
-        teinvit_update_email_template( $id, $template );
-        echo '<div class="notice notice-success"><p>Email salvat.</p></div>';
+        if ( empty( $template['blocks'] ) || ! is_array( $template['blocks'] ) ) {
+            $template['blocks'] = teinvit_email_default_blocks_for_template( $id );
+        }
+
+        if ( isset( $_POST['teinvit_email_save'] ) ) {
+            teinvit_update_email_template( $id, $template );
+            echo '<div class="notice notice-success"><p>Email salvat.</p></div>';
+        } else {
+            echo '<div class="notice notice-info"><p>Modificările builder sunt încă nesalvate. Apasă "Save Email" pentru persistare.</p></div>';
+        }
+
+        if ( isset( $_POST['teinvit_email_send_test'] ) ) {
+            $recipient_test = sanitize_email( (string) get_option( 'admin_email' ) );
+            if ( $recipient_test && is_email( $recipient_test ) ) {
+                teinvit_update_email_template( $id, $template );
+                $sample = teinvit_email_sample_context_args( $id, $recipient_test );
+                teinvit_email_queue_template(
+                    $id,
+                    [
+                        'token' => $sample['token'],
+                        'order_id' => 0,
+                        'rsvp_id' => 0,
+                        'recipient_email' => $recipient_test,
+                        'payload' => $sample['payload'],
+                        'semantic_hash' => hash( 'sha256', $id . '|' . time() ),
+                        'trigger' => $template['trigger'],
+                        'audience' => $template['audience'],
+                    ]
+                );
+                echo '<div class="notice notice-success"><p>Test email pus în coadă către admin email.</p></div>';
+            } else {
+                echo '<div class="notice notice-error"><p>Nu există admin email valid pentru test.</p></div>';
+            }
+        }
     }
 
     echo '<div class="wrap"><h1>New Email (Block Builder)</h1>';
@@ -1267,7 +1413,7 @@ function teinvit_emails_page_new() {
 
     echo '<p><select name="teinvit_new_block_type"><option value="text">text</option><option value="logo">logo</option><option value="banner">banner</option><option value="title">title</option><option value="subtitle">subtitle</option><option value="bullets">bullets</option><option value="divider">divider</option><option value="button">button</option><option value="link">link</option><option value="footer">footer</option></select> <button type="submit" class="button" name="teinvit_block_add" value="1">Add Block</button></p>';
 
-    echo '<p class="submit"><button type="submit" class="button button-primary" name="teinvit_email_save" value="1">Save Email</button></p>';
+    echo '<p class="submit"><button type="submit" class="button button-primary" name="teinvit_email_save" value="1">Save Email</button> <button type="submit" class="button" name="teinvit_email_send_test" value="1">Send test email</button></p>';
     echo '</form></div>';
 }
 
@@ -1410,7 +1556,24 @@ add_filter(
 
                     $send = teinvit_email_get_send( $send_id );
                     if ( ! $send ) {
-                        return false;
+                        $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                        if ( $template_id === '' ) {
+                            return false;
+                        }
+
+                        $template = teinvit_get_email_template( $template_id );
+                        if ( ! $template ) {
+                            return false;
+                        }
+
+                        $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
+                        $render    = teinvit_email_render_template( $template, $sample );
+                        $recipient = sanitize_email( (string) $sample['recipient_email'] );
+                        if ( $recipient === '' || ! is_email( $recipient ) ) {
+                            return false;
+                        }
+
+                        return (bool) $this->send( $recipient, (string) $render['subject'], (string) $render['body_html'], $this->get_headers(), $this->get_attachments() );
                     }
 
                     $recipient = sanitize_email( (string) ( $send['recipient_email'] ?? '' ) );
@@ -1421,10 +1584,47 @@ add_filter(
                     $subject = (string) ( $send['subject_rendered'] ?? $this->get_default_subject() );
                     $content = (string) ( $send['body_rendered'] ?? '' );
                     if ( $content === '' ) {
+                        $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                        $template    = $template_id ? teinvit_get_email_template( $template_id ) : null;
+                        if ( $template ) {
+                            $sample  = teinvit_email_sample_context_args( $template_id, $recipient );
+                            $render  = teinvit_email_render_template( $template, $sample );
+                            $content = (string) ( $render['body_html'] ?? '' );
+                            $subject = (string) ( $render['subject'] ?? $subject );
+                        }
+                    }
+
+                    if ( $content === '' ) {
                         return false;
                     }
 
                     return (bool) $this->send( $recipient, $subject, $content, $this->get_headers(), $this->get_attachments() );
+                }
+
+                public function get_content_html() {
+                    $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                    $template    = $template_id ? teinvit_get_email_template( $template_id ) : null;
+                    if ( ! $template ) {
+                        return '<p>TeInvit email preview indisponibil.</p>';
+                    }
+
+                    $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
+                    $render = teinvit_email_render_template( $template, $sample );
+
+                    return (string) ( $render['body_html'] ?? '' );
+                }
+
+                public function get_content_plain() {
+                    $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                    $template    = $template_id ? teinvit_get_email_template( $template_id ) : null;
+                    if ( ! $template ) {
+                        return 'TeInvit email preview indisponibil.';
+                    }
+
+                    $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
+                    $render = teinvit_email_render_template( $template, $sample );
+
+                    return (string) ( $render['body_text'] ?? '' );
                 }
 
                 public function get_default_subject() {
