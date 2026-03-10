@@ -1691,7 +1691,12 @@ add_filter(
                 }
 
                 protected function get_teinvit_template_id() {
-                    return $this->teinvit_template_id;
+                    if ( $this->teinvit_template_id !== '' ) {
+                        return $this->teinvit_template_id;
+                    }
+
+                    $fallback = teinvit_email_template_id_for_wc_email_id( (string) $this->id );
+                    return $fallback ? (string) $fallback : '';
                 }
 
                 public function init_form_fields() {
@@ -1733,6 +1738,7 @@ add_filter(
                         $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                         $render    = teinvit_email_render_template( $template, $sample );
                         $recipient = sanitize_email( (string) $sample['recipient_email'] );
+                        error_log( '[TeInvit Emails][WC test trigger] email_class=' . (string) $this->id . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
                         if ( $recipient === '' || ! is_email( $recipient ) ) {
                             return false;
                         }
@@ -1774,6 +1780,7 @@ add_filter(
 
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
+                    error_log( '[TeInvit Emails][WC preview html] email_class=' . (string) $this->id . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_html'] ?? '' );
                 }
@@ -1787,6 +1794,7 @@ add_filter(
 
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
+                    error_log( '[TeInvit Emails][WC preview plain] email_class=' . (string) $this->id . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_text'] ?? '' );
                 }
