@@ -1355,16 +1355,66 @@ function teinvit_email_read_blocks_from_post() {
 add_action(
     'admin_menu',
     function() {
-        add_menu_page( 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all', 'dashicons-email-alt2', 58 );
-        add_submenu_page( 'teinvit-custom-emails', 'All Emails', 'All Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
-        add_submenu_page( 'teinvit-custom-emails', 'New Email', 'New Email', 'manage_woocommerce', 'teinvit-custom-emails-new', 'teinvit_emails_page_new' );
-        add_submenu_page( 'teinvit-custom-emails', 'Logs', 'Logs', 'manage_woocommerce', 'teinvit-custom-emails-logs', 'teinvit_emails_page_logs' );
-        add_submenu_page( 'teinvit-custom-emails', 'Unsubscribes/Suppression', 'Unsubscribes/Suppression', 'manage_woocommerce', 'teinvit-custom-emails-suppression', 'teinvit_emails_page_suppression' );
-
-        add_submenu_page( 'woocommerce', 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
+        add_submenu_page( 'woocommerce', 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_router' );
     },
     99
 );
+
+function teinvit_emails_admin_tab_url( $tab, array $extra = [] ) {
+    $args = array_merge(
+        [
+            'page' => 'teinvit-custom-emails',
+            'tab'  => sanitize_key( (string) $tab ),
+        ],
+        $extra
+    );
+
+    return admin_url( 'admin.php?' . http_build_query( $args ) );
+}
+
+function teinvit_emails_admin_tabs( $active_tab ) {
+    $tabs = [
+        'all'         => 'All Emails',
+        'new'         => 'New Email',
+        'logs'        => 'Logs',
+        'suppression' => 'Unsubscribes/Suppression',
+    ];
+
+    echo '<h2 class="nav-tab-wrapper" style="margin-bottom:16px;">';
+    foreach ( $tabs as $tab => $label ) {
+        $class = $tab === $active_tab ? 'nav-tab nav-tab-active' : 'nav-tab';
+        echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( teinvit_emails_admin_tab_url( $tab ) ) . '">' . esc_html( $label ) . '</a>';
+    }
+    echo '</h2>';
+}
+
+function teinvit_emails_page_router() {
+    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+        return;
+    }
+
+    $tab = isset( $_GET['tab'] ) ? sanitize_key( (string) wp_unslash( $_GET['tab'] ) ) : 'all';
+    if ( ! in_array( $tab, [ 'all', 'new', 'logs', 'suppression' ], true ) ) {
+        $tab = 'all';
+    }
+
+    if ( $tab === 'new' ) {
+        teinvit_emails_page_new();
+        return;
+    }
+
+    if ( $tab === 'logs' ) {
+        teinvit_emails_page_logs();
+        return;
+    }
+
+    if ( $tab === 'suppression' ) {
+        teinvit_emails_page_suppression();
+        return;
+    }
+
+    teinvit_emails_page_all();
+}
 
 function teinvit_emails_page_all() {
     if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -1397,15 +1447,17 @@ function teinvit_emails_page_all() {
 
     $templates = teinvit_get_email_templates();
 
-    echo '<div class="wrap"><h1>Custom Emails</h1><table class="widefat striped"><thead><tr><th>Name</th><th>ID</th><th>Trigger</th><th>Audience</th><th>Status</th><th>Delay</th><th>Actions</th></tr></thead><tbody>';
+    echo '<div class="wrap"><h1>Custom Emails</h1>';
+    teinvit_emails_admin_tabs( 'all' );
+    echo '<table class="widefat striped"><thead><tr><th>Name</th><th>ID</th><th>Trigger</th><th>Audience</th><th>Status</th><th>Delay</th><th>Actions</th></tr></thead><tbody>';
     foreach ( $templates as $tpl ) {
         $id = sanitize_key( (string) ( $tpl['id'] ?? '' ) );
-        $edit_url = admin_url( 'admin.php?page=teinvit-custom-emails-new&template_id=' . rawurlencode( $id ) );
-        $dup_url = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=duplicate&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
+        $edit_url = teinvit_emails_admin_tab_url( 'new', [ 'template_id' => $id ] );
+        $dup_url = wp_nonce_url( teinvit_emails_admin_tab_url( 'all', [ 'teinvit_action' => 'duplicate', 'template_id' => $id ] ), 'teinvit_emails_action' );
         $toggle_action = ( ( $tpl['status'] ?? 'draft' ) === 'active' ) ? 'disable' : 'enable';
         $toggle_label  = $toggle_action === 'disable' ? 'Disable' : 'Enable';
-        $toggle_url    = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=' . $toggle_action . '&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
-        $delete_url    = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=delete&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
+        $toggle_url    = wp_nonce_url( teinvit_emails_admin_tab_url( 'all', [ 'teinvit_action' => $toggle_action, 'template_id' => $id ] ), 'teinvit_emails_action' );
+        $delete_url    = wp_nonce_url( teinvit_emails_admin_tab_url( 'all', [ 'teinvit_action' => 'delete', 'template_id' => $id ] ), 'teinvit_emails_action' );
         $is_default    = teinvit_email_is_default_template( $id );
 
         echo '<tr>';
@@ -1515,9 +1567,10 @@ function teinvit_emails_page_new() {
     }
 
     echo '<div class="wrap"><h1>New Email (Block Builder)</h1>';
+    teinvit_emails_admin_tabs( 'new' );
     echo '<p>Template-uri existente: ';
     foreach ( teinvit_get_email_templates() as $tpl ) {
-        $url = esc_url( admin_url( 'admin.php?page=teinvit-custom-emails-new&template_id=' . rawurlencode( $tpl['id'] ) ) );
+        $url = esc_url( teinvit_emails_admin_tab_url( 'new', [ 'template_id' => (string) $tpl['id'] ] ) );
         echo '<a href="' . $url . '" style="margin-right:10px;">' . esc_html( $tpl['name'] ) . '</a>';
     }
     echo '</p>';
@@ -1590,7 +1643,9 @@ function teinvit_emails_page_logs() {
         ARRAY_A
     );
 
-    echo '<div class="wrap"><h1>Custom Emails Logs</h1><table class="widefat striped"><thead><tr><th>Send ID</th><th>Template</th><th>Order/Token</th><th>Recipient</th><th>Status</th><th>Opens</th><th>Clicks</th><th>Created</th><th>Sent</th></tr></thead><tbody>';
+    echo '<div class="wrap"><h1>Custom Emails Logs</h1>';
+    teinvit_emails_admin_tabs( 'logs' );
+    echo '<table class="widefat striped"><thead><tr><th>Send ID</th><th>Template</th><th>Order/Token</th><th>Recipient</th><th>Status</th><th>Opens</th><th>Clicks</th><th>Created</th><th>Sent</th></tr></thead><tbody>';
     foreach ( $rows as $row ) {
         $order_token = ! empty( $row['order_id'] ) ? ( 'Order #' . (int) $row['order_id'] ) : ( 'Token: ' . (string) ( $row['token'] ?? '-' ) );
         echo '<tr>';
@@ -1625,7 +1680,9 @@ function teinvit_emails_page_suppression() {
 
     $rows = $wpdb->get_results( "SELECT * FROM {$tables['suppression']} ORDER BY id DESC LIMIT 300", ARRAY_A );
 
-    echo '<div class="wrap"><h1>Unsubscribes / Suppression</h1><table class="widefat striped"><thead><tr><th>Email</th><th>Scope</th><th>Reason</th><th>Created</th><th>Action</th></tr></thead><tbody>';
+    echo '<div class="wrap"><h1>Unsubscribes / Suppression</h1>';
+    teinvit_emails_admin_tabs( 'suppression' );
+    echo '<table class="widefat striped"><thead><tr><th>Email</th><th>Scope</th><th>Reason</th><th>Created</th><th>Action</th></tr></thead><tbody>';
     foreach ( $rows as $row ) {
         echo '<tr>';
         echo '<td>' . esc_html( $row['email'] ) . '</td>';
