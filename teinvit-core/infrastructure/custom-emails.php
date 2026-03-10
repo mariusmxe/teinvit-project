@@ -829,6 +829,22 @@ function teinvit_email_resolve_template_id( $template_id, array $args = [] ) {
     return $template_id;
 }
 
+
+function teinvit_email_current_wc_settings_section_id() {
+    if ( ! is_admin() ) {
+        return '';
+    }
+
+    $page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+    $tab  = isset( $_GET['tab'] ) ? sanitize_key( (string) wp_unslash( $_GET['tab'] ) ) : '';
+    if ( $page !== 'wc-settings' || ! in_array( $tab, [ 'email', 'emails' ], true ) ) {
+        return '';
+    }
+
+    $section = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+    return $section;
+}
+
 function teinvit_email_template_id_for_wc_email_id( $wc_email_id ) {
     $map = [
         'teinvit_email_token_generated' => 'token_generated_customer',
@@ -1748,6 +1764,14 @@ add_filter(
                 }
 
                 protected function get_teinvit_template_id() {
+                    $section_email_id = teinvit_email_current_wc_settings_section_id();
+                    if ( $section_email_id !== '' ) {
+                        $section_template_id = teinvit_email_template_id_for_wc_email_id( $section_email_id );
+                        if ( $section_template_id !== '' ) {
+                            return (string) $section_template_id;
+                        }
+                    }
+
                     if ( $this->teinvit_template_id !== '' ) {
                         return $this->teinvit_template_id;
                     }
@@ -1795,7 +1819,7 @@ add_filter(
                         $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                         $render    = teinvit_email_render_template( $template, $sample );
                         $recipient = sanitize_email( (string) $sample['recipient_email'] );
-                        error_log( '[TeInvit Emails][WC test trigger] email_class=' . (string) $this->id . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                        error_log( '[TeInvit Emails][WC test trigger] email_class=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
                         if ( $recipient === '' || ! is_email( $recipient ) ) {
                             return false;
                         }
@@ -1837,7 +1861,7 @@ add_filter(
 
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
-                    error_log( '[TeInvit Emails][WC preview html] email_class=' . (string) $this->id . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview html] email_class=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_html'] ?? '' );
                 }
@@ -1851,7 +1875,7 @@ add_filter(
 
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
-                    error_log( '[TeInvit Emails][WC preview plain] email_class=' . (string) $this->id . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview plain] email_class=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_text'] ?? '' );
                 }
