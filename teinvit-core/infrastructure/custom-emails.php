@@ -120,6 +120,7 @@ function teinvit_email_default_templates() {
             'email_type'       => 'html',
             'accent_color'     => '#B07A4F',
             'is_marketing'     => 0,
+            'apply_rate_limit' => 0,
             'require_consent'  => 0,
             'rate_limit_count' => 2,
             'rate_limit_days'  => 7,
@@ -145,6 +146,7 @@ function teinvit_email_default_templates() {
             'email_type'       => 'html',
             'accent_color'     => '#B07A4F',
             'is_marketing'     => 0,
+            'apply_rate_limit' => 0,
             'require_consent'  => 0,
             'rate_limit_count' => 2,
             'rate_limit_days'  => 7,
@@ -180,6 +182,7 @@ function teinvit_email_default_templates() {
             'email_type'       => 'html',
             'accent_color'     => '#B07A4F',
             'is_marketing'     => 1,
+            'apply_rate_limit' => 1,
             'require_consent'  => 1,
             'rate_limit_count' => 2,
             'rate_limit_days'  => 7,
@@ -191,6 +194,18 @@ function teinvit_email_default_templates() {
             ],
         ],
     ];
+}
+
+function teinvit_email_default_template_ids() {
+    return [
+        'token_generated_customer',
+        'rsvp_received_customer',
+        'guest_marketing_consent_1',
+    ];
+}
+
+function teinvit_email_is_default_template( $template_id ) {
+    return in_array( (string) $template_id, teinvit_email_default_template_ids(), true );
 }
 
 function teinvit_email_default_blocks_for_template( $template_id ) {
@@ -279,6 +294,23 @@ function teinvit_email_duplicate_template( $template_id ) {
     teinvit_update_email_template( $new_id, $template );
 
     return $new_id;
+}
+
+function teinvit_email_delete_template( $template_id ) {
+    $template_id = sanitize_key( (string) $template_id );
+    if ( $template_id === '' || teinvit_email_is_default_template( $template_id ) ) {
+        return false;
+    }
+
+    $templates = get_option( TEINVIT_EMAIL_TEMPLATES_OPTION, [] );
+    if ( ! is_array( $templates ) || empty( $templates[ $template_id ] ) ) {
+        return false;
+    }
+
+    unset( $templates[ $template_id ] );
+    update_option( TEINVIT_EMAIL_TEMPLATES_OPTION, $templates, false );
+
+    return true;
 }
 
 function teinvit_email_get_secret() {
@@ -666,7 +698,19 @@ function teinvit_email_log_event( $send_id, $event_type, $url = null ) {
     );
 }
 
-function teinvit_email_send_rate_limited( array $template, $recipient_email ) {
+function teinvit_email_rate_limit_details( array $template, $recipient_email, $token = '' ) {
+    $apply_rate_limit = array_key_exists( 'apply_rate_limit', $template ) ? ! empty( $template['apply_rate_limit'] ) : ! empty( $template['is_marketing'] );
+    if ( ! $apply_rate_limit ) {
+        return [
+            'enabled' => false,
+            'hit' => false,
+            'count' => 0,
+            'limit' => 0,
+            'days' => 0,
+            'key' => 'template=' . (string) ( $template['id'] ?? '' ) . '|recipient=' . (string) $recipient_email . '|token=' . (string) $token,
+        ];
+    }
+
     global $wpdb;
 
     $tables      = teinvit_email_tables();
@@ -683,7 +727,14 @@ function teinvit_email_send_rate_limited( array $template, $recipient_email ) {
         )
     );
 
-    return $count >= $count_limit;
+    return [
+        'enabled' => true,
+        'hit' => $count >= $count_limit,
+        'count' => $count,
+        'limit' => $count_limit,
+        'days' => $days_limit,
+        'key' => 'template=' . (string) ( $template['id'] ?? '' ) . '|recipient=' . (string) $recipient_email,
+    ];
 }
 
 function teinvit_email_has_recent_duplicate( array $template, $recipient_email, $semantic_hash ) {
@@ -936,8 +987,16 @@ function teinvit_email_queue_template( $template_id, array $args ) {
         }
     }
 
-    if ( teinvit_email_send_rate_limited( $template, $recipient ) ) {
-        error_log( '[TeInvit Emails] skipped queue: rate limited for template ' . (string) $template_id . ' recipient ' . $recipient );
+    $rate_limit = teinvit_email_rate_limit_details( $template, $recipient, (string) ( $args['token'] ?? '' ) );
+    if ( ! empty( $rate_limit['enabled'] ) && ! empty( $rate_limit['hit'] ) ) {
+        error_log(
+            '[TeInvit Emails] skipped queue: rate limited for template ' . (string) $template_id .
+            ' recipient ' . $recipient .
+            ' key=' . (string) ( $rate_limit['key'] ?? '' ) .
+            ' count=' . (string) ( $rate_limit['count'] ?? 0 ) .
+            ' limit=' . (string) ( $rate_limit['limit'] ?? 0 ) .
+            ' window_days=' . (string) ( $rate_limit['days'] ?? 0 )
+        );
         return null;
     }
 
@@ -1274,10 +1333,10 @@ function teinvit_email_read_blocks_from_post() {
 add_action(
     'admin_menu',
     function() {
-        add_submenu_page( 'woocommerce', 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
+        add_submenu_page( 'woocommerce', 'All Emails', 'All Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
         add_submenu_page( 'woocommerce', 'New Email', 'New Email', 'manage_woocommerce', 'teinvit-custom-emails-new', 'teinvit_emails_page_new' );
         add_submenu_page( 'woocommerce', 'Logs', 'Logs', 'manage_woocommerce', 'teinvit-custom-emails-logs', 'teinvit_emails_page_logs' );
-        add_submenu_page( 'woocommerce', 'Unsubscribes', 'Unsubscribes/Suppression', 'manage_woocommerce', 'teinvit-custom-emails-suppression', 'teinvit_emails_page_suppression' );
+        add_submenu_page( 'woocommerce', 'Unsubscribes/Suppression', 'Unsubscribes/Suppression', 'manage_woocommerce', 'teinvit-custom-emails-suppression', 'teinvit_emails_page_suppression' );
     },
     99
 );
@@ -1302,6 +1361,12 @@ function teinvit_emails_page_all() {
             if ( $new_id !== '' ) {
                 echo '<div class="notice notice-success"><p>Template duplicat: ' . esc_html( $new_id ) . '</p></div>';
             }
+        } elseif ( $action === 'delete' ) {
+            if ( teinvit_email_delete_template( $id ) ) {
+                echo '<div class="notice notice-success"><p>Template șters.</p></div>';
+            } else {
+                echo '<div class="notice notice-warning"><p>Template-ul nu poate fi șters (default sau inexistent).</p></div>';
+            }
         }
     }
 
@@ -1315,6 +1380,8 @@ function teinvit_emails_page_all() {
         $toggle_action = ( ( $tpl['status'] ?? 'draft' ) === 'active' ) ? 'disable' : 'enable';
         $toggle_label  = $toggle_action === 'disable' ? 'Disable' : 'Enable';
         $toggle_url    = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=' . $toggle_action . '&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
+        $delete_url    = wp_nonce_url( admin_url( 'admin.php?page=teinvit-custom-emails&teinvit_action=delete&template_id=' . rawurlencode( $id ) ), 'teinvit_emails_action' );
+        $is_default    = teinvit_email_is_default_template( $id );
 
         echo '<tr>';
         echo '<td><a href="' . esc_url( $edit_url ) . '"><strong>' . esc_html( $tpl['name'] ?? '' ) . '</strong></a></td>';
@@ -1323,7 +1390,11 @@ function teinvit_emails_page_all() {
         echo '<td>' . esc_html( $tpl['audience'] ?? '' ) . '</td>';
         echo '<td>' . esc_html( $tpl['status'] ?? '' ) . '</td>';
         echo '<td>' . esc_html( (string) ( $tpl['delay_value'] ?? 0 ) . ' ' . (string) ( $tpl['delay_unit'] ?? 'hours' ) ) . '</td>';
-        echo '<td><a href="' . esc_url( $edit_url ) . '">Edit</a> | <a href="' . esc_url( $dup_url ) . '">Duplicate</a> | <a href="' . esc_url( $toggle_url ) . '">' . esc_html( $toggle_label ) . '</a></td>';
+        echo '<td><a href="' . esc_url( $edit_url ) . '">Edit</a> | <a href="' . esc_url( $dup_url ) . '">Duplicate</a> | <a href="' . esc_url( $toggle_url ) . '">' . esc_html( $toggle_label ) . '</a>';
+        if ( ! $is_default ) {
+            echo ' | <a href="' . esc_url( $delete_url ) . '" onclick="return confirm(\'Sigur ștergi template-ul?\');">Delete</a>';
+        }
+        echo '</td>';
         echo '</tr>';
     }
     echo '</tbody></table></div>';
@@ -1349,6 +1420,7 @@ function teinvit_emails_page_new() {
         'email_type'       => 'html',
         'accent_color'     => '#B07A4F',
         'is_marketing'     => 0,
+        'apply_rate_limit' => 0,
         'require_consent'  => 0,
         'rate_limit_count' => 2,
         'rate_limit_days'  => 7,
@@ -1374,6 +1446,7 @@ function teinvit_emails_page_new() {
             'email_type'       => 'html',
             'accent_color'     => sanitize_hex_color( (string) ( $_POST['accent_color'] ?? '#B07A4F' ) ) ?: '#B07A4F',
             'is_marketing'     => empty( $_POST['is_marketing'] ) ? 0 : 1,
+            'apply_rate_limit' => empty( $_POST['apply_rate_limit'] ) ? 0 : 1,
             'require_consent'  => empty( $_POST['require_consent'] ) ? 0 : 1,
             'rate_limit_count' => max( 1, (int) ( $_POST['rate_limit_count'] ?? 2 ) ),
             'rate_limit_days'  => max( 1, (int) ( $_POST['rate_limit_days'] ?? 7 ) ),
@@ -1437,7 +1510,8 @@ function teinvit_emails_page_new() {
     echo '<tr><th>Delay</th><td><input type="number" name="delay_value" value="' . esc_attr( (string) $template['delay_value'] ) . '" min="0" /> <select name="delay_unit"><option value="minutes"' . selected( $template['delay_unit'], 'minutes', false ) . '>minutes</option><option value="hours"' . selected( $template['delay_unit'], 'hours', false ) . '>hours</option><option value="days"' . selected( $template['delay_unit'], 'days', false ) . '>days</option></select></td></tr>';
     echo '<tr><th>Accent color</th><td><input type="color" name="accent_color" value="' . esc_attr( $template['accent_color'] ) . '"/></td></tr>';
     echo '<tr><th>Marketing</th><td><label><input type="checkbox" name="is_marketing" value="1" ' . checked( ! empty( $template['is_marketing'] ), true, false ) . '/> Is marketing</label> <label style="margin-left:16px;"><input type="checkbox" name="require_consent" value="1" ' . checked( ! empty( $template['require_consent'] ), true, false ) . '/> Require consent</label></td></tr>';
-    echo '<tr><th>Rate limit</th><td><input type="number" min="1" name="rate_limit_count" value="' . esc_attr( (string) $template['rate_limit_count'] ) . '"/> emails / <input type="number" min="1" name="rate_limit_days" value="' . esc_attr( (string) $template['rate_limit_days'] ) . '"/> zile</td></tr>';
+    echo '<tr><th>Rate limit</th><td><label><input type="checkbox" name="apply_rate_limit" value="1" ' . checked( ! empty( $template['apply_rate_limit'] ), true, false ) . '/> Enable rate limit for this template</label></td></tr>';
+    echo '<tr><th>Rate limit values</th><td><input type="number" min="1" name="rate_limit_count" value="' . esc_attr( (string) $template['rate_limit_count'] ) . '"/> emails / <input type="number" min="1" name="rate_limit_days" value="' . esc_attr( (string) $template['rate_limit_days'] ) . '"/> zile</td></tr>';
     echo '</table>';
 
     echo '<h2>Builder blocuri (Add / Move / Delete)</h2>';
