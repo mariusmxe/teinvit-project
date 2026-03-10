@@ -1355,10 +1355,13 @@ function teinvit_email_read_blocks_from_post() {
 add_action(
     'admin_menu',
     function() {
-        add_submenu_page( 'woocommerce', 'All Emails', 'All Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
-        add_submenu_page( 'woocommerce', 'New Email', 'New Email', 'manage_woocommerce', 'teinvit-custom-emails-new', 'teinvit_emails_page_new' );
-        add_submenu_page( 'woocommerce', 'Logs', 'Logs', 'manage_woocommerce', 'teinvit-custom-emails-logs', 'teinvit_emails_page_logs' );
-        add_submenu_page( 'woocommerce', 'Unsubscribes/Suppression', 'Unsubscribes/Suppression', 'manage_woocommerce', 'teinvit-custom-emails-suppression', 'teinvit_emails_page_suppression' );
+        add_menu_page( 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all', 'dashicons-email-alt2', 58 );
+        add_submenu_page( 'teinvit-custom-emails', 'All Emails', 'All Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
+        add_submenu_page( 'teinvit-custom-emails', 'New Email', 'New Email', 'manage_woocommerce', 'teinvit-custom-emails-new', 'teinvit_emails_page_new' );
+        add_submenu_page( 'teinvit-custom-emails', 'Logs', 'Logs', 'manage_woocommerce', 'teinvit-custom-emails-logs', 'teinvit_emails_page_logs' );
+        add_submenu_page( 'teinvit-custom-emails', 'Unsubscribes/Suppression', 'Unsubscribes/Suppression', 'manage_woocommerce', 'teinvit-custom-emails-suppression', 'teinvit_emails_page_suppression' );
+
+        add_submenu_page( 'woocommerce', 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_all' );
     },
     99
 );
@@ -1674,14 +1677,21 @@ add_filter(
 
         if ( ! class_exists( 'TeInvit_WC_Email_Base' ) ) {
             class TeInvit_WC_Email_Base extends WC_Email {
-                public function __construct( $id, $title, $description ) {
+                protected $teinvit_template_id = '';
+
+                public function __construct( $id, $title, $description, $template_id ) {
                     $this->id             = $id;
                     $this->title          = $title;
                     $this->description    = $description;
+                    $this->teinvit_template_id = sanitize_key( (string) $template_id );
                     $this->customer_email = true;
                     $this->email_type     = 'html';
                     $this->enabled        = 'yes';
                     parent::__construct();
+                }
+
+                protected function get_teinvit_template_id() {
+                    return $this->teinvit_template_id;
                 }
 
                 public function init_form_fields() {
@@ -1710,7 +1720,7 @@ add_filter(
 
                     $send = teinvit_email_get_send( $send_id );
                     if ( ! $send ) {
-                        $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                        $template_id = $this->get_teinvit_template_id();
                         if ( $template_id === '' ) {
                             return false;
                         }
@@ -1738,7 +1748,7 @@ add_filter(
                     $subject = (string) ( $send['subject_rendered'] ?? $this->get_default_subject() );
                     $content = (string) ( $send['body_rendered'] ?? '' );
                     if ( $content === '' ) {
-                        $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                        $template_id = $this->get_teinvit_template_id();
                         $template    = $template_id ? teinvit_get_email_template( $template_id ) : null;
                         if ( $template ) {
                             $sample  = teinvit_email_sample_context_args( $template_id, $recipient );
@@ -1756,7 +1766,7 @@ add_filter(
                 }
 
                 public function get_content_html() {
-                    $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                    $template_id = $this->get_teinvit_template_id();
                     $template    = $template_id ? teinvit_get_email_template( $template_id ) : null;
                     if ( ! $template ) {
                         return '<p>TeInvit email preview indisponibil.</p>';
@@ -1769,7 +1779,7 @@ add_filter(
                 }
 
                 public function get_content_plain() {
-                    $template_id = teinvit_email_template_id_for_wc_email_id( $this->id );
+                    $template_id = $this->get_teinvit_template_id();
                     $template    = $template_id ? teinvit_get_email_template( $template_id ) : null;
                     if ( ! $template ) {
                         return 'TeInvit email preview indisponibil.';
@@ -1790,17 +1800,20 @@ add_filter(
         $emails['teinvit_email_token_generated'] = new TeInvit_WC_Email_Base(
             'teinvit_email_token_generated',
             'TeInvit: Token generated → Customer',
-            'Email trimis clientului când tokenul este generat.'
+            'Email trimis clientului când tokenul este generat.',
+            'token_generated_customer'
         );
         $emails['teinvit_email_rsvp_received'] = new TeInvit_WC_Email_Base(
             'teinvit_email_rsvp_received',
             'TeInvit: RSVP received → Customer',
-            'Email trimis clientului după un RSVP nou.'
+            'Email trimis clientului după un RSVP nou.',
+            'rsvp_received_customer'
         );
         $emails['teinvit_email_guest_marketing_1'] = new TeInvit_WC_Email_Base(
             'teinvit_email_guest_marketing_1',
             'TeInvit: Guest consent #1 (24h)',
-            'Email marketing trimis invitaților care au consent valid.'
+            'Email marketing trimis invitaților care au consent valid.',
+            'guest_marketing_consent_1'
         );
 
         return $emails;
