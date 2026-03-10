@@ -866,6 +866,25 @@ function teinvit_email_sample_context_args( $template_id, $recipient_email = '' 
     ];
 }
 
+function teinvit_email_delay_seconds( array $template ) {
+    $value = max( 0, (int) ( $template['delay_value'] ?? 0 ) );
+    $unit  = sanitize_key( (string) ( $template['delay_unit'] ?? 'hours' ) );
+
+    if ( $value <= 0 ) {
+        return 0;
+    }
+
+    if ( $unit === 'minutes' ) {
+        return $value * MINUTE_IN_SECONDS;
+    }
+
+    if ( $unit === 'days' ) {
+        return $value * DAY_IN_SECONDS;
+    }
+
+    return $value * HOUR_IN_SECONDS;
+}
+
 function teinvit_email_attach_tracking( $send_id, $html ) {
     $html = preg_replace_callback(
         '/href\s*=\s*"([^"]+)"/i',
@@ -1196,6 +1215,9 @@ add_action(
         }
 
         $order_id = teinvit_email_order_id_by_token( $token );
+        $marketing_template = teinvit_get_email_template( 'guest_marketing_consent_1' );
+        $delay_seconds = is_array( $marketing_template ) ? teinvit_email_delay_seconds( $marketing_template ) : DAY_IN_SECONDS;
+        $scheduled_at = $delay_seconds > 0 ? time() + $delay_seconds : null;
 
         teinvit_email_queue_template(
             'guest_marketing_consent_1',
@@ -1207,7 +1229,7 @@ add_action(
                 'payload'           => $payload,
                 'marketing_consent' => 1,
                 'semantic_hash'     => teinvit_email_payload_semantic_hash( $payload ),
-                'scheduled_at'      => time() + DAY_IN_SECONDS,
+                'scheduled_at'      => $scheduled_at,
             ]
         );
     },
@@ -1565,11 +1587,13 @@ function teinvit_emails_page_logs() {
         ARRAY_A
     );
 
-    echo '<div class="wrap"><h1>Custom Emails Logs</h1><table class="widefat striped"><thead><tr><th>Send ID</th><th>Template</th><th>Recipient</th><th>Status</th><th>Opens</th><th>Clicks</th><th>Created</th><th>Sent</th></tr></thead><tbody>';
+    echo '<div class="wrap"><h1>Custom Emails Logs</h1><table class="widefat striped"><thead><tr><th>Send ID</th><th>Template</th><th>Order/Token</th><th>Recipient</th><th>Status</th><th>Opens</th><th>Clicks</th><th>Created</th><th>Sent</th></tr></thead><tbody>';
     foreach ( $rows as $row ) {
+        $order_token = ! empty( $row['order_id'] ) ? ( 'Order #' . (int) $row['order_id'] ) : ( 'Token: ' . (string) ( $row['token'] ?? '-' ) );
         echo '<tr>';
         echo '<td>' . esc_html( $row['send_id'] ) . '</td>';
         echo '<td>' . esc_html( $row['template_id'] ) . '</td>';
+        echo '<td>' . esc_html( $order_token ) . '</td>';
         echo '<td>' . esc_html( $row['recipient_email'] ) . '</td>';
         echo '<td>' . esc_html( $row['status'] ) . '</td>';
         echo '<td>' . esc_html( (string) $row['opens_count'] ) . '</td>';
