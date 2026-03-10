@@ -845,6 +845,18 @@ function teinvit_email_current_wc_settings_section_id() {
     return $section;
 }
 
+
+function teinvit_email_debug_request_context() {
+    $keys = [ 'page', 'tab', 'section', 'email', 'action', 'wc-api' ];
+    $parts = [];
+    foreach ( $keys as $key ) {
+        $value = isset( $_REQUEST[ $key ] ) ? sanitize_text_field( (string) wp_unslash( $_REQUEST[ $key ] ) ) : '';
+        $parts[] = $key . '=' . $value;
+    }
+
+    return implode( ' ', $parts );
+}
+
 function teinvit_email_template_id_for_wc_email_id( $wc_email_id ) {
     $map = [
         'teinvit_email_token_generated' => 'token_generated_customer',
@@ -1715,6 +1727,42 @@ function teinvit_emails_page_suppression() {
     echo '</tbody></table></div>';
 }
 
+
+add_action(
+    'admin_init',
+    function() {
+        if ( ! is_admin() ) {
+            return;
+        }
+
+        $page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+        $tab  = isset( $_GET['tab'] ) ? sanitize_key( (string) wp_unslash( $_GET['tab'] ) ) : '';
+        if ( $page !== 'wc-settings' || ! in_array( $tab, [ 'email', 'emails' ], true ) ) {
+            return;
+        }
+
+        static $logged = false;
+        if ( $logged ) {
+            return;
+        }
+
+        if ( ! function_exists( 'WC' ) || ! WC() ) {
+            return;
+        }
+
+        $mailer = WC()->mailer();
+        if ( ! $mailer ) {
+            return;
+        }
+
+        $emails = $mailer->get_emails();
+        $keys   = is_array( $emails ) ? array_keys( $emails ) : [];
+        error_log( '[TeInvit Emails][WC mailer keys] ' . implode( ',', array_map( 'strval', $keys ) ) );
+        $logged = true;
+    },
+    20
+);
+
 add_action(
     'init',
     function() {
@@ -1780,6 +1828,11 @@ add_filter(
                     return $fallback ? (string) $fallback : '';
                 }
 
+                protected function teinvit_debug_identity() {
+                    $hash = function_exists( 'spl_object_hash' ) ? spl_object_hash( $this ) : '';
+                    return 'class=' . get_class( $this ) . ' email_class=' . (string) $this->id . ' obj=' . $hash;
+                }
+
                 public function init_form_fields() {
                     $this->form_fields = [
                         'enabled' => [
@@ -1819,7 +1872,7 @@ add_filter(
                         $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                         $render    = teinvit_email_render_template( $template, $sample );
                         $recipient = sanitize_email( (string) $sample['recipient_email'] );
-                        error_log( '[TeInvit Emails][WC test trigger] email_class=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                        error_log( '[TeInvit Emails][WC test trigger] ' . $this->teinvit_debug_identity() . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
                         if ( $recipient === '' || ! is_email( $recipient ) ) {
                             return false;
                         }
@@ -1861,7 +1914,7 @@ add_filter(
 
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
-                    error_log( '[TeInvit Emails][WC preview html] email_class=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview html] ' . $this->teinvit_debug_identity() . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_html'] ?? '' );
                 }
@@ -1875,7 +1928,7 @@ add_filter(
 
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
-                    error_log( '[TeInvit Emails][WC preview plain] email_class=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview plain] ' . $this->teinvit_debug_identity() . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_text'] ?? '' );
                 }
@@ -1886,24 +1939,48 @@ add_filter(
             }
         }
 
-        $emails['teinvit_email_token_generated'] = new TeInvit_WC_Email_Base(
-            'teinvit_email_token_generated',
-            'TeInvit: Token generated → Customer',
-            'Email trimis clientului când tokenul este generat.',
-            'token_generated_customer'
-        );
-        $emails['teinvit_email_rsvp_received'] = new TeInvit_WC_Email_Base(
-            'teinvit_email_rsvp_received',
-            'TeInvit: RSVP received → Customer',
-            'Email trimis clientului după un RSVP nou.',
-            'rsvp_received_customer'
-        );
-        $emails['teinvit_email_guest_marketing_1'] = new TeInvit_WC_Email_Base(
-            'teinvit_email_guest_marketing_1',
-            'TeInvit: Guest consent #1 (24h)',
-            'Email marketing trimis invitaților care au consent valid.',
-            'guest_marketing_consent_1'
-        );
+        if ( ! class_exists( 'TeInvit_WC_Email_Token_Generated' ) ) {
+            class TeInvit_WC_Email_Token_Generated extends TeInvit_WC_Email_Base {
+                public function __construct() {
+                    parent::__construct(
+                        'teinvit_email_token_generated',
+                        'TeInvit: Token generated → Customer',
+                        'Email trimis clientului când tokenul este generat.',
+                        'token_generated_customer'
+                    );
+                }
+            }
+        }
+
+        if ( ! class_exists( 'TeInvit_WC_Email_RSVP_Received' ) ) {
+            class TeInvit_WC_Email_RSVP_Received extends TeInvit_WC_Email_Base {
+                public function __construct() {
+                    parent::__construct(
+                        'teinvit_email_rsvp_received',
+                        'TeInvit: RSVP received → Customer',
+                        'Email trimis clientului după un RSVP nou.',
+                        'rsvp_received_customer'
+                    );
+                }
+            }
+        }
+
+        if ( ! class_exists( 'TeInvit_WC_Email_Guest_Marketing_1' ) ) {
+            class TeInvit_WC_Email_Guest_Marketing_1 extends TeInvit_WC_Email_Base {
+                public function __construct() {
+                    parent::__construct(
+                        'teinvit_email_guest_marketing_1',
+                        'TeInvit: Guest consent #1 (24h)',
+                        'Email marketing trimis invitaților care au consent valid.',
+                        'guest_marketing_consent_1'
+                    );
+                }
+            }
+        }
+
+        $emails['teinvit_email_token_generated'] = new TeInvit_WC_Email_Token_Generated();
+        $emails['teinvit_email_rsvp_received'] = new TeInvit_WC_Email_RSVP_Received();
+        $emails['teinvit_email_guest_marketing_1'] = new TeInvit_WC_Email_Guest_Marketing_1();
 
         return $emails;
     }
