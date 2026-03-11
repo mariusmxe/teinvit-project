@@ -1868,6 +1868,29 @@ add_action( 'rest_api_init', function() {
             $wpdb->query( 'COMMIT' );
             teinvit_touch_invitation_activity( $token );
 
+            $rsvp_payload = [
+                'guest_first_name' => sanitize_text_field( $p['guest_first_name'] ?? '' ),
+                'guest_last_name' => sanitize_text_field( $p['guest_last_name'] ?? '' ),
+                'guest_email' => $email,
+                'guest_phone' => $phone,
+                'attending_people_count' => $attending_people_count,
+                'attending_civil' => empty( $p['attending_civil'] ) ? 0 : 1,
+                'attending_religious' => empty( $p['attending_religious'] ) ? 0 : 1,
+                'attending_party' => empty( $p['attending_party'] ) ? 0 : 1,
+                'bringing_kids' => $bringing_kids,
+                'kids_count' => $kids_count,
+                'needs_accommodation' => $needs_accommodation,
+                'accommodation_people_count' => $accommodation_people_count,
+                'vegetarian_requested' => $vegetarian_requested,
+                'vegetarian_menus_count' => $vegetarian_menus_count,
+                'has_allergies' => $has_allergies,
+                'allergy_details' => $allergy_details,
+                'message_to_couple' => sanitize_textarea_field( $p['message_to_couple'] ?? '' ),
+                'marketing_consent' => empty( $p['marketing_consent'] ) ? 0 : 1,
+            ];
+
+            do_action( 'teinvit_rsvp_saved', $token, $rsvp_id, $rsvp_payload );
+
             return [ 'ok' => true ];
         },
     ] );
