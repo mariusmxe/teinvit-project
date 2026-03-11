@@ -124,6 +124,7 @@ function teinvit_email_default_templates() {
             'require_consent'  => 0,
             'rate_limit_count' => 2,
             'rate_limit_days'  => 7,
+            'product_ids'      => [],
             'blocks'           => [
                 [ 'type' => 'logo', 'enabled' => 0, 'url' => '', 'align' => 'center' ],
                 [ 'type' => 'title', 'text' => 'Administrare invitație' ],
@@ -150,6 +151,7 @@ function teinvit_email_default_templates() {
             'require_consent'  => 0,
             'rate_limit_count' => 2,
             'rate_limit_days'  => 7,
+            'product_ids'      => [],
             'blocks'           => [
                 [ 'type' => 'title', 'text' => 'Confirmare nouă primită' ],
                 [ 'type' => 'subtitle', 'text' => 'Rezumat RSVP' ],
@@ -186,6 +188,7 @@ function teinvit_email_default_templates() {
             'require_consent'  => 1,
             'rate_limit_count' => 2,
             'rate_limit_days'  => 7,
+            'product_ids'      => [],
             'blocks'           => [
                 [ 'type' => 'title', 'text' => 'Invitații digitale TeInvit' ],
                 [ 'type' => 'text', 'html' => '<p>Mulțumim pentru confirmare! Vezi cum funcționează invitațiile digitale și inspiră-te din cele mai noi modele.</p>' ],
@@ -425,7 +428,37 @@ function teinvit_email_add_suppression( $email, $scope = 'marketing', $reason = 
     );
 }
 
-function teinvit_email_build_context( array $args ) {
+
+function teinvit_email_merge_tags_catalog() {
+    return [
+        'site_name' => [ 'tag' => '{site_name}', 'description' => 'Numele website-ului', 'context' => 'Global', 'example' => 'TeInvit' ],
+        'order_number' => [ 'tag' => '{order_number}', 'description' => 'Numărul comenzii Woo', 'context' => 'Customer', 'example' => '512' ],
+        'order_id' => [ 'tag' => '{order_id}', 'description' => 'ID comandă Woo', 'context' => 'Customer', 'example' => '512' ],
+        'token' => [ 'tag' => '{token}', 'description' => 'Token invitație', 'context' => 'Global', 'example' => '512-ba659c...' ],
+        'admin_client_url' => [ 'tag' => '{admin_client_url}', 'description' => 'Link administrare invitație', 'context' => 'Customer', 'example' => 'https://.../admin-client/{token}' ],
+        'invitati_url' => [ 'tag' => '{invitati_url}', 'description' => 'Link pagină invitați', 'context' => 'Customer', 'example' => 'https://.../invitati/{token}' ],
+        'report_url' => [ 'tag' => '{report_url}', 'description' => 'Link raport invitați', 'context' => 'Customer', 'example' => 'https://.../admin-client/{token}#teinvit-report' ],
+        'customer_first_name' => [ 'tag' => '{customer_first_name}', 'description' => 'Prenume client', 'context' => 'Customer', 'example' => 'Alex' ],
+        'customer_last_name' => [ 'tag' => '{customer_last_name}', 'description' => 'Nume client', 'context' => 'Customer', 'example' => 'Popescu' ],
+        'guest_name' => [ 'tag' => '{guest_name}', 'description' => 'Nume invitat', 'context' => 'RSVP', 'example' => 'Maria Ionescu' ],
+        'guest_phone' => [ 'tag' => '{guest_phone}', 'description' => 'Telefon invitat', 'context' => 'RSVP', 'example' => '0712345678' ],
+        'guest_email' => [ 'tag' => '{guest_email}', 'description' => 'Email invitat', 'context' => 'RSVP/Guest', 'example' => 'maria@example.com' ],
+        'rsvp_adults' => [ 'tag' => '{rsvp_adults}', 'description' => 'Numărul de adulți confirmați', 'context' => 'RSVP', 'example' => '2' ],
+        'rsvp_children' => [ 'tag' => '{rsvp_children}', 'description' => 'Numărul de copii confirmați', 'context' => 'RSVP', 'example' => '1' ],
+        'rsvp_attending_civil' => [ 'tag' => '{rsvp_attending_civil}', 'description' => 'Participă la civil', 'context' => 'RSVP', 'example' => 'Da' ],
+        'rsvp_attending_religious' => [ 'tag' => '{rsvp_attending_religious}', 'description' => 'Participă la religios', 'context' => 'RSVP', 'example' => 'Da' ],
+        'rsvp_attending_party' => [ 'tag' => '{rsvp_attending_party}', 'description' => 'Participă la petrecere', 'context' => 'RSVP', 'example' => 'Nu' ],
+        'rsvp_accommodation' => [ 'tag' => '{rsvp_accommodation}', 'description' => 'Solicită cazare', 'context' => 'RSVP', 'example' => 'Nu' ],
+        'rsvp_vegetarian' => [ 'tag' => '{rsvp_vegetarian}', 'description' => 'A cerut meniu vegetarian', 'context' => 'RSVP', 'example' => 'Da' ],
+        'rsvp_vegetarian_menus' => [ 'tag' => '{rsvp_vegetarian_menus}', 'description' => 'Număr meniuri vegetariene', 'context' => 'RSVP', 'example' => '1' ],
+        'rsvp_allergies' => [ 'tag' => '{rsvp_allergies}', 'description' => 'Detalii alergii', 'context' => 'RSVP', 'example' => 'N/A' ],
+        'rsvp_message' => [ 'tag' => '{rsvp_message}', 'description' => 'Mesajul invitatului', 'context' => 'RSVP', 'example' => 'Casă de piatră!' ],
+        'unsubscribe_url' => [ 'tag' => '{unsubscribe_url}', 'description' => 'Link dezabonare marketing', 'context' => 'Guest', 'example' => 'https://.../u/{send_id}/...' ],
+        'why_received_text' => [ 'tag' => '{why_received_text}', 'description' => 'Text motiv primire email', 'context' => 'Guest', 'example' => 'Primești acest email...' ],
+    ];
+}
+
+function teinvit_email_context_values( array $args ) {
     $token    = (string) ( $args['token'] ?? '' );
     $order_id = (int) ( $args['order_id'] ?? 0 );
     $payload  = is_array( $args['payload'] ?? null ) ? $args['payload'] : [];
@@ -447,32 +480,49 @@ function teinvit_email_build_context( array $args ) {
     }
 
     return [
-        '{site_name}'                => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
-        '{order_number}'             => $order_no,
-        '{order_id}'                 => (string) $order_id,
-        '{token}'                    => $token,
-        '{admin_client_url}'         => home_url( '/admin-client/' . rawurlencode( $token ) ),
-        '{invitati_url}'             => home_url( '/invitati/' . rawurlencode( $token ) ),
-        '{report_url}'               => home_url( '/admin-client/' . rawurlencode( $token ) . '#teinvit-report' ),
-        '{customer_first_name}'      => $first_name,
-        '{customer_last_name}'       => $last_name,
-        '{guest_name}'               => $guest_name,
-        '{guest_phone}'              => (string) ( $payload['guest_phone'] ?? '' ),
-        '{guest_email}'              => (string) ( $payload['guest_email'] ?? '' ),
-        '{rsvp_adults}'              => (string) ( $payload['attending_people_count'] ?? '' ),
-        '{rsvp_children}'            => (string) ( $payload['kids_count'] ?? '' ),
-        '{rsvp_attending_civil}'     => ! empty( $payload['attending_civil'] ) ? 'Da' : 'Nu',
-        '{rsvp_attending_religious}' => ! empty( $payload['attending_religious'] ) ? 'Da' : 'Nu',
-        '{rsvp_attending_party}'     => ! empty( $payload['attending_party'] ) ? 'Da' : 'Nu',
-        '{rsvp_accommodation}'       => ! empty( $payload['needs_accommodation'] ) ? 'Da' : 'Nu',
-        '{rsvp_vegetarian}'          => ! empty( $payload['vegetarian_requested'] ) ? 'Da' : 'Nu',
-        '{rsvp_vegetarian_menus}'    => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
-        '{rsvp_allergies}'           => (string) ( $payload['allergy_details'] ?? '' ),
-        '{rsvp_message}'             => (string) ( $payload['message_to_couple'] ?? '' ),
-        '{unsubscribe_url}'          => $unsubscribe,
-        '{why_received_text}'        => 'Primești acest email deoarece ai bifat acordul de marketing în formularul RSVP.',
+        'site_name' => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+        'order_number' => $order_no,
+        'order_id' => (string) $order_id,
+        'token' => $token,
+        'admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
+        'invitati_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
+        'report_url' => home_url( '/admin-client/' . rawurlencode( $token ) . '#teinvit-report' ),
+        'customer_first_name' => $first_name,
+        'customer_last_name' => $last_name,
+        'guest_name' => $guest_name,
+        'guest_phone' => (string) ( $payload['guest_phone'] ?? '' ),
+        'guest_email' => (string) ( $payload['guest_email'] ?? '' ),
+        'rsvp_adults' => (string) ( $payload['attending_people_count'] ?? '' ),
+        'rsvp_children' => (string) ( $payload['kids_count'] ?? '' ),
+        'rsvp_attending_civil' => ! empty( $payload['attending_civil'] ) ? 'Da' : 'Nu',
+        'rsvp_attending_religious' => ! empty( $payload['attending_religious'] ) ? 'Da' : 'Nu',
+        'rsvp_attending_party' => ! empty( $payload['attending_party'] ) ? 'Da' : 'Nu',
+        'rsvp_accommodation' => ! empty( $payload['needs_accommodation'] ) ? 'Da' : 'Nu',
+        'rsvp_vegetarian' => ! empty( $payload['vegetarian_requested'] ) ? 'Da' : 'Nu',
+        'rsvp_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+        'rsvp_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
+        'rsvp_message' => (string) ( $payload['message_to_couple'] ?? '' ),
+        'unsubscribe_url' => $unsubscribe,
+        'why_received_text' => 'Primești acest email deoarece ai bifat acordul de marketing în formularul RSVP.',
     ];
 }
+
+function teinvit_email_build_context( array $args ) {
+    $values  = teinvit_email_context_values( $args );
+    $catalog = teinvit_email_merge_tags_catalog();
+    $context = [];
+
+    foreach ( $catalog as $slug => $meta ) {
+        $tag = (string) ( $meta['tag'] ?? '' );
+        if ( $tag === '' ) {
+            continue;
+        }
+        $context[ $tag ] = (string) ( $values[ $slug ] ?? '' );
+    }
+
+    return $context;
+}
+
 
 function teinvit_email_apply_tags( $text, array $context ) {
     $text = (string) $text;
@@ -568,10 +618,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
 
             return [
                 'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 14px 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#2a2a2a;">' . $html_body . '</td></tr></table>',
-                'text' => trim( preg_replace( '/
-?|
-/', "
-", (string) $text_body ) ) . "
+                'text' => trim( preg_replace( '/\r\n|\r|\n/', "\n", (string) $text_body ) ) . "
 
 ",
             ];
@@ -583,8 +630,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
                 if ( trim( $fallback_lines ) === '' ) {
                     $fallback_lines = wp_strip_all_tags( teinvit_email_apply_tags( (string) ( $block['html'] ?? '' ), $context ) );
                 }
-                $items = array_filter( array_map( 'trim', preg_split( '/
-||
+                $items = array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', (string) $fallback_lines ) ) );
 /', (string) $fallback_lines ) ) );
             }
             if ( empty( $items ) ) {
@@ -643,10 +689,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
                 return [ 'html' => '', 'text' => '' ];
             }
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 14px 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;"><a href="' . esc_url( $url ) . '" style="color:' . esc_attr( $accent ) . ';text-decoration:underline;">' . esc_html( $label ) . '</a></td></tr></table>',
-                'text' => $label . ': ' . $url . "
-
-",
+                'text' => trim( preg_replace( '/\r\n|\r|\n/', "\n", (string) $text_body ) ) . "
             ];
 
         case 'footer':
@@ -1063,7 +1106,122 @@ function teinvit_email_dispatch_wc( $send_id ) {
             'updated_at'    => current_time( 'mysql' ),
         ],
         [ 'send_id' => $send_id ]
+
+function teinvit_email_parse_product_ids( $raw ) {
+    if ( is_array( $raw ) ) {
+        $raw = implode( ',', array_map( 'strval', $raw ) );
+    }
+
+    $parts = preg_split( '/[^0-9]+/', (string) $raw );
+    if ( ! is_array( $parts ) ) {
+        return [];
+    }
+
+    $ids = [];
+    foreach ( $parts as $part ) {
+        $id = (int) $part;
+        if ( $id > 0 ) {
+            $ids[] = $id;
+        }
+    }
+
+    return array_values( array_unique( $ids ) );
+}
+
+function teinvit_email_template_product_ids( array $template ) {
+    return teinvit_email_parse_product_ids( $template['product_ids'] ?? [] );
+}
+
+function teinvit_email_order_product_ids( $order_id ) {
+    $order = $order_id > 0 ? wc_get_order( $order_id ) : null;
+    if ( ! $order ) {
+        return [];
+    }
+
+    $product_ids = [];
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        if ( ! $item || ! is_a( $item, 'WC_Order_Item_Product' ) ) {
+            continue;
+        }
+        $pid = (int) $item->get_product_id();
+        if ( $pid > 0 ) {
+            $product_ids[] = $pid;
+        }
+        $vid = (int) $item->get_variation_id();
+        if ( $vid > 0 ) {
+            $product_ids[] = $vid;
+        }
+    }
+
+    return array_values( array_unique( $product_ids ) );
+}
+
+function teinvit_email_order_matches_template_products( $order_id, array $template ) {
+    $allowed = teinvit_email_template_product_ids( $template );
+    if ( empty( $allowed ) ) {
+        return [ 'match' => true, 'allowed' => [], 'order_products' => [] ];
+    }
+
+    $order_products = teinvit_email_order_product_ids( (int) $order_id );
+    if ( empty( $order_products ) ) {
+        return [ 'match' => false, 'allowed' => $allowed, 'order_products' => [] ];
+    }
+
+    $intersection = array_values( array_intersect( $allowed, $order_products ) );
+    return [
+        'match' => ! empty( $intersection ),
+        'allowed' => $allowed,
+        'order_products' => $order_products,
+        'matched' => $intersection,
+    ];
+}
+
+function teinvit_email_log_skipped_queue( array $template, array $args, $recipient, $reason, $details = '' ) {
+    global $wpdb;
+    $tables = teinvit_email_tables();
+    $now    = current_time( 'mysql' );
+
+    $wpdb->insert(
+        $tables['sends'],
+        [
+            'send_id'            => teinvit_email_uuid_v4(),
+            'template_key'       => sanitize_key( (string) ( $template['trigger'] ?? '' ) . '_' . (string) ( $template['audience'] ?? '' ) ),
+            'template_id'        => sanitize_text_field( (string) ( $template['id'] ?? '' ) ),
+            'trigger_key'        => sanitize_key( (string) ( $template['trigger'] ?? '' ) ),
+            'audience_type'      => sanitize_key( (string) ( $template['audience'] ?? '' ) ),
+            'token'              => sanitize_text_field( (string) ( $args['token'] ?? '' ) ),
+            'order_id'           => (int) ( $args['order_id'] ?? 0 ),
+            'rsvp_id'            => (int) ( $args['rsvp_id'] ?? 0 ),
+            'recipient_email'    => sanitize_email( (string) $recipient ),
+            'recipient_hash'     => $recipient !== '' ? hash( 'sha256', strtolower( (string) $recipient ) ) : null,
+            'subject_rendered'   => '',
+            'heading_rendered'   => null,
+            'preheader_rendered' => '',
+            'body_rendered'      => null,
+            'body_text'          => '',
+            'body_rendered_hash' => hash( 'sha256', '' ),
+            'semantic_hash'      => sanitize_text_field( (string) ( $args['semantic_hash'] ?? '' ) ),
+            'status'             => 'skipped',
+            'error_message'      => sanitize_text_field( (string) $reason . ( $details !== '' ? ' | ' . $details : '' ) ),
+            'scheduled_at'       => null,
+            'created_at'         => $now,
+            'updated_at'         => $now,
+        ]
     );
+}
+
+    );
+    $bypass_product_filter = ! empty( $args['bypass_product_filter'] ) || ! empty( $args['is_preview_test'] );
+    $product_match = teinvit_email_order_matches_template_products( (int) ( $args['order_id'] ?? 0 ), $template );
+    if ( $bypass_product_filter ) {
+        error_log( '[TeInvit Emails] bypass product filter: template=' . (string) $template_id . ' trigger=' . (string) ( $template['trigger'] ?? '' ) . ' audience=' . (string) ( $template['audience'] ?? '' ) );
+    } elseif ( empty( $product_match['match'] ) ) {
+        $details = 'allowed=' . implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ) . ' order_products=' . implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) );
+        error_log( '[TeInvit Emails] skipped queue: product mismatch for template ' . (string) $template_id . ' ' . $details );
+        teinvit_email_log_skipped_queue( $template, $args, $recipient, 'product_mismatch', $details );
+        return null;
+    }
+
 }
 
 function teinvit_email_schedule_send( $send_id, $timestamp = null ) {
@@ -1447,6 +1605,7 @@ function teinvit_email_read_blocks_from_post() {
         }
     }
 
+        add_submenu_page( 'woocommerce', 'TeInvit Merge Tags', 'Merge Tags', 'manage_woocommerce', 'teinvit-email-merge-tags', 'teinvit_emails_page_merge_tags' );
     if ( isset( $_POST['teinvit_block_down'] ) ) {
         $i = (int) $_POST['teinvit_block_down'];
         if ( isset( $data[ $i ], $data[ $i + 1 ] ) ) {
@@ -1538,8 +1697,12 @@ function teinvit_emails_page_all() {
 
     if ( isset( $_GET['teinvit_action'], $_GET['template_id'] ) && check_admin_referer( 'teinvit_emails_action' ) ) {
         $action = sanitize_key( (string) wp_unslash( $_GET['teinvit_action'] ) );
-        $id     = sanitize_key( (string) wp_unslash( $_GET['template_id'] ) );
+    echo '<table class="widefat striped"><thead><tr><th>Name</th><th>ID</th><th>Trigger</th><th>Audience</th><th>Products</th><th>Status</th><th>Delay</th><th>Actions</th></tr></thead><tbody>';
 
+        $product_ids = teinvit_email_template_product_ids( is_array( $tpl ) ? $tpl : [] );
+        echo '<td>' . esc_html( empty( $product_ids ) ? 'All' : implode( ',', array_map( 'strval', $product_ids ) ) ) . '</td>';
+        'product_ids'      => [],
+            'product_ids'      => teinvit_email_parse_product_ids( (string) ( $_POST['product_ids'] ?? '' ) ),
         if ( $action === 'disable' ) {
             teinvit_email_set_template_status( $id, 'draft' );
             echo '<div class="notice notice-success"><p>Template dezactivat.</p></div>';
@@ -1681,7 +1844,38 @@ function teinvit_emails_page_new() {
         }
     }
 
-    echo '<div class="wrap"><h1>New Email (Block Builder)</h1>';
+    echo '<tr><th>Se aplică doar pentru produsele (IDs)</th><td><input class="regular-text" name="product_ids" value="' . esc_attr( implode( ',', teinvit_email_template_product_ids( is_array( $template ) ? $template : [] ) ) ) . '"/> <p class="description">Ex: 123,456,789. Gol = toate produsele.</p></td></tr>';
+
+function teinvit_emails_page_merge_tags() {
+    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+        return;
+    }
+
+    $catalog = teinvit_email_merge_tags_catalog();
+
+    echo '<div class="wrap"><h1>TeInvit Merge Tags</h1>';
+    echo '<p>Poți folosi atât formatul <code>{tag}</code>, cât și <code>[tag]</code>.</p>';
+    echo '<p><input type="search" id="teinvit-tags-search" class="regular-text" placeholder="Caută tag sau descriere..." /></p>';
+    echo '<table class="widefat striped" id="teinvit-tags-table"><thead><tr><th>Tag</th><th>Descriere</th><th>Context</th><th>Exemplu output</th><th>Copy</th></tr></thead><tbody>';
+
+    foreach ( $catalog as $meta ) {
+        $tag = (string) ( $meta['tag'] ?? '' );
+        echo '<tr data-search="' . esc_attr( strtolower( $tag . ' ' . (string) ( $meta['description'] ?? '' ) . ' ' . (string) ( $meta['context'] ?? '' ) ) ) . '">';
+        echo '<td><code>' . esc_html( $tag ) . '</code></td>';
+        echo '<td>' . esc_html( (string) ( $meta['description'] ?? '' ) ) . '</td>';
+        echo '<td>' . esc_html( (string) ( $meta['context'] ?? '' ) ) . '</td>';
+        echo '<td>' . esc_html( (string) ( $meta['example'] ?? '' ) ) . '</td>';
+        echo '<td><button type="button" class="button teinvit-copy-tag" data-tag="' . esc_attr( $tag ) . '">Copy</button></td>';
+        echo '</tr>';
+    }
+
+    echo '</tbody></table>';
+    echo '<script>(function(){const s=document.getElementById("teinvit-tags-search");const rows=[...document.querySelectorAll("#teinvit-tags-table tbody tr")];if(s){s.addEventListener("input",function(){const q=(s.value||"").toLowerCase().trim();rows.forEach(r=>{const t=r.getAttribute("data-search")||"";r.style.display=(q===""||t.indexOf(q)!==-1)?"":"none";});});}document.querySelectorAll(".teinvit-copy-tag").forEach(btn=>btn.addEventListener("click",async()=>{const v=btn.getAttribute("data-tag")||"";try{await navigator.clipboard.writeText(v);btn.textContent="Copied";setTimeout(()=>btn.textContent="Copy",900);}catch(e){window.prompt("Copy tag",v);}}));})();</script>';
+    echo '</div>';
+}
+
+    echo '<table class="widefat striped"><thead><tr><th>Send ID</th><th>Template</th><th>Order/Token</th><th>Recipient</th><th>Status</th><th>Reason</th><th>Opens</th><th>Clicks</th><th>Created</th><th>Sent</th></tr></thead><tbody>';
+        echo '<td>' . esc_html( (string) ( $row['error_message'] ?? '' ) ) . '</td>';
     teinvit_emails_admin_tabs( 'new' );
     echo '<p>Template-uri existente: ';
     foreach ( teinvit_get_email_templates() as $tpl ) {
