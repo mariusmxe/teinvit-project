@@ -229,7 +229,10 @@ $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $
 $product_id = teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
+$capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
+$token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
+$buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content() : '';
 ?>
 <style>
@@ -262,6 +265,15 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
     <h1>Administrare invitație</h1>
     <h1><?php echo esc_html( $subtitle ); ?></h1>
   </div>
+
+  <?php if ( $token_state === 'basic_pure' ) : ?>
+  <div class="notice notice-warning" style="padding:10px;">
+    <p><strong>Pachet Basic activ.</strong> Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul <em>Pachet Premium</em>.</p>
+    <?php if ( ! empty( $capabilities['can_buy_premium_upgrade'] ) ) : ?>
+      <p><a href="<?php echo esc_url( $buy_premium_upgrade_url ); ?>" class="button button-primary">Upgrade la Premium</a></p>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
 
   <?php if ( $global_admin_content !== '' ) : ?>
   <div class="teinvit-zone teinvit-admin-global-zone">
@@ -311,7 +323,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
             <?php endif; ?>
           </label>
         <?php endforeach; ?>
+        <?php if ( ! empty( $capabilities['can_set_active_version'] ) ) : ?>
         <button type="submit" class="button button-primary">Publică</button>
+        <?php else : ?>
+        <p><em>Publicarea de versiuni este disponibilă după upgrade la Premium.</em></p>
+        <?php endif; ?>
       </form>
 
       <div class="teinvit-zone teinvit-admin-rsvp-settings">
@@ -333,7 +349,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
               <?php echo esc_html( $field_def['label'] ); ?>
             </label><br>
           <?php endforeach; ?>
+          <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
           <p><button type="submit" class="button">Publică selecțiile</button></p>
+          <?php else : ?>
+          <p><em>Configurările RSVP avansate sunt disponibile după upgrade la Premium.</em></p>
+          <?php endif; ?>
         </form>
 
 
@@ -359,16 +379,24 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <?php endif; ?>
 
         <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
-        <?php if ( $edits_remaining > 0 ) : ?>
+        <?php if ( empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
+          <p><em>Editările de conținut și salvarea versiunilor sunt blocate pe pachetul Basic.</em></p>
+          <?php if ( ! empty( $capabilities['can_buy_premium_upgrade'] ) ) : ?>
+            <a href="<?php echo esc_url( $buy_premium_upgrade_url ); ?>" class="button">Upgrade la Premium</a>
+          <?php endif; ?>
+        <?php elseif ( $edits_remaining > 0 ) : ?>
           <button type="submit" class="button button-primary" id="teinvit-save-btn">Salvează modificările</button>
         <?php else : ?>
           <!-- teinvit-buy-edits-endpoint: <?php echo esc_url( $buy_edits_url ); ?> -->
+          <?php if ( ! empty( $capabilities['can_buy_extra_edits'] ) ) : ?>
           <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button" target="_blank" rel="noopener">Cumpără modificări suplimentare</a>
+          <?php endif; ?>
         <?php endif; ?>
       </form>
     </div>
   </div>
 
+      <?php if ( ! empty( $capabilities['can_manage_gifts'] ) ) : ?>
       <div class="teinvit-zone teinvit-admin-gifts">
         <h3 class="teinvit-gifts-title">Lista de cadouri</h3>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-gifts-form">
@@ -396,13 +424,18 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
             <div class="teinvit-gifts-actions">
               <button type="button" class="button" id="teinvit-add-gift">Adaugă cadou</button>
               <span id="teinvit-gifts-counter">Mai poți adăuga <?php echo (int) $gifts_remaining; ?> cadouri în listă</span>
+              <?php if ( ! empty( $capabilities['can_buy_extra_gifts'] ) ) : ?>
               <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button teinvit-gifts-cta" id="teinvit-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener">Cumpără pachet +10</a>
+              <?php endif; ?>
             </div>
 
             <p style="margin-top:10px;"><button type="submit" class="button button-primary" id="teinvit-save-gifts">Salvează lista</button></p>
           </div>
         </form>
       </div>
+      <?php else : ?>
+      <div class="teinvit-zone teinvit-admin-gifts"><p><em>Lista de cadouri este disponibilă doar pentru pachet Premium.</em></p></div>
+      <?php endif; ?>
 
       <script type="text/template" id="teinvit-gift-row-template">
         <tr data-gift-row="1">

@@ -45,28 +45,6 @@ Randarea este de tip JS-first, iar HTML-ul final stabilizat este cel utilizat pe
 ---
 
 
-## Utilitar: export fișiere complete dintr-un commit
-
-Dacă ai nevoie de conținutul integral (copy/paste 1:1) pentru toate fișierele modificate într-un commit, poți folosi scriptul:
-
-```bash
-./tools/export-commit-files.sh <commit_ref> <output_dir>
-```
-
-Exemple:
-
-```bash
-# exportă toate fișierele modificate în HEAD în ./commit-files
-./tools/export-commit-files.sh
-
-# exportă fișierele dintr-un commit anume
-./tools/export-commit-files.sh 9709ee0 ./export-9709ee0
-```
-
-Scriptul păstrează structura de directoare din repository și salvează versiunea completă a fiecărui fișier modificat în commitul indicat.
-
----
-
 ## Reguli ale repository-ului
 
 - Structura folderelor trebuie să rămână identică cu producția (production-mirrored).
