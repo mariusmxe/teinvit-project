@@ -1073,7 +1073,7 @@ function teinvit_wapf_payload_is_minimally_valid( array $wapf, array $invitation
     return true;
 }
 
-function teinvit_admin_post_guard( $token ) {
+function teinvit_admin_post_guard( $token, $required_capability = null ) {
     if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'teinvit_admin_' . $token ) ) {
         wp_die( 'Nonce invalid' );
     }
@@ -1082,6 +1082,13 @@ function teinvit_admin_post_guard( $token ) {
     $order = $order_id ? wc_get_order( $order_id ) : null;
     if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
         wp_die( 'Acces interzis' );
+    }
+
+    if ( $required_capability !== null && function_exists( 'teinvit_capabilities_for_token' ) ) {
+        $caps = teinvit_capabilities_for_token( $token );
+        if ( empty( $caps[ $required_capability ] ) ) {
+            wp_die( 'Funcționalitatea nu este disponibilă pentru pachetul curent.' );
+        }
     }
 
     return [ $order_id, $order ];
@@ -1105,7 +1112,7 @@ add_action( 'init', function() {
 
 add_action( 'admin_post_teinvit_save_invitation_info', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_save_invitation_info' );
 
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
@@ -1125,7 +1132,7 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
 
 add_action( 'admin_post_teinvit_save_rsvp_config', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_save_rsvp_config' );
 
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
@@ -1145,7 +1152,7 @@ add_action( 'admin_post_teinvit_save_rsvp_config', function() {
 add_action( 'admin_post_teinvit_set_active_version', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_set_active_version' );
 
     $version_id = (int) ( $_POST['active_version_id'] ?? 0 );
     $t = teinvit_db_tables();
@@ -1161,7 +1168,7 @@ add_action( 'admin_post_teinvit_set_active_version', function() {
 add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    list( $order_id, $order ) = teinvit_admin_post_guard( $token );
+    list( $order_id, $order ) = teinvit_admin_post_guard( $token, 'can_save_version_snapshot' );
 
     $inv = teinvit_get_invitation( $token );
     if ( ! $inv ) {
@@ -1252,7 +1259,7 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
 add_action( 'admin_post_teinvit_save_gifts', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_manage_gifts' );
 
     $inv = teinvit_get_invitation( $token );
     if ( ! $inv ) {
@@ -1867,6 +1874,29 @@ add_action( 'rest_api_init', function() {
 
             $wpdb->query( 'COMMIT' );
             teinvit_touch_invitation_activity( $token );
+
+            $rsvp_payload = [
+                'guest_first_name' => sanitize_text_field( $p['guest_first_name'] ?? '' ),
+                'guest_last_name' => sanitize_text_field( $p['guest_last_name'] ?? '' ),
+                'guest_email' => $email,
+                'guest_phone' => $phone,
+                'attending_people_count' => $attending_people_count,
+                'attending_civil' => empty( $p['attending_civil'] ) ? 0 : 1,
+                'attending_religious' => empty( $p['attending_religious'] ) ? 0 : 1,
+                'attending_party' => empty( $p['attending_party'] ) ? 0 : 1,
+                'bringing_kids' => $bringing_kids,
+                'kids_count' => $kids_count,
+                'needs_accommodation' => $needs_accommodation,
+                'accommodation_people_count' => $accommodation_people_count,
+                'vegetarian_requested' => $vegetarian_requested,
+                'vegetarian_menus_count' => $vegetarian_menus_count,
+                'has_allergies' => $has_allergies,
+                'allergy_details' => $allergy_details,
+                'message_to_couple' => sanitize_textarea_field( $p['message_to_couple'] ?? '' ),
+                'marketing_consent' => empty( $p['marketing_consent'] ) ? 0 : 1,
+            ];
+
+            do_action( 'teinvit_rsvp_saved', $token, $rsvp_id, $rsvp_payload );
 
             return [ 'ok' => true ];
         },
