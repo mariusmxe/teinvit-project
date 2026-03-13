@@ -225,6 +225,307 @@ function teinvit_get_order_primary_product_id( WC_Order $order ) {
     return $product ? (int) $product->get_id() : 0;
 }
 
+
+function teinvit_order_contains_product_id( WC_Order $order, $product_id ) {
+    $product_id = (int) $product_id;
+    if ( $product_id <= 0 ) {
+        return false;
+    }
+
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        $pid = (int) $item->get_product_id();
+        $vid = (int) $item->get_variation_id();
+        if ( $pid === $product_id || $vid === $product_id ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function teinvit_order_contains_any_product_ids( WC_Order $order, array $product_ids ) {
+    $normalized = array_values( array_filter( array_map( 'intval', $product_ids ), static function( $id ) {
+        return $id > 0;
+    } ) );
+
+    if ( empty( $normalized ) ) {
+        return false;
+    }
+
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        $pid = (int) $item->get_product_id();
+        $vid = (int) $item->get_variation_id();
+        if ( in_array( $pid, $normalized, true ) || in_array( $vid, $normalized, true ) ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function teinvit_token_has_premium_upgrade_addon( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return false;
+    }
+
+    if ( function_exists( 'teinvit_get_invitation' ) ) {
+        $inv = teinvit_get_invitation( $token );
+        $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+        if ( ! empty( $config['premium_upgrade_active'] ) ) {
+            return true;
+        }
+    }
+
+    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $upgrade_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
+    if ( empty( $upgrade_ids ) ) {
+        return false;
+    }
+
+    $statuses = [ 'wc-processing', 'wc-completed' ];
+    $status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+
+    $sql = "
+        SELECT p.ID
+        FROM {$wpdb->posts} p
+        INNER JOIN {$wpdb->postmeta} pm_token ON pm_token.post_id = p.ID AND pm_token.meta_key = '_teinvit_token_target' AND pm_token.meta_value = %s
+        INNER JOIN {$wpdb->prefix}woocommerce_order_items oi ON oi.order_id = p.ID AND oi.order_item_type = 'line_item'
+        INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta oim ON oim.order_item_id = oi.order_item_id AND oim.meta_key = '_product_id' AND oim.meta_value = %s
+        WHERE p.post_type = 'shop_order'
+          AND p.post_status IN ($status_placeholders)
+        LIMIT 1
+    ";
+
+    foreach ( $upgrade_ids as $upgrade_id ) {
+        $args = array_merge( [ $token, (string) (int) $upgrade_id ], $statuses );
+        $order_id = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
+        if ( $order_id > 0 ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function teinvit_resolve_token_product_state( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return 'premium_native';
+    }
+
+    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $basic_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'basic_product_ids' ) : [];
+    $premium_native_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' ) : [];
+
+    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    $order = $order_id > 0 ? wc_get_order( $order_id ) : null;
+
+    if ( $order instanceof WC_Order ) {
+        if ( teinvit_order_contains_any_product_ids( $order, $premium_native_ids ) ) {
+            return 'premium_native';
+        }
+
+        if ( teinvit_order_contains_any_product_ids( $order, $basic_ids ) ) {
+            return teinvit_token_has_premium_upgrade_addon( $token ) ? 'basic_upgraded' : 'basic_pure';
+        }
+    }
+
+    return teinvit_token_has_premium_upgrade_addon( $token ) ? 'basic_upgraded' : 'premium_native';
+}
+
+function teinvit_capabilities_for_token( $token ) {
+    $state = teinvit_resolve_token_product_state( $token );
+
+    $capabilities = [
+        'state' => $state,
+        'can_save_invitation_info' => true,
+        'can_save_rsvp_config' => true,
+        'can_set_active_version' => true,
+        'can_save_version_snapshot' => true,
+        'can_manage_gifts' => true,
+        'can_buy_extra_edits' => true,
+        'can_buy_extra_gifts' => true,
+        'can_buy_premium_upgrade' => false,
+    ];
+
+    if ( $state === 'basic_pure' ) {
+        $capabilities['can_save_invitation_info'] = false;
+        $capabilities['can_save_rsvp_config'] = false;
+        $capabilities['can_set_active_version'] = false;
+        $capabilities['can_save_version_snapshot'] = false;
+        $capabilities['can_manage_gifts'] = false;
+        $capabilities['can_buy_extra_edits'] = false;
+        $capabilities['can_buy_extra_gifts'] = false;
+        $capabilities['can_buy_premium_upgrade'] = true;
+    }
+
+    return $capabilities;
+}
+
+function teinvit_catalog_ids_to_csv( $ids ) {
+    $ids = function_exists( 'teinvit_parse_product_ids_csv' ) ? teinvit_parse_product_ids_csv( $ids ) : array_values( array_filter( array_map( 'intval', (array) $ids ) ) );
+    return implode( ',', $ids );
+}
+
+function teinvit_catalog_first_id( array $catalog, $role_key ) {
+    $ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, $role_key ) : [];
+    return ! empty( $ids ) ? (int) $ids[0] : 0;
+}
+
+function teinvit_custom_products_vertical_labels() {
+    return [
+        'wedding' => 'Invitații digitale pentru Nuntă',
+        'baptism' => 'Invitații digitale pentru Botez',
+        'birthday' => 'Invitații digitale pentru Zile de naștere',
+        'private_party' => 'Invitații digitale pentru Petreceri private',
+    ];
+}
+
+function teinvit_register_custom_products_admin_page() {
+    $labels = teinvit_custom_products_vertical_labels();
+
+    add_submenu_page(
+        'woocommerce',
+        'Te Invit Custom Products',
+        'Te Invit Custom Products',
+        'manage_woocommerce',
+        'teinvit-custom-products-wedding',
+        function() {
+            teinvit_render_custom_products_admin_page( 'wedding' );
+        }
+    );
+
+    foreach ( $labels as $vertical => $label ) {
+        $slug = 'teinvit-custom-products-' . $vertical;
+        if ( $vertical === 'wedding' ) {
+            continue;
+        }
+
+        add_submenu_page(
+            'woocommerce',
+            $label,
+            $label,
+            'manage_woocommerce',
+            $slug,
+            function() use ( $vertical ) {
+                teinvit_render_custom_products_admin_page( $vertical );
+            }
+        );
+    }
+}
+add_action( 'admin_menu', 'teinvit_register_custom_products_admin_page', 30 );
+
+function teinvit_render_custom_products_admin_page( $vertical = 'wedding' ) {
+    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+        wp_die( 'Nu ai acces la această pagină.' );
+    }
+
+    $labels = teinvit_custom_products_vertical_labels();
+    $vertical = isset( $labels[ $vertical ] ) ? $vertical : 'wedding';
+
+    $catalog_all = function_exists( 'teinvit_get_custom_products_catalog' ) ? teinvit_get_custom_products_catalog() : [];
+    $catalog = isset( $catalog_all[ $vertical ] ) ? $catalog_all[ $vertical ] : ( function_exists( 'teinvit_custom_product_defaults' ) ? teinvit_custom_product_defaults() : [] );
+
+    $saved = false;
+
+    $nonce_action = 'teinvit_save_custom_products_' . $vertical;
+    $nonce_field = 'teinvit_custom_products_nonce_' . $vertical;
+
+    if ( isset( $_POST[ $nonce_field ] ) && wp_verify_nonce( wp_unslash( $_POST[ $nonce_field ] ), $nonce_action ) ) {
+        $catalog_all[ $vertical ] = [
+            'basic_product_ids' => function_exists( 'teinvit_parse_product_ids_csv' ) ? teinvit_parse_product_ids_csv( sanitize_text_field( wp_unslash( $_POST['basic_product_ids'] ?? '' ) ) ) : [],
+            'premium_upgrade_addon_ids' => function_exists( 'teinvit_parse_product_ids_csv' ) ? teinvit_parse_product_ids_csv( sanitize_text_field( wp_unslash( $_POST['premium_upgrade_addon_ids'] ?? '' ) ) ) : [],
+            'premium_native_product_ids' => function_exists( 'teinvit_parse_product_ids_csv' ) ? teinvit_parse_product_ids_csv( sanitize_text_field( wp_unslash( $_POST['premium_native_product_ids'] ?? '' ) ) ) : [],
+            'extra_edits_addon_ids' => function_exists( 'teinvit_parse_product_ids_csv' ) ? teinvit_parse_product_ids_csv( sanitize_text_field( wp_unslash( $_POST['extra_edits_addon_ids'] ?? '' ) ) ) : [],
+            'extra_gifts_addon_ids' => function_exists( 'teinvit_parse_product_ids_csv' ) ? teinvit_parse_product_ids_csv( sanitize_text_field( wp_unslash( $_POST['extra_gifts_addon_ids'] ?? '' ) ) ) : [],
+        ];
+
+        update_option( 'teinvit_custom_products_catalog', $catalog_all, false );
+
+        // Compat pentru versiuni vechi care mai citesc opțiunea legacy.
+        if ( $vertical === 'wedding' ) {
+            update_option( 'teinvit_custom_product_ids', $catalog_all[ $vertical ], false );
+        }
+
+        $catalog_all = function_exists( 'teinvit_get_custom_products_catalog' ) ? teinvit_get_custom_products_catalog() : $catalog_all;
+        $catalog = isset( $catalog_all[ $vertical ] ) ? $catalog_all[ $vertical ] : $catalog;
+        $saved = true;
+    }
+
+    echo '<div class="wrap"><h1>Te Invit Custom Products — ' . esc_html( $labels[ $vertical ] ) . '</h1>';
+    if ( $saved ) {
+        echo '<div class="notice notice-success"><p>Setările au fost salvate.</p></div>';
+    }
+
+    echo '<form method="post">';
+    wp_nonce_field( $nonce_action, $nonce_field );
+
+    echo '<table class="form-table" role="presentation">';
+    echo '<tr><th scope="row"><label for="basic_product_ids">Produs Basic (ID-uri)</label></th><td><input type="text" id="basic_product_ids" name="basic_product_ids" value="' . esc_attr( teinvit_catalog_ids_to_csv( $catalog['basic_product_ids'] ?? [] ) ) . '" class="regular-text" /><p class="description">Ex: 560,561</p></td></tr>';
+    echo '<tr><th scope="row"><label for="premium_upgrade_addon_ids">Addon Upgrade Premium (ID-uri)</label></th><td><input type="text" id="premium_upgrade_addon_ids" name="premium_upgrade_addon_ids" value="' . esc_attr( teinvit_catalog_ids_to_csv( $catalog['premium_upgrade_addon_ids'] ?? [] ) ) . '" class="regular-text" /><p class="description">Ex: 526,700</p></td></tr>';
+    echo '<tr><th scope="row"><label for="premium_native_product_ids">Produse Premium Native (ID-uri)</label></th><td><input type="text" id="premium_native_product_ids" name="premium_native_product_ids" value="' . esc_attr( implode( ',', (array) ( $catalog['premium_native_product_ids'] ?? [] ) ) ) . '" class="regular-text" /><p class="description">Ex: 70,286</p></td></tr>';
+    echo '<tr><th scope="row"><label for="extra_edits_addon_ids">Addon Modificări suplimentare (ID-uri)</label></th><td><input type="text" id="extra_edits_addon_ids" name="extra_edits_addon_ids" value="' . esc_attr( teinvit_catalog_ids_to_csv( $catalog['extra_edits_addon_ids'] ?? [] ) ) . '" class="regular-text" /><p class="description">Ex: 301,701</p></td></tr>';
+    echo '<tr><th scope="row"><label for="extra_gifts_addon_ids">Addon +10 cadouri (ID-uri)</label></th><td><input type="text" id="extra_gifts_addon_ids" name="extra_gifts_addon_ids" value="' . esc_attr( teinvit_catalog_ids_to_csv( $catalog['extra_gifts_addon_ids'] ?? [] ) ) . '" class="regular-text" /><p class="description">Ex: 298,702</p></td></tr>';
+    echo '</table>';
+
+    submit_button( 'Salvează' );
+    echo '</form></div>';
+}
+
+function teinvit_render_product_background_field() {
+    global $post;
+
+    if ( ! $post || (string) $post->post_type !== 'product' ) {
+        return;
+    }
+
+    $attachment_id = (int) get_post_meta( (int) $post->ID, '_teinvit_background_image_id', true );
+    $image_url = $attachment_id > 0 ? wp_get_attachment_image_url( $attachment_id, 'large' ) : '';
+
+    echo '<div class="options_group teinvit-product-bg-field">';
+    echo '<p class="form-field"><label for="teinvit_background_image_id">Background invitație (Media Library)</label>';
+    echo '<input type="hidden" id="teinvit_background_image_id" name="teinvit_background_image_id" value="' . esc_attr( (string) $attachment_id ) . '" />';
+    echo '<button type="button" class="button" id="teinvit-background-select">Selectează imagine</button> ';
+    echo '<button type="button" class="button" id="teinvit-background-remove" ' . ( $attachment_id > 0 ? '' : 'style="display:none;"' ) . '>Elimină</button>';
+    echo '<span class="description" style="display:block;margin-top:6px;">Imaginea aleasă va fi folosită în preview și PDF pentru acest produs.</span>';
+    echo '</p>';
+
+    echo '<p id="teinvit-background-preview" style="margin-left:162px;' . ( $image_url ? '' : 'display:none;' ) . '">';
+    if ( $image_url ) {
+        echo '<img src="' . esc_url( $image_url ) . '" alt="Background" style="max-width:220px;height:auto;border:1px solid #ddd;border-radius:6px;" />';
+    }
+    echo '</p>';
+    echo '</div>';
+}
+add_action( 'woocommerce_product_options_general_product_data', 'teinvit_render_product_background_field' );
+
+add_action( 'woocommerce_process_product_meta', function( $post_id ) {
+    $attachment_id = isset( $_POST['teinvit_background_image_id'] ) ? (int) $_POST['teinvit_background_image_id'] : 0;
+    if ( $attachment_id > 0 ) {
+        update_post_meta( (int) $post_id, '_teinvit_background_image_id', $attachment_id );
+    } else {
+        delete_post_meta( (int) $post_id, '_teinvit_background_image_id' );
+    }
+} );
+
+add_action( 'admin_enqueue_scripts', function( $hook ) {
+    if ( ! in_array( $hook, [ 'post-new.php', 'post.php' ], true ) ) {
+        return;
+    }
+
+    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+    if ( ! $screen || (string) $screen->post_type !== 'product' ) {
+        return;
+    }
+
+    wp_enqueue_media();
+    wp_add_inline_script( 'jquery-core', "jQuery(function($){var frame;var field=$('#teinvit_background_image_id');var preview=$('#teinvit-background-preview');function render(url){if(!url){preview.hide().html('');$('#teinvit-background-remove').hide();return;}preview.html('<img src=\"'+url+'\" alt=\"Background\" style=\"max-width:220px;height:auto;border:1px solid #ddd;border-radius:6px;\" />').show();$('#teinvit-background-remove').show();}$('#teinvit-background-select').on('click',function(e){e.preventDefault();if(frame){frame.open();return;}frame=wp.media({title:'Selectează background invitație',button:{text:'Folosește această imagine'},multiple:false});frame.on('select',function(){var a=frame.state().get('selection').first().toJSON();field.val(a.id||'');render((a.sizes&&a.sizes.large?a.sizes.large.url:a.url)||'');});frame.open();});$('#teinvit-background-remove').on('click',function(e){e.preventDefault();field.val('');render('');});});" );
+} );
+
+
 function teinvit_normalize_wapf_field_id( $raw ) {
     $id = is_scalar( $raw ) ? (string) $raw : '';
     $id = trim( $id );
@@ -683,24 +984,40 @@ function teinvit_find_product_id_by_name( $name ) {
 }
 
 function teinvit_get_purchase_url( $type, $token ) {
-    $product_name = $type === 'gifts' ? 'Pachet cadouri suplimentare (+10)' : 'Modificări suplimentare invitație';
-    $pid = teinvit_find_product_id_by_name( $product_name );
-    if ( ! $pid ) {
+    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $pid = 0;
+
+    if ( $type === 'gifts' ) {
+        $pid = teinvit_catalog_first_id( $catalog, 'extra_gifts_addon_ids' );
+    } elseif ( $type === 'premium_upgrade' ) {
+        $pid = teinvit_catalog_first_id( $catalog, 'premium_upgrade_addon_ids' );
+    } else {
+        $pid = teinvit_catalog_first_id( $catalog, 'extra_edits_addon_ids' );
+    }
+
+    if ( $pid <= 0 ) {
         return wc_get_cart_url();
     }
+
     return add_query_arg( [ 'add-to-cart' => $pid, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ) ], wc_get_cart_url() );
 }
 
 add_action( 'template_redirect', function() {
     $buy_edits_token = isset( $_GET['teinvit_buy_edits_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_edits_token'] ) ) : '';
     $buy_gifts_token = isset( $_GET['teinvit_buy_gifts_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_gifts_token'] ) ) : '';
+    $buy_premium_token = isset( $_GET['teinvit_buy_premium_upgrade_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_premium_upgrade_token'] ) ) : '';
 
-    if ( $buy_edits_token === '' && $buy_gifts_token === '' ) {
+    if ( $buy_edits_token === '' && $buy_gifts_token === '' && $buy_premium_token === '' ) {
         return;
     }
 
-    $product_id = $buy_edits_token !== '' ? 301 : 298;
-    $token = $buy_edits_token !== '' ? $buy_edits_token : $buy_gifts_token;
+    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $edits_id = teinvit_catalog_first_id( $catalog, 'extra_edits_addon_ids' );
+    $gifts_id = teinvit_catalog_first_id( $catalog, 'extra_gifts_addon_ids' );
+    $premium_upgrade_id = teinvit_catalog_first_id( $catalog, 'premium_upgrade_addon_ids' );
+
+    $product_id = $buy_edits_token !== '' ? $edits_id : ( $buy_gifts_token !== '' ? $gifts_id : $premium_upgrade_id );
+    $token = $buy_edits_token !== '' ? $buy_edits_token : ( $buy_gifts_token !== '' ? $buy_gifts_token : $buy_premium_token );
 
     if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
         wp_safe_redirect( add_query_arg( [
@@ -815,9 +1132,11 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
         $processed = [];
     }
 
-    $edits_product_id = 301;
+    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $edits_product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'extra_edits_addon_ids' ) : [];
     $gifts_name = 'Pachet cadouri suplimentare (+10)';
-    $gifts_product_id = 298;
+    $gifts_product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'extra_gifts_addon_ids' ) : [];
+    $premium_upgrade_product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
     $order_target_token = sanitize_text_field( (string) $order->get_meta( '_teinvit_token_target', true ) );
     $did_update = false;
 
@@ -847,8 +1166,15 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
 
         $product_id = (int) $item->get_product_id();
         $name = (string) $item->get_name();
+        $state = function_exists( 'teinvit_resolve_token_product_state' ) ? teinvit_resolve_token_product_state( $target_token ) : 'premium_native';
 
-        if ( $product_id === $edits_product_id ) {
+        if ( in_array( $product_id, $edits_product_ids, true ) ) {
+            if ( $state === 'basic_pure' ) {
+                $order->add_order_note( sprintf( 'TeInvit: item %d ignorat pentru token %s (Basic pur fără upgrade premium).', (int) $item_id, $target_token ) );
+                $processed[] = (int) $item_id;
+                $did_update = true;
+                continue;
+            }
             teinvit_credit_paid_edits_for_invitation( $target_token, $qty );
 
             $settings = teinvit_get_settings( $target_token );
@@ -858,13 +1184,20 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
                 ] );
             }
 
-            $order->add_order_note( sprintf( 'TeInvit: +%d modificări alocate token-ului %s (produs 301).', $qty, $target_token ) );
+            $order->add_order_note( sprintf( 'TeInvit: +%d modificări alocate token-ului %s (produs %d).', $qty, $target_token, $product_id ) );
             $processed[] = (int) $item_id;
             $did_update = true;
             continue;
         }
 
-        if ( $product_id === $gifts_product_id || $name === $gifts_name ) {
+        if ( in_array( $product_id, $gifts_product_ids, true ) || $name === $gifts_name ) {
+            if ( $state === 'basic_pure' ) {
+                $order->add_order_note( sprintf( 'TeInvit: item %d ignorat pentru token %s (cadouri extra indisponibile pe Basic pur).', (int) $item_id, $target_token ) );
+                $processed[] = (int) $item_id;
+                $did_update = true;
+                continue;
+            }
+
             teinvit_credit_gifts_extra_slots_for_invitation( $target_token, $qty );
 
             $settings = teinvit_get_settings( $target_token );
@@ -877,7 +1210,24 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
             $inv = function_exists( 'teinvit_get_invitation' ) ? teinvit_get_invitation( $target_token ) : null;
             $conf = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
             $new_total = isset( $conf['gifts_extra_slots'] ) ? (int) $conf['gifts_extra_slots'] : 0;
-            $order->add_order_note( sprintf( 'TeInvit: token=%s qty=%d -> +%d sloturi cadouri (produs 298), total extra=%d.', $target_token, $qty, ( $qty * 10 ), $new_total ) );
+            $order->add_order_note( sprintf( 'TeInvit: token=%s qty=%d -> +%d sloturi cadouri (produs %d), total extra=%d.', $target_token, $qty, ( $qty * 10 ), $product_id, $new_total ) );
+            $processed[] = (int) $item_id;
+            $did_update = true;
+            continue;
+        }
+
+        if ( in_array( $product_id, $premium_upgrade_product_ids, true ) ) {
+            if ( function_exists( 'teinvit_get_invitation' ) && function_exists( 'teinvit_save_invitation_config' ) ) {
+                $inv = teinvit_get_invitation( $target_token );
+                if ( $inv ) {
+                    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+                    $config['premium_upgrade_active'] = 1;
+                    $config['premium_upgrade_last_order_id'] = (int) $order_id;
+                    teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+                }
+            }
+
+            $order->add_order_note( sprintf( 'TeInvit: token=%s trecut în starea basic_upgraded (addon premium produs %d).', $target_token, $product_id ) );
             $processed[] = (int) $item_id;
             $did_update = true;
             continue;

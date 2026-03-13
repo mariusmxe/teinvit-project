@@ -51,6 +51,8 @@ add_action( 'woocommerce_after_add_to_cart_form', function () {
         return;
     }
 
+
+    echo '<style>#teinvit-product-preview{width:100%;max-width:100%;overflow:hidden}#teinvit-product-preview .teinvit-wedding{padding:0;max-width:100%}#teinvit-product-preview .teinvit-preview{max-width:100%;margin:0 auto}</style>';
     echo '<div id="teinvit-product-preview" class="teinvit-product-preview">';
     echo '<h3 class="teinvit-preview-title">Previzualizare invitație</h3>';
 
