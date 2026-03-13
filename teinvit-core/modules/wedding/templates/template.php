@@ -27,8 +27,8 @@ if ( isset( $product ) && $product instanceof WC_Product ) {
     }
 }
 $background_url = function_exists( 'teinvit_get_product_background_url' )
-    ? teinvit_get_product_background_url( $product_id_for_background, $model_key )
-    : ( function_exists( 'teinvit_model_background_url' ) ? teinvit_model_background_url( $model_key ) : ( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' ) );
+    ? teinvit_get_product_background_url( $product_id_for_background )
+    : '';
 ?>
 
 <div class="teinvit-wedding">

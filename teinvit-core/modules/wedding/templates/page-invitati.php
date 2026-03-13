@@ -21,7 +21,7 @@ if ( $background_product_id <= 0 && function_exists( 'wc_get_order' ) ) {
         $background_product_id = (int) teinvit_get_order_primary_product_id( $order_for_bg );
     }
 }
-$bg = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $background_product_id, (string) ( $inv['model_key'] ?? 'invn01' ) ) : teinvit_model_background_url( $inv['model_key'] ?? 'invn01' );
+$bg = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $background_product_id ) : '';
 
 $events = isset( $invitation_data['events'] ) && is_array( $invitation_data['events'] ) ? $invitation_data['events'] : [];
 $event_flags = [
@@ -147,7 +147,7 @@ $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
   <?php if ( ! $in_cpt_template ) : ?>
   <div class="teinvit-surface-card teinvit-preview-card">
   <div class="preview" style="position:relative;">
-    <img src="<?php echo esc_url( $bg ); ?>" alt="background" style="width:100%;height:auto;display:block;">
+    <?php if ( $bg ) : ?><img src="<?php echo esc_url( $bg ); ?>" alt="background" style="width:100%;height:auto;display:block;"><?php endif; ?>
     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;"><?php echo esc_html( $invitation_data['names'] ?? '' ); ?></div>
   </div>
   </div>

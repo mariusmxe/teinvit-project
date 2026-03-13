@@ -19,13 +19,27 @@ function teinvit_custom_product_vertical_keys() {
     return [ 'wedding', 'baptism', 'birthday', 'private_party' ];
 }
 
+function teinvit_parse_product_ids_csv( $raw ) {
+    if ( is_array( $raw ) ) {
+        $values = $raw;
+    } else {
+        $values = preg_split( '/[\s,]+/', (string) $raw, -1, PREG_SPLIT_NO_EMPTY );
+    }
+
+    $values = array_values( array_filter( array_map( 'intval', (array) $values ), static function( $id ) {
+        return $id > 0;
+    } ) );
+
+    return array_values( array_unique( $values ) );
+}
+
 function teinvit_custom_product_defaults() {
     return [
-        'basic_product_id' => 560,
-        'premium_upgrade_addon_id' => 526,
-        'premium_native_product_ids' => [ 70, 286 ],
-        'extra_edits_addon_id' => 301,
-        'extra_gifts_addon_id' => 298,
+        'basic_product_ids' => [],
+        'premium_upgrade_addon_ids' => [],
+        'premium_native_product_ids' => [],
+        'extra_edits_addon_ids' => [],
+        'extra_gifts_addon_ids' => [],
     ];
 }
 
@@ -33,24 +47,18 @@ function teinvit_normalize_custom_product_catalog_entry( $entry ) {
     $defaults = teinvit_custom_product_defaults();
     $entry = is_array( $entry ) ? $entry : [];
 
-    $native = isset( $entry['premium_native_product_ids'] ) ? $entry['premium_native_product_ids'] : $defaults['premium_native_product_ids'];
-    if ( ! is_array( $native ) ) {
-        $native = preg_split( '/[\s,]+/', (string) $native, -1, PREG_SPLIT_NO_EMPTY );
-    }
-    $native = array_values( array_filter( array_map( 'intval', $native ), static function( $id ) {
-        return $id > 0;
-    } ) );
-
-    if ( empty( $native ) ) {
-        $native = array_values( array_filter( array_map( 'intval', (array) $defaults['premium_native_product_ids'] ) ) );
-    }
+    $basic = $entry['basic_product_ids'] ?? ( isset( $entry['basic_product_id'] ) ? [ $entry['basic_product_id'] ] : [] );
+    $upgrade = $entry['premium_upgrade_addon_ids'] ?? ( isset( $entry['premium_upgrade_addon_id'] ) ? [ $entry['premium_upgrade_addon_id'] ] : [] );
+    $premium_native = $entry['premium_native_product_ids'] ?? [];
+    $extra_edits = $entry['extra_edits_addon_ids'] ?? ( isset( $entry['extra_edits_addon_id'] ) ? [ $entry['extra_edits_addon_id'] ] : [] );
+    $extra_gifts = $entry['extra_gifts_addon_ids'] ?? ( isset( $entry['extra_gifts_addon_id'] ) ? [ $entry['extra_gifts_addon_id'] ] : [] );
 
     return [
-        'basic_product_id' => max( 0, (int) ( $entry['basic_product_id'] ?? $defaults['basic_product_id'] ) ),
-        'premium_upgrade_addon_id' => max( 0, (int) ( $entry['premium_upgrade_addon_id'] ?? $defaults['premium_upgrade_addon_id'] ) ),
-        'premium_native_product_ids' => array_values( array_unique( $native ) ),
-        'extra_edits_addon_id' => max( 0, (int) ( $entry['extra_edits_addon_id'] ?? $defaults['extra_edits_addon_id'] ) ),
-        'extra_gifts_addon_id' => max( 0, (int) ( $entry['extra_gifts_addon_id'] ?? $defaults['extra_gifts_addon_id'] ) ),
+        'basic_product_ids' => teinvit_parse_product_ids_csv( $basic ),
+        'premium_upgrade_addon_ids' => teinvit_parse_product_ids_csv( $upgrade ),
+        'premium_native_product_ids' => teinvit_parse_product_ids_csv( $premium_native ),
+        'extra_edits_addon_ids' => teinvit_parse_product_ids_csv( $extra_edits ),
+        'extra_gifts_addon_ids' => teinvit_parse_product_ids_csv( $extra_gifts ),
     ];
 }
 
@@ -60,13 +68,13 @@ function teinvit_get_custom_products_catalog() {
     if ( ! is_array( $catalog ) || empty( $catalog ) ) {
         $legacy = get_option( 'teinvit_custom_product_ids', [] );
         $catalog = [
-            'wedding' => is_array( $legacy ) && ! empty( $legacy ) ? $legacy : teinvit_custom_product_defaults(),
+            'wedding' => is_array( $legacy ) ? $legacy : [],
         ];
     }
 
     $out = [];
     foreach ( teinvit_custom_product_vertical_keys() as $vertical ) {
-        $source = isset( $catalog[ $vertical ] ) ? $catalog[ $vertical ] : teinvit_custom_product_defaults();
+        $source = isset( $catalog[ $vertical ] ) ? $catalog[ $vertical ] : [];
         $out[ $vertical ] = teinvit_normalize_custom_product_catalog_entry( $source );
     }
 
@@ -80,39 +88,25 @@ function teinvit_get_custom_product_ids( $vertical = 'all' ) {
         return $catalog[ $vertical ];
     }
 
-    $merged = [
-        'basic_product_id' => 0,
-        'premium_upgrade_addon_id' => 0,
-        'premium_native_product_ids' => [],
-        'extra_edits_addon_id' => 0,
-        'extra_gifts_addon_id' => 0,
-    ];
+    $merged = teinvit_custom_product_defaults();
 
     foreach ( $catalog as $entry ) {
-        if ( empty( $merged['basic_product_id'] ) && ! empty( $entry['basic_product_id'] ) ) {
-            $merged['basic_product_id'] = (int) $entry['basic_product_id'];
-        }
-        if ( empty( $merged['premium_upgrade_addon_id'] ) && ! empty( $entry['premium_upgrade_addon_id'] ) ) {
-            $merged['premium_upgrade_addon_id'] = (int) $entry['premium_upgrade_addon_id'];
-        }
-        if ( empty( $merged['extra_edits_addon_id'] ) && ! empty( $entry['extra_edits_addon_id'] ) ) {
-            $merged['extra_edits_addon_id'] = (int) $entry['extra_edits_addon_id'];
-        }
-        if ( empty( $merged['extra_gifts_addon_id'] ) && ! empty( $entry['extra_gifts_addon_id'] ) ) {
-            $merged['extra_gifts_addon_id'] = (int) $entry['extra_gifts_addon_id'];
-        }
-
-        $merged['premium_native_product_ids'] = array_merge(
-            $merged['premium_native_product_ids'],
-            array_map( 'intval', (array) ( $entry['premium_native_product_ids'] ?? [] ) )
-        );
+        $merged['basic_product_ids'] = array_merge( $merged['basic_product_ids'], (array) ( $entry['basic_product_ids'] ?? [] ) );
+        $merged['premium_upgrade_addon_ids'] = array_merge( $merged['premium_upgrade_addon_ids'], (array) ( $entry['premium_upgrade_addon_ids'] ?? [] ) );
+        $merged['premium_native_product_ids'] = array_merge( $merged['premium_native_product_ids'], (array) ( $entry['premium_native_product_ids'] ?? [] ) );
+        $merged['extra_edits_addon_ids'] = array_merge( $merged['extra_edits_addon_ids'], (array) ( $entry['extra_edits_addon_ids'] ?? [] ) );
+        $merged['extra_gifts_addon_ids'] = array_merge( $merged['extra_gifts_addon_ids'], (array) ( $entry['extra_gifts_addon_ids'] ?? [] ) );
     }
 
-    $merged['premium_native_product_ids'] = array_values( array_unique( array_filter( $merged['premium_native_product_ids'], static function( $id ) {
-        return $id > 0;
-    } ) ) );
+    foreach ( $merged as $k => $ids ) {
+        $merged[ $k ] = teinvit_parse_product_ids_csv( $ids );
+    }
 
     return $merged;
+}
+
+function teinvit_catalog_role_ids( array $catalog, $role_key ) {
+    return teinvit_parse_product_ids_csv( $catalog[ $role_key ] ?? [] );
 }
 
 
@@ -123,8 +117,8 @@ function teinvit_order_contains_invitation_product( $order ) {
 
     $catalog = teinvit_get_custom_product_ids();
     $allowed = array_values( array_unique( array_merge(
-        [ (int) $catalog['basic_product_id'] ],
-        array_map( 'intval', (array) $catalog['premium_native_product_ids'] )
+        teinvit_catalog_role_ids( $catalog, 'basic_product_ids' ),
+        teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' )
     ) ) );
     foreach ( $order->get_items() as $item ) {
         $pid = (int) $item->get_product_id();

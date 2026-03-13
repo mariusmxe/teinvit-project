@@ -21,7 +21,7 @@ function teinvit_model_background_url( $model_key ) {
 }
 
 
-function teinvit_get_product_background_url( $product_or_id, $fallback_model_key = 'invn01' ) {
+function teinvit_get_product_background_url( $product_or_id ) {
     $product_id = 0;
 
     if ( $product_or_id instanceof WC_Product ) {
@@ -40,7 +40,7 @@ function teinvit_get_product_background_url( $product_or_id, $fallback_model_key
         }
     }
 
-    return teinvit_model_background_url( $fallback_model_key );
+    return "";
 }
 
 function teinvit_extract_admin_client_global_zone( $content, $zone ) {
