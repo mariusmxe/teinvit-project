@@ -44,6 +44,7 @@ Randarea este de tip JS-first, iar HTML-ul final stabilizat este cel utilizat pe
 
 ---
 
+
 ## Reguli ale repository-ului
 
 - Structura folderelor trebuie să rămână identică cu producția (production-mirrored).

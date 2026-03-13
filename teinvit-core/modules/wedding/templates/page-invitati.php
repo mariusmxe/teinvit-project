@@ -14,7 +14,14 @@ if ( $deadline_raw !== '' && preg_match( '/^(\d{2})\/(\d{2})\/(\d{4})$/', $deadl
 }
 $deadline_expired = $deadline_active && $deadline_ts > 0 && time() > $deadline_ts;
 
-$bg = teinvit_model_background_url( $inv['model_key'] ?? 'invn01' );
+$background_product_id = (int) ( $inv['product_id'] ?? 0 );
+if ( $background_product_id <= 0 && function_exists( 'wc_get_order' ) ) {
+    $order_for_bg = wc_get_order( (int) ( $inv['order_id'] ?? 0 ) );
+    if ( $order_for_bg && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+        $background_product_id = (int) teinvit_get_order_primary_product_id( $order_for_bg );
+    }
+}
+$bg = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $background_product_id, (string) ( $inv['model_key'] ?? 'invn01' ) ) : teinvit_model_background_url( $inv['model_key'] ?? 'invn01' );
 
 $events = isset( $invitation_data['events'] ) && is_array( $invitation_data['events'] ) ? $invitation_data['events'] : [];
 $event_flags = [

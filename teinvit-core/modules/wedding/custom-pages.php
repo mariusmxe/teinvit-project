@@ -20,6 +20,41 @@ function teinvit_model_background_url( $model_key ) {
     return TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png';
 }
 
+
+function teinvit_get_product_background_url( $product_or_id, $fallback_model_key = 'invn01' ) {
+    $product_id = 0;
+
+    if ( $product_or_id instanceof WC_Product ) {
+        $product_id = (int) $product_or_id->get_id();
+    } else {
+        $product_id = (int) $product_or_id;
+    }
+
+    if ( $product_id > 0 ) {
+        $attachment_id = (int) get_post_meta( $product_id, '_teinvit_background_image_id', true );
+        if ( $attachment_id > 0 ) {
+            $url = wp_get_attachment_image_url( $attachment_id, 'full' );
+            if ( $url ) {
+                return esc_url_raw( $url );
+            }
+        }
+    }
+
+    return teinvit_model_background_url( $fallback_model_key );
+}
+
+function teinvit_extract_admin_client_global_zone( $content, $zone ) {
+    $zone = $zone === 'basic' ? 'basic' : 'premium';
+
+    $pattern = '/<([a-z0-9]+)([^>]*class=[\"\'][^\"\']*teinvit-global-' . preg_quote( $zone, '/' ) . '[^\"\']*[\"\'][^>]*)>(.*?)<\/\1>/is';
+    if ( preg_match_all( $pattern, (string) $content, $matches ) && ! empty( $matches[0] ) ) {
+        return implode( "\n", $matches[0] );
+    }
+
+    return '';
+}
+
+
 function teinvit_is_modular_snapshot_complete( $snapshot ) {
     if ( ! is_array( $snapshot ) ) {
         return false;
@@ -293,7 +328,7 @@ function teinvit_ensure_active_snapshot_payload( $token, $order = null ) {
 }
 
 
-function teinvit_render_admin_client_global_content() {
+function teinvit_render_admin_client_global_content( $token = '' ) {
     $page = get_page_by_path( 'teinvit-admin-client-global', OBJECT, 'page' );
     if ( ! $page instanceof WP_Post ) {
         return '';
@@ -302,6 +337,15 @@ function teinvit_render_admin_client_global_content() {
     $content = (string) $page->post_content;
     if ( $content === '' ) {
         return '';
+    }
+
+    $state = function_exists( 'teinvit_resolve_token_product_state' ) ? teinvit_resolve_token_product_state( $token ) : 'premium_native';
+    $is_premium = in_array( $state, [ 'premium_native', 'basic_upgraded' ], true );
+    $target_zone = $is_premium ? 'premium' : 'basic';
+
+    $zone_content = teinvit_extract_admin_client_global_zone( $content, $target_zone );
+    if ( $zone_content !== '' ) {
+        return (string) apply_filters( 'the_content', $zone_content );
     }
 
     return (string) apply_filters( 'the_content', $content );
@@ -1073,7 +1117,7 @@ function teinvit_wapf_payload_is_minimally_valid( array $wapf, array $invitation
     return true;
 }
 
-function teinvit_admin_post_guard( $token ) {
+function teinvit_admin_post_guard( $token, $required_capability = null ) {
     if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'teinvit_admin_' . $token ) ) {
         wp_die( 'Nonce invalid' );
     }
@@ -1082,6 +1126,13 @@ function teinvit_admin_post_guard( $token ) {
     $order = $order_id ? wc_get_order( $order_id ) : null;
     if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
         wp_die( 'Acces interzis' );
+    }
+
+    if ( $required_capability !== null && function_exists( 'teinvit_capabilities_for_token' ) ) {
+        $caps = teinvit_capabilities_for_token( $token );
+        if ( empty( $caps[ $required_capability ] ) ) {
+            wp_die( 'Funcționalitatea nu este disponibilă pentru pachetul curent.' );
+        }
     }
 
     return [ $order_id, $order ];
@@ -1105,7 +1156,7 @@ add_action( 'init', function() {
 
 add_action( 'admin_post_teinvit_save_invitation_info', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_save_invitation_info' );
 
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
@@ -1125,7 +1176,7 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
 
 add_action( 'admin_post_teinvit_save_rsvp_config', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_save_rsvp_config' );
 
     $inv = teinvit_get_invitation( $token );
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
@@ -1145,7 +1196,7 @@ add_action( 'admin_post_teinvit_save_rsvp_config', function() {
 add_action( 'admin_post_teinvit_set_active_version', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_set_active_version' );
 
     $version_id = (int) ( $_POST['active_version_id'] ?? 0 );
     $t = teinvit_db_tables();
@@ -1161,7 +1212,7 @@ add_action( 'admin_post_teinvit_set_active_version', function() {
 add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    list( $order_id, $order ) = teinvit_admin_post_guard( $token );
+    list( $order_id, $order ) = teinvit_admin_post_guard( $token, 'can_save_version_snapshot' );
 
     $inv = teinvit_get_invitation( $token );
     if ( ! $inv ) {
@@ -1252,7 +1303,7 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
 add_action( 'admin_post_teinvit_save_gifts', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token );
+    teinvit_admin_post_guard( $token, 'can_manage_gifts' );
 
     $inv = teinvit_get_invitation( $token );
     if ( ! $inv ) {
@@ -1867,6 +1918,29 @@ add_action( 'rest_api_init', function() {
 
             $wpdb->query( 'COMMIT' );
             teinvit_touch_invitation_activity( $token );
+
+            $rsvp_payload = [
+                'guest_first_name' => sanitize_text_field( $p['guest_first_name'] ?? '' ),
+                'guest_last_name' => sanitize_text_field( $p['guest_last_name'] ?? '' ),
+                'guest_email' => $email,
+                'guest_phone' => $phone,
+                'attending_people_count' => $attending_people_count,
+                'attending_civil' => empty( $p['attending_civil'] ) ? 0 : 1,
+                'attending_religious' => empty( $p['attending_religious'] ) ? 0 : 1,
+                'attending_party' => empty( $p['attending_party'] ) ? 0 : 1,
+                'bringing_kids' => $bringing_kids,
+                'kids_count' => $kids_count,
+                'needs_accommodation' => $needs_accommodation,
+                'accommodation_people_count' => $accommodation_people_count,
+                'vegetarian_requested' => $vegetarian_requested,
+                'vegetarian_menus_count' => $vegetarian_menus_count,
+                'has_allergies' => $has_allergies,
+                'allergy_details' => $allergy_details,
+                'message_to_couple' => sanitize_textarea_field( $p['message_to_couple'] ?? '' ),
+                'marketing_consent' => empty( $p['marketing_consent'] ) ? 0 : 1,
+            ];
+
+            do_action( 'teinvit_rsvp_saved', $token, $rsvp_id, $rsvp_payload );
 
             return [ 'ok' => true ];
         },
