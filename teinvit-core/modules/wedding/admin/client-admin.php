@@ -271,6 +271,14 @@ function teinvit_token_has_premium_upgrade_addon( $token ) {
         return false;
     }
 
+    if ( function_exists( 'teinvit_get_invitation' ) ) {
+        $inv = teinvit_get_invitation( $token );
+        $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+        if ( ! empty( $config['premium_upgrade_active'] ) ) {
+            return true;
+        }
+    }
+
     $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
     $upgrade_id = isset( $catalog['premium_upgrade_addon_id'] ) ? (int) $catalog['premium_upgrade_addon_id'] : 526;
     if ( $upgrade_id <= 0 ) {
@@ -341,6 +349,7 @@ function teinvit_capabilities_for_token( $token ) {
     ];
 
     if ( $state === 'basic_pure' ) {
+        $capabilities['can_save_invitation_info'] = false;
         $capabilities['can_save_rsvp_config'] = false;
         $capabilities['can_set_active_version'] = false;
         $capabilities['can_save_version_snapshot'] = false;

@@ -296,7 +296,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           </div>
         </div>
       </div>
+            <?php if ( ! empty( $capabilities['can_save_invitation_info'] ) ) : ?>
       <p><button type="submit" class="button">Publică data limită</button></p>
+      <?php else : ?>
+      <p><em>Publicarea datei limită pe pagina invitaților este disponibilă după upgrade la Premium.</em></p>
+      <?php endif; ?>
     </form>
   </div>
 
@@ -361,7 +365,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       </div>
 
       <p style="margin-top:8px;">
+        <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
         <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+        <?php else : ?>
+        <em>Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.</em>
+        <?php endif; ?>
       </p>
     </div>
 
@@ -378,7 +386,9 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
         <?php endif; ?>
 
+                <?php if ( ! empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
         <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
+        <?php endif; ?>
         <?php if ( empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
           <p><em>Editările de conținut și salvarea versiunilor sunt blocate pe pachetul Basic.</em></p>
           <?php if ( ! empty( $capabilities['can_buy_premium_upgrade'] ) ) : ?>
@@ -434,7 +444,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         </form>
       </div>
       <?php else : ?>
-      <div class="teinvit-zone teinvit-admin-gifts"><p><em>Lista de cadouri este disponibilă doar pentru pachet Premium.</em></p></div>
+      <div class="teinvit-zone teinvit-admin-gifts">
+        <h3 class="teinvit-gifts-title">Lista de cadouri</h3>
+        <p><em>Activarea listei de Cadouri pe pagina invitaților este disponibilă doar pentru pachetul Premium</em></p>
+      </div>
       <?php endif; ?>
 
       <script type="text/template" id="teinvit-gift-row-template">
