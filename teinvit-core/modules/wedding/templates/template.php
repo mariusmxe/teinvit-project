@@ -40,10 +40,8 @@ $background_url = function_exists( 'teinvit_get_product_background_url' )
      ⚠️ preview.js depinde de această structură
 ================================================== -->
 
-<?php if ( ! is_product() ) : ?>
 <div class="teinvit-page">
   <div class="teinvit-container">
-<?php endif; ?>
 
     <div class="teinvit-preview">
 
@@ -84,10 +82,8 @@ $background_url = function_exists( 'teinvit_get_product_background_url' )
         </div>
     </div>
 
-<?php if ( ! is_product() ) : ?>
   </div>
 </div>
-<?php endif; ?>
 
 
 <?php else : ?>

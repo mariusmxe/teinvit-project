@@ -149,3 +149,38 @@
         font-size: 13px; /* mic tweak pentru telefoane foarte înguste */
     }
 }
+
+/* =====================================================
+   9. PRODUCT PAGE PREVIEW (SCOPED)
+   👉 Desktop context alignment with canonical wrappers
+===================================================== */
+#teinvit-product-preview {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#teinvit-product-preview .teinvit-page,
+#teinvit-product-preview .teinvit-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+}
+
+#teinvit-product-preview .teinvit-wedding {
+    padding: 0;
+    max-width: 100%;
+}
+
+#teinvit-product-preview .teinvit-preview {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    #teinvit-product-preview .teinvit-wedding {
+        padding: 0;
+    }
+}
