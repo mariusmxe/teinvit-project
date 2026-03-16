@@ -15,13 +15,56 @@ function teinvit_generate_token_part( $length = 20 ) {
     return bin2hex( random_bytes( $length / 2 ) );
 }
 
+function teinvit_get_custom_product_ids() {
+    $defaults = [
+        'basic_product_id' => 560,
+        'premium_upgrade_addon_id' => 526,
+        'premium_native_product_ids' => [ 70, 286 ],
+        'extra_edits_addon_id' => 301,
+        'extra_gifts_addon_id' => 298,
+    ];
+
+    $saved = get_option( 'teinvit_custom_product_ids', [] );
+    if ( ! is_array( $saved ) ) {
+        $saved = [];
+    }
+
+    $basic_id = isset( $saved['basic_product_id'] ) ? (int) $saved['basic_product_id'] : $defaults['basic_product_id'];
+    $upgrade_id = isset( $saved['premium_upgrade_addon_id'] ) ? (int) $saved['premium_upgrade_addon_id'] : $defaults['premium_upgrade_addon_id'];
+    $edits_id = isset( $saved['extra_edits_addon_id'] ) ? (int) $saved['extra_edits_addon_id'] : $defaults['extra_edits_addon_id'];
+    $gifts_id = isset( $saved['extra_gifts_addon_id'] ) ? (int) $saved['extra_gifts_addon_id'] : $defaults['extra_gifts_addon_id'];
+
+    $native = isset( $saved['premium_native_product_ids'] ) ? $saved['premium_native_product_ids'] : $defaults['premium_native_product_ids'];
+    if ( ! is_array( $native ) ) {
+        $native = preg_split( '/[\s,]+/', (string) $native, -1, PREG_SPLIT_NO_EMPTY );
+    }
+    $native = array_values( array_filter( array_map( 'intval', $native ), static function( $id ) {
+        return $id > 0;
+    } ) );
+    if ( empty( $native ) ) {
+        $native = $defaults['premium_native_product_ids'];
+    }
+
+    return [
+        'basic_product_id' => max( 0, $basic_id ),
+        'premium_upgrade_addon_id' => max( 0, $upgrade_id ),
+        'premium_native_product_ids' => array_values( array_unique( $native ) ),
+        'extra_edits_addon_id' => max( 0, $edits_id ),
+        'extra_gifts_addon_id' => max( 0, $gifts_id ),
+    ];
+}
+
 
 function teinvit_order_contains_invitation_product( $order ) {
     if ( ! $order ) {
         return false;
     }
 
-    $allowed = [ 70, 286 ];
+    $catalog = teinvit_get_custom_product_ids();
+    $allowed = array_values( array_unique( array_merge(
+        [ (int) $catalog['basic_product_id'] ],
+        array_map( 'intval', (array) $catalog['premium_native_product_ids'] )
+    ) ) );
     foreach ( $order->get_items() as $item ) {
         $pid = (int) $item->get_product_id();
         if ( in_array( $pid, $allowed, true ) ) {
