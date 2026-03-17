@@ -745,7 +745,7 @@ function syncBaseFontSize(canvas) {
         pdfReadyCheckTimer = setTimeout(function () {
             window.requestAnimationFrame(function () {
                 window.requestAnimationFrame(function () {
-                    var overflow = canvas.scrollHeight > canvas.clientHeight + 1;
+                    var overflow = hasCanvasOverflow(canvas);
                     if (overflow && pdfReadyCheckAttempts < 4) {
                         pdfReadyCheckAttempts++;
                         window.__TEINVIT_AUTOFIT_DONE__ = false;
@@ -866,6 +866,14 @@ applyAutoFit(canvas);
        AUTO RESIZE GLOBAL
     ================================================== */
 
+    function hasCanvasOverflow(canvas) {
+        if (!canvas) return false;
+        return (
+            canvas.scrollHeight > canvas.clientHeight + 1 ||
+            canvas.scrollWidth > canvas.clientWidth + 1
+        );
+    }
+
     function applyAutoFit(canvas) {
 
     // Dacă suntem în i/{token} sau pdf/{token},
@@ -892,7 +900,7 @@ applyAutoFit(canvas);
         var events  = qs('.inv-events', canvas);
         var rows    = qsa('.events-row', canvas);
         canvas.style.fontSize = baseFont + 'em';
-        while (canvas.scrollHeight > canvas.clientHeight && safety < 60) {
+        while (hasCanvasOverflow(canvas) && safety < 60) {
             baseFont -= 0.02;
             if (baseFont < minFont) break;
 
@@ -1001,7 +1009,7 @@ applyAutoFit(canvas);
             canvas.style.fontSize = '1em';
             window.requestAnimationFrame(function () {
                 if (!isProductWAPFContext()) return;
-                if (canvas.scrollHeight > canvas.clientHeight) {
+                if (hasCanvasOverflow(canvas)) {
                     applyAutoFit(canvas);
                 }
             });
@@ -1043,6 +1051,16 @@ applyAutoFit(canvas);
     scheduleFinalProductPass();
     document.addEventListener('input', onPreviewDataChange);
     document.addEventListener('change', onPreviewDataChange);
+
+    var previewRoot = qs('.teinvit-preview');
+    if (previewRoot && typeof ResizeObserver !== 'undefined') {
+        var previewResizeObserver = new ResizeObserver(function () {
+            window.__TEINVIT_AUTOFIT_DONE__ = false;
+            render();
+            scheduleFinalProductPass();
+        });
+        previewResizeObserver.observe(previewRoot);
+    }
 
 });
 
