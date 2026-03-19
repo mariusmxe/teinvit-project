@@ -814,15 +814,34 @@ function teinvit_email_log_event( $send_id, $event_type, $url = null ) {
     global $wpdb;
 
     $tables = teinvit_email_tables();
+    $event_type = sanitize_key( $event_type );
+    $send_id    = sanitize_text_field( $send_id );
+    $url        = $url ? esc_url_raw( $url ) : null;
+
+    if ( $event_type === 'click' && $send_id !== '' && $url ) {
+        $window_start = gmdate( 'Y-m-d H:i:s', time() - MINUTE_IN_SECONDS );
+        $existing = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$tables['events']} WHERE send_id=%s AND event_type='click' AND url=%s AND event_at >= %s",
+                $send_id,
+                $url,
+                $window_start
+            )
+        );
+        if ( $existing > 0 ) {
+            return;
+        }
+    }
+
     $wpdb->insert(
         $tables['events'],
         [
-            'send_id'    => sanitize_text_field( $send_id ),
-            'event_type' => sanitize_key( $event_type ),
+            'send_id'    => $send_id,
+            'event_type' => $event_type,
             'event_at'   => current_time( 'mysql' ),
             'ip_hash'    => teinvit_email_hash_ip(),
             'ua_hash'    => teinvit_email_hash_ua(),
-            'url'        => $url ? esc_url_raw( $url ) : null,
+            'url'        => $url,
             'meta_json'  => null,
         ]
     );
@@ -2213,6 +2232,13 @@ add_filter(
                 }
 
                 protected function get_teinvit_template_id() {
+                    $current_email_id = sanitize_key( (string) $this->id );
+                    $is_custom_email  = strpos( $current_email_id, 'teinvit_email_tpl_' ) === 0;
+
+                    if ( $is_custom_email && $this->teinvit_template_id !== '' ) {
+                        return $this->teinvit_template_id;
+                    }
+
                     $section_email_id = teinvit_email_current_wc_settings_section_id();
                     if ( $section_email_id !== '' ) {
                         $section_template_id = teinvit_email_template_id_for_wc_email_id( $section_email_id );
@@ -2225,7 +2251,7 @@ add_filter(
                         return $this->teinvit_template_id;
                     }
 
-                    $fallback = teinvit_email_template_id_for_wc_email_id( (string) $this->id );
+                    $fallback = teinvit_email_template_id_for_wc_email_id( $current_email_id );
                     return $fallback ? (string) $fallback : '';
                 }
 
@@ -2293,7 +2319,7 @@ add_filter(
                         $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                         $render    = teinvit_email_render_template( $template, $sample );
                         $recipient = sanitize_email( (string) $sample['recipient_email'] );
-                        error_log( '[TeInvit Emails][WC test trigger] ' . $this->teinvit_debug_identity() . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                        error_log( '[TeInvit Emails][WC test trigger] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
                         if ( $recipient === '' || ! is_email( $recipient ) ) {
                             return false;
                         }
@@ -2336,7 +2362,7 @@ add_filter(
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
                     $this->teinvit_debug_content_path( 'get_content_html' );
-                    error_log( '[TeInvit Emails][WC preview html] ' . $this->teinvit_debug_identity() . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview html] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_html'] ?? '' );
                 }
@@ -2351,7 +2377,7 @@ add_filter(
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
                     $this->teinvit_debug_content_path( 'get_content_plain' );
-                    error_log( '[TeInvit Emails][WC preview plain] ' . $this->teinvit_debug_identity() . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview plain] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     if ( $this->teinvit_is_wc_settings_request() ) {
                         return (string) ( $render['body_html'] ?? '' );
