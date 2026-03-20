@@ -994,6 +994,24 @@ function teinvit_email_current_wc_settings_section_id() {
     return $section;
 }
 
+function teinvit_email_debug_mailer_registry() {
+    if ( ! function_exists( 'WC' ) || ! WC() ) {
+        return 'mailer=unavailable';
+    }
+
+    $mailer = WC()->mailer();
+    if ( ! $mailer || ! method_exists( $mailer, 'get_emails' ) ) {
+        return 'mailer=invalid';
+    }
+
+    $parts = [];
+    foreach ( (array) $mailer->get_emails() as $key => $email ) {
+        $parts[] = sanitize_key( (string) $key ) . ':' . ( is_object( $email ) && function_exists( 'spl_object_hash' ) ? spl_object_hash( $email ) : 'nohash' );
+    }
+
+    return 'emails=' . implode( ',', $parts );
+}
+
 
 function teinvit_email_debug_request_context() {
     $keys = [ 'page', 'tab', 'section', 'email', 'action', 'wc-api' ];
@@ -2257,7 +2275,7 @@ add_filter(
 
                 protected function teinvit_debug_identity() {
                     $hash = function_exists( 'spl_object_hash' ) ? spl_object_hash( $this ) : '';
-                    return 'class=' . get_class( $this ) . ' email_class=' . (string) $this->id . ' obj=' . $hash;
+                    return 'class=' . get_class( $this ) . ' email_class=' . (string) $this->id . ' title=' . (string) $this->title . ' template_id=' . (string) $this->teinvit_template_id . ' obj=' . $hash;
                 }
 
                 public function init_form_fields() {
@@ -2319,7 +2337,7 @@ add_filter(
                         $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                         $render    = teinvit_email_render_template( $template, $sample );
                         $recipient = sanitize_email( (string) $sample['recipient_email'] );
-                        error_log( '[TeInvit Emails][WC test trigger] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                        error_log( '[TeInvit Emails][WC test trigger] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' ' . teinvit_email_debug_mailer_registry() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
                         if ( $recipient === '' || ! is_email( $recipient ) ) {
                             return false;
                         }
@@ -2362,7 +2380,7 @@ add_filter(
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
                     $this->teinvit_debug_content_path( 'get_content_html' );
-                    error_log( '[TeInvit Emails][WC preview html] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview html] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' ' . teinvit_email_debug_mailer_registry() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     return (string) ( $render['body_html'] ?? '' );
                 }
@@ -2377,7 +2395,7 @@ add_filter(
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
                     $this->teinvit_debug_content_path( 'get_content_plain' );
-                    error_log( '[TeInvit Emails][WC preview plain] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    error_log( '[TeInvit Emails][WC preview plain] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' ' . teinvit_email_debug_mailer_registry() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
 
                     if ( $this->teinvit_is_wc_settings_request() ) {
                         return (string) ( $render['body_html'] ?? '' );
@@ -2460,8 +2478,20 @@ add_filter(
 
             $title = '[TeInvit] ' . (string) ( $tpl['name'] ?? $template_id );
             $description = 'Template dinamic TeInvit (' . (string) ( $tpl['trigger'] ?? '' ) . ' / ' . (string) ( $tpl['audience'] ?? '' ) . ').';
+            $class_suffix = strtoupper( substr( md5( $template_id ), 0, 12 ) );
+            $class_name   = 'TeInvit_WC_Email_Tpl_' . $class_suffix;
 
-            $emails[ $wc_id ] = new TeInvit_WC_Email_Base(
+            if ( ! class_exists( $class_name ) ) {
+                eval(
+                    'class ' . $class_name . ' extends TeInvit_WC_Email_Base {' .
+                    'public function __construct($id, $title, $description, $template_id) {' .
+                    'parent::__construct($id, $title, $description, $template_id);' .
+                    '}' .
+                    '}'
+                );
+            }
+
+            $emails[ $wc_id ] = new $class_name(
                 $wc_id,
                 $title,
                 $description,
