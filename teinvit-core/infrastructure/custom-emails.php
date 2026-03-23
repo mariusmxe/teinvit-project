@@ -1138,6 +1138,49 @@ function teinvit_email_delay_seconds( array $template ) {
     return $value * HOUR_IN_SECONDS;
 }
 
+function teinvit_email_scheduled_timestamp_for_template( array $template ) {
+    $delay_seconds = teinvit_email_delay_seconds( $template );
+    return $delay_seconds > 0 ? time() + $delay_seconds : null;
+}
+
+function teinvit_email_queue_args_with_template_delay( $template_id, array $args ) {
+    if ( ! empty( $args['scheduled_at'] ) ) {
+        return $args;
+    }
+
+    $template = teinvit_get_email_template( $template_id );
+    if ( ! is_array( $template ) ) {
+        return $args;
+    }
+
+    $args['scheduled_at'] = teinvit_email_scheduled_timestamp_for_template( $template );
+    return $args;
+}
+
+function teinvit_email_set_dispatch_context( array $context = null ) {
+    $GLOBALS['teinvit_email_dispatch_context'] = $context;
+}
+
+function teinvit_email_get_dispatch_context() {
+    $context = $GLOBALS['teinvit_email_dispatch_context'] ?? null;
+    return is_array( $context ) ? $context : null;
+}
+
+function teinvit_email_clear_dispatch_context() {
+    unset( $GLOBALS['teinvit_email_dispatch_context'] );
+}
+
+function teinvit_email_failure_message( $error ) {
+    if ( is_wp_error( $error ) ) {
+        $message = $error->get_error_message();
+        if ( $message !== '' ) {
+            return sanitize_text_field( $message );
+        }
+    }
+
+    return 'wp_mail_failed';
+}
+
 function teinvit_email_attach_tracking( $send_id, $html ) {
     $html = preg_replace_callback(
         '/href\s*=\s*"([^"]+)"/i',
@@ -1188,22 +1231,51 @@ function teinvit_email_dispatch_wc( $send_id ) {
         return;
     }
 
-    $ok = $emails[ $wc_id ]->trigger( $send_id );
-
-    $wpdb->update(
-        teinvit_email_tables()['sends'],
+    error_log( '[TeInvit Emails] dispatch start send_id=' . (string) $send_id . ' template_id=' . (string) ( $send['template_id'] ?? '' ) . ' wc_id=' . $wc_id . ' recipient=' . $recipient );
+    teinvit_email_set_dispatch_context(
         [
-            'status'        => $ok ? 'sent' : 'failed',
-            'error_message' => $ok ? null : 'wc_mailer_send_failed',
-            'sent_at'       => $ok ? current_time( 'mysql' ) : null,
-            'updated_at'    => current_time( 'mysql' ),
-        ],
-        [ 'send_id' => $send_id ]
+            'send_id'   => sanitize_text_field( (string) $send_id ),
+            'wc_id'     => sanitize_key( (string) $wc_id ),
+            'recipient' => $recipient,
+            'subject'   => sanitize_text_field( (string) ( $send['subject_rendered'] ?? '' ) ),
+        ]
     );
+
+    $ok = $emails[ $wc_id ]->trigger( $send_id );
+    $failed_send = teinvit_email_get_send( $send_id );
+    $already_failed = is_array( $failed_send ) && ( $failed_send['status'] ?? '' ) === 'failed';
+
+    if ( $ok && ! $already_failed ) {
+        $wpdb->update(
+            teinvit_email_tables()['sends'],
+            [
+                'status'        => 'sent',
+                'error_message' => null,
+                'sent_at'       => current_time( 'mysql' ),
+                'updated_at'    => current_time( 'mysql' ),
+            ],
+            [ 'send_id' => $send_id ]
+        );
+    } elseif ( ! $ok && ! $already_failed ) {
+        $wpdb->update(
+            teinvit_email_tables()['sends'],
+            [
+                'status'        => 'failed',
+                'error_message' => 'wc_mailer_send_failed',
+                'sent_at'       => null,
+                'updated_at'    => current_time( 'mysql' ),
+            ],
+            [ 'send_id' => $send_id ]
+        );
+    }
+
+    error_log( '[TeInvit Emails] dispatch result send_id=' . (string) $send_id . ' ok=' . ( $ok ? '1' : '0' ) . ' already_failed=' . ( $already_failed ? '1' : '0' ) );
+    teinvit_email_clear_dispatch_context();
 }
 
 function teinvit_email_schedule_send( $send_id, $timestamp = null ) {
     $timestamp = $timestamp ? (int) $timestamp : time();
+    error_log( '[TeInvit Emails] schedule send_id=' . (string) $send_id . ' timestamp=' . (string) $timestamp . ' gmt=' . gmdate( 'Y-m-d H:i:s', $timestamp ) );
 
     if ( function_exists( 'as_schedule_single_action' ) ) {
         as_schedule_single_action( $timestamp, 'teinvit_email_process_send', [ 'send_id' => $send_id ], 'teinvit-emails' );
@@ -1219,7 +1291,60 @@ add_action(
         if ( is_array( $send_id ) && isset( $send_id['send_id'] ) ) {
             $send_id = $send_id['send_id'];
         }
-        teinvit_email_dispatch_wc( sanitize_text_field( (string) $send_id ) );
+        $send_id = sanitize_text_field( (string) $send_id );
+        error_log( '[TeInvit Emails] process_send send_id=' . $send_id );
+        teinvit_email_dispatch_wc( $send_id );
+    },
+    10,
+    1
+);
+
+add_filter(
+    'wp_mail',
+    function( $args ) {
+        $context = teinvit_email_get_dispatch_context();
+        if ( ! is_array( $context ) || empty( $context['send_id'] ) ) {
+            return $args;
+        }
+
+        $header = 'X-TeInvit-Send-ID: ' . sanitize_text_field( (string) $context['send_id'] );
+        if ( empty( $args['headers'] ) ) {
+            $args['headers'] = [ $header ];
+        } elseif ( is_array( $args['headers'] ) ) {
+            $args['headers'][] = $header;
+        } else {
+            $args['headers'] .= "\r\n" . $header;
+        }
+
+        return $args;
+    },
+    10,
+    1
+);
+
+add_action(
+    'wp_mail_failed',
+    function( $error ) {
+        global $wpdb;
+
+        $context = teinvit_email_get_dispatch_context();
+        if ( ! is_array( $context ) || empty( $context['send_id'] ) ) {
+            return;
+        }
+
+        $message = teinvit_email_failure_message( $error );
+        error_log( '[TeInvit Emails] wp_mail_failed send_id=' . (string) $context['send_id'] . ' message=' . $message );
+
+        $wpdb->update(
+            teinvit_email_tables()['sends'],
+            [
+                'status'        => 'failed',
+                'error_message' => $message,
+                'sent_at'       => null,
+                'updated_at'    => current_time( 'mysql' ),
+            ],
+            [ 'send_id' => sanitize_text_field( (string) $context['send_id'] ) ]
+        );
     },
     10,
     1
@@ -1528,14 +1653,17 @@ add_action(
         foreach ( $template_ids as $template_id ) {
             teinvit_email_queue_template(
                 $template_id,
-                [
-                    'token'           => sanitize_text_field( (string) $token ),
-                    'order_id'        => (int) $order_id,
-                    'recipient_email' => $recipient,
-                    'payload'         => [],
-                    'trigger'         => 'token_generated',
-                    'audience'        => 'customer',
-                ]
+                teinvit_email_queue_args_with_template_delay(
+                    $template_id,
+                    [
+                        'token'           => sanitize_text_field( (string) $token ),
+                        'order_id'        => (int) $order_id,
+                        'recipient_email' => $recipient,
+                        'payload'         => [],
+                        'trigger'         => 'token_generated',
+                        'audience'        => 'customer',
+                    ]
+                )
             );
         }
     },
@@ -1569,16 +1697,19 @@ add_action(
         foreach ( $template_ids as $template_id ) {
             teinvit_email_queue_template(
                 $template_id,
-                [
-                    'token'           => $token,
-                    'order_id'        => $order_id,
-                    'rsvp_id'         => $rsvp_id,
-                    'recipient_email' => $recipient,
-                    'payload'         => $payload,
-                    'semantic_hash'   => $current_hash,
-                    'trigger'         => 'rsvp_saved',
-                    'audience'        => 'customer',
-                ]
+                teinvit_email_queue_args_with_template_delay(
+                    $template_id,
+                    [
+                        'token'           => $token,
+                        'order_id'        => $order_id,
+                        'rsvp_id'         => $rsvp_id,
+                        'recipient_email' => $recipient,
+                        'payload'         => $payload,
+                        'semantic_hash'   => $current_hash,
+                        'trigger'         => 'rsvp_saved',
+                        'audience'        => 'customer',
+                    ]
+                )
             );
         }
     },
@@ -1609,8 +1740,7 @@ add_action(
                 continue;
             }
 
-            $delay_seconds = teinvit_email_delay_seconds( $template );
-            $scheduled_at = $delay_seconds > 0 ? time() + $delay_seconds : null;
+            $scheduled_at = teinvit_email_scheduled_timestamp_for_template( $template );
 
             teinvit_email_queue_template(
                 $template_id,
@@ -2342,7 +2472,9 @@ add_filter(
                             return false;
                         }
 
-                        return (bool) $this->send( $recipient, (string) $render['subject'], (string) $render['body_html'], $this->get_headers(), $this->get_attachments() );
+                        $result = (bool) $this->send( $recipient, (string) $render['subject'], (string) $render['body_html'], $this->get_headers(), $this->get_attachments() );
+                        error_log( '[TeInvit Emails][WC test trigger] send_result=' . ( $result ? '1' : '0' ) . ' recipient=' . $recipient . ' wc_id=' . (string) $this->id );
+                        return $result;
                     }
 
                     $recipient = sanitize_email( (string) ( $send['recipient_email'] ?? '' ) );
@@ -2367,7 +2499,9 @@ add_filter(
                         return false;
                     }
 
-                    return (bool) $this->send( $recipient, $subject, $content, $this->get_headers(), $this->get_attachments() );
+                    $result = (bool) $this->send( $recipient, $subject, $content, $this->get_headers(), $this->get_attachments() );
+                    error_log( '[TeInvit Emails][WC send] send_id=' . sanitize_text_field( (string) $send_id ) . ' result=' . ( $result ? '1' : '0' ) . ' recipient=' . $recipient . ' wc_id=' . (string) $this->id );
+                    return $result;
                 }
 
                 public function get_content_html() {
