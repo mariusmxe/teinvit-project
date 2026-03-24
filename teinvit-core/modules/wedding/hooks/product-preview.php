@@ -51,6 +51,7 @@ add_action( 'woocommerce_after_add_to_cart_form', function () {
         return;
     }
 
+
     echo '<div id="teinvit-product-preview" class="teinvit-product-preview">';
     echo '<h3 class="teinvit-preview-title">Previzualizare invitație</h3>';
 
