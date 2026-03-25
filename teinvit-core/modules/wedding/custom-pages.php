@@ -1213,7 +1213,20 @@ add_action( 'admin_post_teinvit_download_variant_pdf', function() {
     global $wpdb;
 
     $token = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
-    teinvit_admin_post_guard( $token, 'can_set_active_version' );
+    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    $order = $order_id ? wc_get_order( $order_id ) : null;
+    if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );
+        exit;
+    }
+
+    if ( function_exists( 'teinvit_capabilities_for_token' ) ) {
+        $caps = teinvit_capabilities_for_token( $token );
+        if ( empty( $caps['can_set_active_version'] ) ) {
+            wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );
+            exit;
+        }
+    }
 
     if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'teinvit_download_pdf_' . $token ) ) {
         wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );

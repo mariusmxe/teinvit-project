@@ -135,12 +135,21 @@ if ( $mode === 'invitati' ) {
     $meta_desc  = $message !== '' ? $message : ( $names !== '' ? ( 'Te invităm cu drag la evenimentul nostru, ' . $names . '.' ) : 'Te invităm cu drag la evenimentul nostru.' );
     $meta_desc  = function_exists( 'wp_trim_words' ) ? wp_trim_words( $meta_desc, 30, '…' ) : $meta_desc;
     $meta_url   = home_url( '/invitati/' . rawurlencode( $token ) );
-    $meta_image = TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png';
+    $logo_id = (int) get_theme_mod( 'custom_logo' );
+    $logo_url = $logo_id > 0 ? wp_get_attachment_image_url( $logo_id, 'full' ) : '';
+    $meta_image = $logo_url ? $logo_url : ( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' );
     $site_name  = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
     add_filter( 'pre_get_document_title', function( $title ) use ( $meta_title ) {
         return $meta_title !== '' ? $meta_title : $title;
     }, 999 );
+    add_filter( 'document_title_parts', function( $parts ) use ( $meta_title ) {
+        if ( is_array( $parts ) ) {
+            $parts['title'] = $meta_title;
+        }
+        return $parts;
+    }, 999 );
+    add_filter( 'wp_title', fn() => $meta_title, 999 );
 
     add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $site_name ) {
         echo "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
@@ -180,6 +189,9 @@ if ( $mode === 'invitati' ) {
     add_filter( 'rank_math/opengraph/twitter/title', fn() => $meta_title, 999 );
     add_filter( 'rank_math/opengraph/twitter/description', fn() => $meta_desc, 999 );
     add_filter( 'rank_math/opengraph/twitter/image', fn() => $meta_image, 999 );
+
+    // Jetpack Open Graph fallback
+    add_filter( 'jetpack_enable_open_graph', '__return_false', 999 );
 }
 
 teinvit_render_layout_header();
