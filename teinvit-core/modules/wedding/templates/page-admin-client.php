@@ -262,9 +262,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-gifts-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .teinvit-gifts-cta{display:inline-block}
 .teinvit-report-kpi{max-width:980px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-table-zone{margin-top:12px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:12px}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-table th{white-space:nowrap}.teinvit-report-table td:nth-child(6),.teinvit-report-table th:nth-child(6){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-report-table td:nth-child(18),.teinvit-report-table th:nth-child(18){width:30ch;min-width:30ch;white-space:normal;word-break:break-word}.teinvit-report-table td:nth-child(19),.teinvit-report-table th:nth-child(19){width:120ch;min-width:120ch;white-space:normal;word-break:break-word}.teinvit-report-row-multi{background:#fff2f2}
-.teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px}.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
-.teinvit-share-social-btn{display:flex;align-items:center;gap:10px;justify-content:flex-start;width:100%;max-width:320px}
-.teinvit-share-social-btn img{width:18px;height:18px;display:block}
+.teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
+.teinvit-share-row{display:flex;align-items:center;gap:10px}
+.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}
+.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}
+.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}
 </style>
 <div class="teinvit-admin-page">
   <div class="teinvit-admin-title-card">
@@ -387,9 +389,18 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           <button type="button" class="button" id="teinvit-share-copy-main">Copiază link</button>
         </div>
         <div class="teinvit-share-quick">
-          <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"><span>Facebook</span></a>
-          <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( $share_message . ' ' . $guest_page_url ) ); ?>" target="_blank" rel="noopener"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"><span>WhatsApp</span></a>
-          <button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"><span>Instagram</span></button>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a>
+          </div>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( $share_message . ' ' . $guest_page_url ) ); ?>" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram">Instagram</button>
+          </div>
         </div>
         <p class="teinvit-share-status" id="teinvit-share-status" aria-live="polite"></p>
       </div>
