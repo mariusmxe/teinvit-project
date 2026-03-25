@@ -1209,6 +1209,69 @@ add_action( 'admin_post_teinvit_set_active_version', function() {
     exit;
 } );
 
+add_action( 'admin_post_teinvit_download_variant_pdf', function() {
+    global $wpdb;
+
+    $token = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
+    teinvit_admin_post_guard( $token, 'can_set_active_version' );
+
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'teinvit_download_pdf_' . $token ) ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );
+        exit;
+    }
+
+    $version_id = (int) ( $_GET['version_id'] ?? 0 );
+    if ( $version_id <= 0 ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    $t = teinvit_db_tables();
+    $row = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT pdf_url, pdf_filename FROM {$t['versions']} WHERE token=%s AND id=%d LIMIT 1",
+            $token,
+            $version_id
+        ),
+        ARRAY_A
+    );
+
+    $pdf_url = esc_url_raw( (string) ( $row['pdf_url'] ?? '' ) );
+    if ( $pdf_url === '' ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    $filename = sanitize_file_name( (string) ( $row['pdf_filename'] ?? '' ) );
+    if ( $filename === '' ) {
+        $path = wp_parse_url( $pdf_url, PHP_URL_PATH );
+        $filename = sanitize_file_name( basename( (string) $path ) );
+    }
+    if ( $filename === '' ) {
+        $filename = 'invitatie-' . $version_id . '.pdf';
+    }
+
+    $response = wp_remote_get( $pdf_url, [ 'timeout' => 60, 'redirection' => 5 ] );
+    if ( is_wp_error( $response ) ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    $code = (int) wp_remote_retrieve_response_code( $response );
+    $body = wp_remote_retrieve_body( $response );
+    if ( $code < 200 || $code >= 300 || $body === '' ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    nocache_headers();
+    header( 'Content-Type: application/pdf' );
+    header( 'Content-Disposition: attachment; filename="' . str_replace( '"', '', $filename ) . '"' );
+    header( 'Content-Length: ' . strlen( $body ) );
+    echo $body;
+    exit;
+} );
+
 add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     global $wpdb;
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );

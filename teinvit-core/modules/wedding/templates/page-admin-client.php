@@ -236,6 +236,7 @@ $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' 
 $guest_page_url = home_url( '/invitati/' . rawurlencode( $token ) );
 $share_message = 'Te invităm cu drag la evenimentul nostru! Vezi invitația aici:';
 $share_icon_base = trailingslashit( TEINVIT_WEDDING_MODULE_URL . 'assets/icons/social' );
+$download_pdf_nonce = wp_create_nonce( 'teinvit_download_pdf_' . $token );
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content( $token ) : '';
 ?>
 <style>
@@ -330,8 +331,9 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
             <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
             <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
+              <?php $download_pdf_url = add_query_arg( [ 'action' => 'teinvit_download_variant_pdf', 'token' => $token, 'version_id' => (int) $variant['id'], '_wpnonce' => $download_pdf_nonce ], admin_url( 'admin-post.php' ) ); ?>
               <span class="teinvit-variant-pdf-actions">
-                <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener" class="button">Descarcă PDF</a>
+                <a href="<?php echo esc_url( $download_pdf_url ); ?>" class="button">Descarcă PDF</a>
                 <button type="button" class="button teinvit-share-pdf-btn" data-pdf-url="<?php echo esc_attr( $variant['pdf_url'] ); ?>">Distribuie PDF</button>
               </span>
             <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>

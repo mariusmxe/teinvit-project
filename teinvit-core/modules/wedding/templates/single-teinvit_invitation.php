@@ -140,7 +140,7 @@ if ( $mode === 'invitati' ) {
 
     add_filter( 'pre_get_document_title', function( $title ) use ( $meta_title ) {
         return $meta_title !== '' ? $meta_title : $title;
-    }, 20 );
+    }, 999 );
 
     add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $site_name ) {
         echo "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
@@ -155,7 +155,31 @@ if ( $mode === 'invitati' ) {
         echo '<meta name="twitter:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
         echo '<meta name="twitter:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
         echo '<meta name="twitter:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
-    }, 2 );
+    }, 0 );
+
+    // Yoast SEO overrides
+    add_filter( 'wpseo_title', fn() => $meta_title, 999 );
+    add_filter( 'wpseo_metadesc', fn() => $meta_desc, 999 );
+    add_filter( 'wpseo_canonical', fn() => $meta_url, 999 );
+    add_filter( 'wpseo_opengraph_title', fn() => $meta_title, 999 );
+    add_filter( 'wpseo_opengraph_desc', fn() => $meta_desc, 999 );
+    add_filter( 'wpseo_opengraph_url', fn() => $meta_url, 999 );
+    add_filter( 'wpseo_opengraph_image', fn() => $meta_image, 999 );
+    add_filter( 'wpseo_twitter_title', fn() => $meta_title, 999 );
+    add_filter( 'wpseo_twitter_description', fn() => $meta_desc, 999 );
+    add_filter( 'wpseo_twitter_image', fn() => $meta_image, 999 );
+
+    // Rank Math overrides
+    add_filter( 'rank_math/frontend/title', fn() => $meta_title, 999 );
+    add_filter( 'rank_math/frontend/description', fn() => $meta_desc, 999 );
+    add_filter( 'rank_math/frontend/canonical', fn() => $meta_url, 999 );
+    add_filter( 'rank_math/opengraph/facebook/title', fn() => $meta_title, 999 );
+    add_filter( 'rank_math/opengraph/facebook/description', fn() => $meta_desc, 999 );
+    add_filter( 'rank_math/opengraph/facebook/url', fn() => $meta_url, 999 );
+    add_filter( 'rank_math/opengraph/facebook/image', fn() => $meta_image, 999 );
+    add_filter( 'rank_math/opengraph/twitter/title', fn() => $meta_title, 999 );
+    add_filter( 'rank_math/opengraph/twitter/description', fn() => $meta_desc, 999 );
+    add_filter( 'rank_math/opengraph/twitter/image', fn() => $meta_image, 999 );
 }
 
 teinvit_render_layout_header();
