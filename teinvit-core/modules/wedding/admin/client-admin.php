@@ -343,6 +343,7 @@ function teinvit_capabilities_for_token( $token ) {
         'state' => $state,
         'can_save_invitation_info' => true,
         'can_save_rsvp_config' => true,
+        'can_share_invitation' => true,
         'can_set_active_version' => true,
         'can_save_version_snapshot' => true,
         'can_manage_gifts' => true,
@@ -354,6 +355,7 @@ function teinvit_capabilities_for_token( $token ) {
     if ( $state === 'basic_pure' ) {
         $capabilities['can_save_invitation_info'] = false;
         $capabilities['can_save_rsvp_config'] = false;
+        $capabilities['can_share_invitation'] = false;
         $capabilities['can_set_active_version'] = false;
         $capabilities['can_save_version_snapshot'] = false;
         $capabilities['can_manage_gifts'] = false;

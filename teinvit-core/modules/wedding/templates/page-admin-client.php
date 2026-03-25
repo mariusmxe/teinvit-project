@@ -233,6 +233,8 @@ $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_ca
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
+$guest_page_url = home_url( '/invitati/' . rawurlencode( $token ) );
+$share_message = 'Te invităm cu drag la evenimentul nostru! Vezi invitația aici:';
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content( $token ) : '';
 ?>
 <style>
@@ -259,6 +261,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-gifts-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .teinvit-gifts-cta{display:inline-block}
 .teinvit-report-kpi{max-width:980px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-table-zone{margin-top:12px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:12px}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-table th{white-space:nowrap}.teinvit-report-table td:nth-child(6),.teinvit-report-table th:nth-child(6){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-report-table td:nth-child(18),.teinvit-report-table th:nth-child(18){width:30ch;min-width:30ch;white-space:normal;word-break:break-word}.teinvit-report-table td:nth-child(19),.teinvit-report-table th:nth-child(19){width:120ch;min-width:120ch;white-space:normal;word-break:break-word}.teinvit-report-row-multi{background:#fff2f2}
+.teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
 </style>
 <div class="teinvit-admin-page">
   <div class="teinvit-admin-title-card">
@@ -366,11 +369,29 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
       <p style="margin-top:8px;">
         <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
-        <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+        <a href="<?php echo esc_url( $guest_page_url ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
         <?php else : ?>
         <em>Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.</em>
         <?php endif; ?>
       </p>
+
+      <?php if ( ! empty( $capabilities['can_share_invitation'] ) ) : ?>
+      <div class="teinvit-zone teinvit-share-card" id="teinvit-share-card">
+        <h3>Distribuie invitația</h3>
+        <p class="teinvit-share-help">Trimite rapid invitația către familie și prieteni. Pe telefon poți folosi butonul „Distribuie”, iar în rest ai opțiuni rapide mai jos.</p>
+        <div class="teinvit-share-actions">
+          <button type="button" class="button button-primary" id="teinvit-share-native">Distribuie</button>
+          <button type="button" class="button" id="teinvit-share-copy-main">Copiază link</button>
+        </div>
+        <div class="teinvit-share-quick">
+          <a class="button" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a>
+          <a class="button" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( $share_message . ' ' . $guest_page_url ) ); ?>" target="_blank" rel="noopener">WhatsApp</a>
+          <button type="button" class="button" id="teinvit-share-instagram">Instagram</button>
+          <button type="button" class="button" id="teinvit-share-copy-quick">Copiere link</button>
+        </div>
+        <p class="teinvit-share-status" id="teinvit-share-status" aria-live="polite"></p>
+      </div>
+      <?php endif; ?>
     </div>
 
     <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
@@ -507,8 +528,91 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
   const initialInvitation = <?php echo wp_json_encode( $current_invitation ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
+  const shareUrl = <?php echo wp_json_encode( $guest_page_url ); ?>;
+  const shareTitle = <?php echo wp_json_encode( 'Invitația noastră - Te Invit' ); ?>;
+  const shareText = <?php echo wp_json_encode( $share_message ); ?>;
   const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
   let isApplyingVariant = false;
+
+  const shareNativeBtn = document.getElementById('teinvit-share-native');
+  const shareCopyMainBtn = document.getElementById('teinvit-share-copy-main');
+  const shareCopyQuickBtn = document.getElementById('teinvit-share-copy-quick');
+  const shareInstagramBtn = document.getElementById('teinvit-share-instagram');
+  const shareStatus = document.getElementById('teinvit-share-status');
+
+  function setShareStatus(message){
+    if (!shareStatus) return;
+    shareStatus.textContent = String(message || '');
+  }
+
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', 'readonly');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return !!ok;
+  }
+
+  async function copyShareLink(showMessage){
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      } catch (e) {
+        copied = fallbackCopy(shareUrl);
+      }
+    } else {
+      copied = fallbackCopy(shareUrl);
+    }
+    if (showMessage) {
+      setShareStatus(copied ? 'Link copiat. Îl poți trimite mai departe.' : 'Nu am putut copia automat. Copiază manual linkul din bara de adrese.');
+    }
+    return copied;
+  }
+
+  if (shareCopyMainBtn) {
+    shareCopyMainBtn.addEventListener('click', async ()=>{
+      await copyShareLink(true);
+    });
+  }
+
+  if (shareCopyQuickBtn) {
+    shareCopyQuickBtn.addEventListener('click', async ()=>{
+      await copyShareLink(true);
+    });
+  }
+
+  if (shareInstagramBtn) {
+    shareInstagramBtn.addEventListener('click', async ()=>{
+      await copyShareLink(false);
+      setShareStatus('Instagram nu permite distribuire directă web a linkului. Am copiat linkul — îl poți lipi în bio, story sau DM.');
+    });
+  }
+
+  if (shareNativeBtn) {
+    shareNativeBtn.addEventListener('click', async ()=>{
+      if (navigator.share && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+          setShareStatus('Invitația a fost pregătită pentru distribuire.');
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') {
+            setShareStatus('Distribuirea a fost anulată.');
+            return;
+          }
+        }
+      }
+      setShareStatus('Distribuirea directă nu este disponibilă aici. Folosește butoanele Facebook, WhatsApp sau Copiere link.');
+    });
+  }
 
   function markMessageInvitationTextarea(){
     const scope = document.getElementById('teinvit-save-form') || document;
