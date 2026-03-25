@@ -127,6 +127,37 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
     $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] = true;
 }
 
+if ( $mode === 'invitati' ) {
+    $names = trim( (string) ( $preview_invitation_data['names'] ?? '' ) );
+    $message = trim( (string) ( $preview_invitation_data['message'] ?? '' ) );
+
+    $meta_title = $names !== '' ? ( 'Invitație ' . $names ) : 'Invitație | Te Invit';
+    $meta_desc  = $message !== '' ? $message : ( $names !== '' ? ( 'Te invităm cu drag la evenimentul nostru, ' . $names . '.' ) : 'Te invităm cu drag la evenimentul nostru.' );
+    $meta_desc  = function_exists( 'wp_trim_words' ) ? wp_trim_words( $meta_desc, 30, '…' ) : $meta_desc;
+    $meta_url   = home_url( '/invitati/' . rawurlencode( $token ) );
+    $meta_image = TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png';
+    $site_name  = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+    add_filter( 'pre_get_document_title', function( $title ) use ( $meta_title ) {
+        return $meta_title !== '' ? $meta_title : $title;
+    }, 20 );
+
+    add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $site_name ) {
+        echo "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
+        echo '<meta name="description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
+        echo '<meta property="og:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
+        echo '<meta property="og:url" content="' . esc_url( $meta_url ) . '" />' . "\n";
+        echo '<meta property="og:type" content="website" />' . "\n";
+        echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
+        echo '<meta name="twitter:card" content="summary_large_image" />' . "\n";
+        echo '<meta name="twitter:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
+        echo '<meta name="twitter:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
+    }, 2 );
+}
+
 teinvit_render_layout_header();
 ?>
 <div class="teinvit-invitation-layout teinvit-mode-<?php echo esc_attr( $mode ); ?>">

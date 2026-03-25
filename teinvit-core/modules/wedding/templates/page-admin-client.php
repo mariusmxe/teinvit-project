@@ -267,6 +267,9 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}
 .teinvit-share-icon-wrap img{width:18px;height:18px;display:block}
 .teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}
+.teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle}
+.teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}
+.teinvit-pdf-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
 </style>
 <div class="teinvit-admin-page">
   <div class="teinvit-admin-title-card">
@@ -327,7 +330,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
             <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
             <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
-              — <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener">Descarcă PDF</a>
+              <span class="teinvit-variant-pdf-actions">
+                <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener" class="button">Descarcă PDF</a>
+                <button type="button" class="button teinvit-share-pdf-btn" data-pdf-url="<?php echo esc_attr( $variant['pdf_url'] ); ?>">Distribuie PDF</button>
+              </span>
             <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
               — <em>PDF în curs...</em>
             <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
@@ -341,6 +347,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <p><em>Publicarea de versiuni este disponibilă după upgrade la Premium.</em></p>
         <?php endif; ?>
       </form>
+      <p id="teinvit-pdf-share-status" class="teinvit-pdf-share-status" aria-live="polite"></p>
 
       <div class="teinvit-zone teinvit-admin-rsvp-settings">
         <h3 class="teinvit-rsvp-settings-title">Setările formularului de confirmare</h3>
@@ -551,10 +558,16 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const shareCopyMainBtn = document.getElementById('teinvit-share-copy-main');
   const shareInstagramBtn = document.getElementById('teinvit-share-instagram');
   const shareStatus = document.getElementById('teinvit-share-status');
+  const pdfShareStatus = document.getElementById('teinvit-pdf-share-status');
 
   function setShareStatus(message){
     if (!shareStatus) return;
     shareStatus.textContent = String(message || '');
+  }
+
+  function setPdfShareStatus(message){
+    if (!pdfShareStatus) return;
+    pdfShareStatus.textContent = String(message || '');
   }
 
   function fallbackCopy(text){
@@ -618,6 +631,48 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
       }
       setShareStatus('Distribuirea directă nu este disponibilă aici. Folosește butoanele Facebook, WhatsApp sau Copiere link.');
     });
+  }
+
+  document.querySelectorAll('.teinvit-share-pdf-btn').forEach((btn)=>{
+    btn.addEventListener('click', async ()=>{
+      const pdfUrl = btn.getAttribute('data-pdf-url') || '';
+      if (!pdfUrl) {
+        setPdfShareStatus('Linkul PDF nu este disponibil.');
+        return;
+      }
+
+      if (navigator.share && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title: 'PDF invitație', text: 'Poți vedea invitația în format PDF aici:', url: pdfUrl });
+          setPdfShareStatus('PDF pregătit pentru distribuire.');
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') {
+            setPdfShareStatus('Distribuirea PDF a fost anulată.');
+            return;
+          }
+        }
+      }
+
+      const copied = await copyShareLinkToValue(pdfUrl);
+      setPdfShareStatus(copied ? 'Linkul PDF a fost copiat. Îl poți trimite mai departe.' : 'Nu am putut copia automat linkul PDF. Copiază-l manual.');
+    });
+  });
+
+  async function copyShareLinkToValue(value){
+    if (!value) return false;
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      } catch (e) {
+        copied = fallbackCopy(value);
+      }
+    } else {
+      copied = fallbackCopy(value);
+    }
+    return copied;
   }
 
   function markMessageInvitationTextarea(){
