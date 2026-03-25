@@ -448,30 +448,36 @@ function teinvit_email_add_suppression( $email, $scope = 'marketing', $reason = 
 
 function teinvit_email_merge_tags_catalog() {
     return [
-        'site_name' => [ 'tag' => '{site_name}', 'description' => 'Numele website-ului', 'context' => 'Global', 'example' => 'TeInvit' ],
-        'order_number' => [ 'tag' => '{order_number}', 'description' => 'Numărul comenzii Woo', 'context' => 'Customer', 'example' => '512' ],
-        'order_id' => [ 'tag' => '{order_id}', 'description' => 'ID comandă Woo', 'context' => 'Customer', 'example' => '512' ],
-        'token' => [ 'tag' => '{token}', 'description' => 'Token invitație', 'context' => 'Global', 'example' => '512-ba659c...' ],
-        'admin_client_url' => [ 'tag' => '{admin_client_url}', 'description' => 'Link administrare invitație', 'context' => 'Customer', 'example' => 'https://.../admin-client/{token}' ],
-        'invitati_url' => [ 'tag' => '{invitati_url}', 'description' => 'Link pagină invitați', 'context' => 'Customer', 'example' => 'https://.../invitati/{token}' ],
-        'report_url' => [ 'tag' => '{report_url}', 'description' => 'Link raport invitați', 'context' => 'Customer', 'example' => 'https://.../admin-client/{token}#teinvit-report' ],
-        'customer_first_name' => [ 'tag' => '{customer_first_name}', 'description' => 'Prenume client', 'context' => 'Customer', 'example' => 'Alex' ],
-        'customer_last_name' => [ 'tag' => '{customer_last_name}', 'description' => 'Nume client', 'context' => 'Customer', 'example' => 'Popescu' ],
-        'guest_name' => [ 'tag' => '{guest_name}', 'description' => 'Nume invitat', 'context' => 'RSVP', 'example' => 'Maria Ionescu' ],
-        'guest_phone' => [ 'tag' => '{guest_phone}', 'description' => 'Telefon invitat', 'context' => 'RSVP', 'example' => '0712345678' ],
-        'guest_email' => [ 'tag' => '{guest_email}', 'description' => 'Email invitat', 'context' => 'RSVP/Guest', 'example' => 'maria@example.com' ],
-        'rsvp_adults' => [ 'tag' => '{rsvp_adults}', 'description' => 'Numărul de adulți confirmați', 'context' => 'RSVP', 'example' => '2' ],
-        'rsvp_children' => [ 'tag' => '{rsvp_children}', 'description' => 'Numărul de copii confirmați', 'context' => 'RSVP', 'example' => '1' ],
-        'rsvp_attending_civil' => [ 'tag' => '{rsvp_attending_civil}', 'description' => 'Participă la civil', 'context' => 'RSVP', 'example' => 'Da' ],
-        'rsvp_attending_religious' => [ 'tag' => '{rsvp_attending_religious}', 'description' => 'Participă la religios', 'context' => 'RSVP', 'example' => 'Da' ],
-        'rsvp_attending_party' => [ 'tag' => '{rsvp_attending_party}', 'description' => 'Participă la petrecere', 'context' => 'RSVP', 'example' => 'Nu' ],
-        'rsvp_accommodation' => [ 'tag' => '{rsvp_accommodation}', 'description' => 'Solicită cazare', 'context' => 'RSVP', 'example' => 'Nu' ],
-        'rsvp_vegetarian' => [ 'tag' => '{rsvp_vegetarian}', 'description' => 'A cerut meniu vegetarian', 'context' => 'RSVP', 'example' => 'Da' ],
-        'rsvp_vegetarian_menus' => [ 'tag' => '{rsvp_vegetarian_menus}', 'description' => 'Număr meniuri vegetariene', 'context' => 'RSVP', 'example' => '1' ],
-        'rsvp_allergies' => [ 'tag' => '{rsvp_allergies}', 'description' => 'Detalii alergii', 'context' => 'RSVP', 'example' => 'N/A' ],
-        'rsvp_message' => [ 'tag' => '{rsvp_message}', 'description' => 'Mesajul invitatului', 'context' => 'RSVP', 'example' => 'Casă de piatră!' ],
-        'unsubscribe_url' => [ 'tag' => '{unsubscribe_url}', 'description' => 'Link dezabonare marketing', 'context' => 'Guest', 'example' => 'https://.../u/{send_id}/...' ],
-        'why_received_text' => [ 'tag' => '{why_received_text}', 'description' => 'Text motiv primire email', 'context' => 'Guest', 'example' => 'Primești acest email...' ],
+        'site_name' => [ 'tag' => '{site_name}', 'description' => 'Numele website-ului', 'context' => 'Global', 'category' => 'Global', 'example' => 'TeInvit' ],
+        'order_number' => [ 'tag' => '{order_number}', 'description' => 'Numărul comenzii Woo', 'context' => 'Customer', 'category' => 'Date comandă', 'example' => '512' ],
+        'order_id' => [ 'tag' => '{order_id}', 'description' => 'ID comandă Woo', 'context' => 'Customer', 'category' => 'Date comandă', 'example' => '512' ],
+        'token' => [ 'tag' => '{token}', 'description' => 'Token invitație', 'context' => 'Global', 'category' => 'Invitație & token', 'example' => '512-ba659c...' ],
+        'admin_client_url' => [ 'tag' => '{admin_client_url}', 'description' => 'Link administrare invitație', 'context' => 'Customer', 'category' => 'Link-uri', 'example' => 'https://.../admin-client/{token}' ],
+        'invitati_url' => [ 'tag' => '{invitati_url}', 'description' => 'Link pagină invitați', 'context' => 'Customer', 'category' => 'Link-uri', 'example' => 'https://.../invitati/{token}' ],
+        'report_url' => [ 'tag' => '{report_url}', 'description' => 'Link raport invitați', 'context' => 'Customer', 'category' => 'Link-uri', 'example' => 'https://.../admin-client/{token}#teinvit-report' ],
+        'customer_first_name' => [ 'tag' => '{customer_first_name}', 'description' => 'Prenume client', 'context' => 'Customer', 'category' => 'Client', 'example' => 'Alex' ],
+        'customer_last_name' => [ 'tag' => '{customer_last_name}', 'description' => 'Nume client', 'context' => 'Customer', 'category' => 'Client', 'example' => 'Popescu' ],
+        'guest_name' => [ 'tag' => '{guest_name}', 'description' => 'Nume invitat (complet)', 'context' => 'RSVP', 'category' => 'Invitat', 'example' => 'Maria Ionescu' ],
+        'guest_first_name' => [ 'tag' => '{guest_first_name}', 'description' => 'Prenume invitat', 'context' => 'RSVP', 'category' => 'Invitat', 'example' => 'Maria' ],
+        'guest_last_name' => [ 'tag' => '{guest_last_name}', 'description' => 'Nume invitat', 'context' => 'RSVP', 'category' => 'Invitat', 'example' => 'Ionescu' ],
+        'guest_phone' => [ 'tag' => '{guest_phone}', 'description' => 'Telefon invitat', 'context' => 'RSVP', 'category' => 'Invitat', 'example' => '0712345678' ],
+        'guest_email' => [ 'tag' => '{guest_email}', 'description' => 'Email invitat', 'context' => 'RSVP/Guest', 'category' => 'Invitat', 'example' => 'maria@example.com' ],
+        'rsvp_adults' => [ 'tag' => '{rsvp_adults}', 'description' => 'Numărul de adulți confirmați', 'context' => 'RSVP', 'category' => 'RSVP', 'example' => '2' ],
+        'rsvp_children' => [ 'tag' => '{rsvp_children}', 'description' => 'Numărul de copii confirmați', 'context' => 'RSVP', 'category' => 'RSVP', 'example' => '1' ],
+        'rsvp_bringing_kids' => [ 'tag' => '{rsvp_bringing_kids}', 'description' => 'Invitatul vine cu copii', 'context' => 'RSVP', 'category' => 'RSVP', 'example' => 'Da' ],
+        'rsvp_attending_civil' => [ 'tag' => '{rsvp_attending_civil}', 'description' => 'Participă la civil', 'context' => 'RSVP', 'category' => 'RSVP', 'example' => 'Da' ],
+        'rsvp_attending_religious' => [ 'tag' => '{rsvp_attending_religious}', 'description' => 'Participă la religios', 'context' => 'RSVP', 'category' => 'RSVP', 'example' => 'Da' ],
+        'rsvp_attending_party' => [ 'tag' => '{rsvp_attending_party}', 'description' => 'Participă la petrecere', 'context' => 'RSVP', 'category' => 'RSVP', 'example' => 'Nu' ],
+        'rsvp_accommodation' => [ 'tag' => '{rsvp_accommodation}', 'description' => 'Solicită cazare', 'context' => 'RSVP', 'category' => 'Cazare', 'example' => 'Nu' ],
+        'rsvp_accommodation_people' => [ 'tag' => '{rsvp_accommodation_people}', 'description' => 'Numărul de persoane care au nevoie de cazare', 'context' => 'RSVP', 'category' => 'Cazare', 'example' => '2' ],
+        'rsvp_vegetarian' => [ 'tag' => '{rsvp_vegetarian}', 'description' => 'A cerut meniu vegetarian', 'context' => 'RSVP', 'category' => 'Meniu', 'example' => 'Da' ],
+        'rsvp_vegetarian_menus' => [ 'tag' => '{rsvp_vegetarian_menus}', 'description' => 'Număr meniuri vegetariene', 'context' => 'RSVP', 'category' => 'Meniu', 'example' => '1' ],
+        'rsvp_has_allergies' => [ 'tag' => '{rsvp_has_allergies}', 'description' => 'Invitatul a declarat alergii', 'context' => 'RSVP', 'category' => 'Meniu', 'example' => 'Nu' ],
+        'rsvp_allergies' => [ 'tag' => '{rsvp_allergies}', 'description' => 'Detalii alergii', 'context' => 'RSVP', 'category' => 'Meniu', 'example' => 'N/A' ],
+        'rsvp_message' => [ 'tag' => '{rsvp_message}', 'description' => 'Mesajul invitatului', 'context' => 'RSVP', 'category' => 'Mesaje', 'example' => 'Casă de piatră!' ],
+        'rsvp_marketing_consent' => [ 'tag' => '{rsvp_marketing_consent}', 'description' => 'Acord marketing din RSVP', 'context' => 'Guest', 'category' => 'Consimțământ', 'example' => 'Da' ],
+        'unsubscribe_url' => [ 'tag' => '{unsubscribe_url}', 'description' => 'Link dezabonare marketing', 'context' => 'Guest', 'category' => 'Consimțământ', 'example' => 'https://.../u/{send_id}/...' ],
+        'why_received_text' => [ 'tag' => '{why_received_text}', 'description' => 'Text motiv primire email', 'context' => 'Guest', 'category' => 'Consimțământ', 'example' => 'Primești acest email...' ],
     ];
 }
 
@@ -507,18 +513,24 @@ function teinvit_email_context_values( array $args ) {
         'customer_first_name' => $first_name,
         'customer_last_name' => $last_name,
         'guest_name' => $guest_name,
+        'guest_first_name' => (string) ( $payload['guest_first_name'] ?? '' ),
+        'guest_last_name' => (string) ( $payload['guest_last_name'] ?? '' ),
         'guest_phone' => (string) ( $payload['guest_phone'] ?? '' ),
         'guest_email' => (string) ( $payload['guest_email'] ?? '' ),
         'rsvp_adults' => (string) ( $payload['attending_people_count'] ?? '' ),
         'rsvp_children' => (string) ( $payload['kids_count'] ?? '' ),
+        'rsvp_bringing_kids' => ! empty( $payload['bringing_kids'] ) ? 'Da' : 'Nu',
         'rsvp_attending_civil' => ! empty( $payload['attending_civil'] ) ? 'Da' : 'Nu',
         'rsvp_attending_religious' => ! empty( $payload['attending_religious'] ) ? 'Da' : 'Nu',
         'rsvp_attending_party' => ! empty( $payload['attending_party'] ) ? 'Da' : 'Nu',
         'rsvp_accommodation' => ! empty( $payload['needs_accommodation'] ) ? 'Da' : 'Nu',
+        'rsvp_accommodation_people' => (string) ( $payload['accommodation_people_count'] ?? '' ),
         'rsvp_vegetarian' => ! empty( $payload['vegetarian_requested'] ) ? 'Da' : 'Nu',
         'rsvp_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+        'rsvp_has_allergies' => ! empty( $payload['has_allergies'] ) ? 'Da' : 'Nu',
         'rsvp_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
         'rsvp_message' => (string) ( $payload['message_to_couple'] ?? '' ),
+        'rsvp_marketing_consent' => ! empty( $payload['marketing_consent'] ) ? 'Da' : 'Nu',
         'unsubscribe_url' => $unsubscribe,
         'why_received_text' => 'Primești acest email deoarece ai bifat acordul de marketing în formularul RSVP.',
     ];
@@ -2320,21 +2332,34 @@ function teinvit_emails_page_merge_tags() {
     echo '<div class="wrap"><h1>TeInvit Merge Tags</h1>';
     echo '<p>Poți folosi atât formatul <code>{tag}</code>, cât și <code>[tag]</code>.</p>';
     echo '<p><input type="search" id="teinvit-tags-search" class="regular-text" placeholder="Caută tag sau descriere..." /></p>';
-    echo '<table class="widefat striped" id="teinvit-tags-table"><thead><tr><th>Tag</th><th>Descriere</th><th>Context</th><th>Exemplu output</th><th>Copy</th></tr></thead><tbody>';
-
+    $groups = [];
     foreach ( $catalog as $meta ) {
-        $tag = (string) ( $meta['tag'] ?? '' );
-        echo '<tr data-search="' . esc_attr( strtolower( $tag . ' ' . (string) ( $meta['description'] ?? '' ) . ' ' . (string) ( $meta['context'] ?? '' ) ) ) . '">';
-        echo '<td><code>' . esc_html( $tag ) . '</code></td>';
-        echo '<td>' . esc_html( (string) ( $meta['description'] ?? '' ) ) . '</td>';
-        echo '<td>' . esc_html( (string) ( $meta['context'] ?? '' ) ) . '</td>';
-        echo '<td>' . esc_html( (string) ( $meta['example'] ?? '' ) ) . '</td>';
-        echo '<td><button type="button" class="button teinvit-copy-tag" data-tag="' . esc_attr( $tag ) . '">Copy</button></td>';
-        echo '</tr>';
+        $category = (string) ( $meta['category'] ?? 'Diverse' );
+        if ( ! isset( $groups[ $category ] ) ) {
+            $groups[ $category ] = [];
+        }
+        $groups[ $category ][] = $meta;
+    }
+
+    echo '<table class="widefat striped" id="teinvit-tags-table"><thead><tr><th>Tag</th><th>Descriere</th><th>Categorie</th><th>Context</th><th>Exemplu output</th><th>Copy</th></tr></thead><tbody>';
+
+    foreach ( $groups as $category => $items ) {
+        echo '<tr class="teinvit-tag-category-row"><td colspan="6"><strong>' . esc_html( $category ) . '</strong></td></tr>';
+        foreach ( $items as $meta ) {
+            $tag = (string) ( $meta['tag'] ?? '' );
+            echo '<tr data-search="' . esc_attr( strtolower( $tag . ' ' . (string) ( $meta['description'] ?? '' ) . ' ' . (string) ( $meta['category'] ?? '' ) . ' ' . (string) ( $meta['context'] ?? '' ) ) ) . '">';
+            echo '<td><code>' . esc_html( $tag ) . '</code></td>';
+            echo '<td>' . esc_html( (string) ( $meta['description'] ?? '' ) ) . '</td>';
+            echo '<td>' . esc_html( (string) ( $meta['category'] ?? '' ) ) . '</td>';
+            echo '<td>' . esc_html( (string) ( $meta['context'] ?? '' ) ) . '</td>';
+            echo '<td>' . esc_html( (string) ( $meta['example'] ?? '' ) ) . '</td>';
+            echo '<td><button type="button" class="button teinvit-copy-tag" data-tag="' . esc_attr( $tag ) . '">Copy</button></td>';
+            echo '</tr>';
+        }
     }
 
     echo '</tbody></table>';
-    echo '<script>(function(){const s=document.getElementById("teinvit-tags-search");const rows=[...document.querySelectorAll("#teinvit-tags-table tbody tr")];if(s){s.addEventListener("input",function(){const q=(s.value||"").toLowerCase().trim();rows.forEach(r=>{const t=r.getAttribute("data-search")||"";r.style.display=(q===""||t.indexOf(q)!==-1)?"":"none";});});}document.querySelectorAll(".teinvit-copy-tag").forEach(btn=>btn.addEventListener("click",async()=>{const v=btn.getAttribute("data-tag")||"";try{await navigator.clipboard.writeText(v);btn.textContent="Copied";setTimeout(()=>btn.textContent="Copy",900);}catch(e){window.prompt("Copy tag",v);}}));})();</script>';
+    echo '<script>(function(){const s=document.getElementById("teinvit-tags-search");const rows=[...document.querySelectorAll("#teinvit-tags-table tbody tr[data-search]")];const catRows=[...document.querySelectorAll("#teinvit-tags-table tbody tr.teinvit-tag-category-row")];function syncCategories(){catRows.forEach(cat=>{let n=cat.nextElementSibling,visible=0;while(n&&!n.classList.contains("teinvit-tag-category-row")){if(n.style.display!=="none"){visible++;}n=n.nextElementSibling;}cat.style.display=visible>0?"":"none";});}if(s){s.addEventListener("input",function(){const q=(s.value||"").toLowerCase().trim();rows.forEach(r=>{const t=r.getAttribute("data-search")||"";r.style.display=(q===""||t.indexOf(q)!==-1)?"":"none";});syncCategories();});}syncCategories();document.querySelectorAll(".teinvit-copy-tag").forEach(btn=>btn.addEventListener("click",async()=>{const v=btn.getAttribute("data-tag")||"";try{await navigator.clipboard.writeText(v);btn.textContent="Copied";setTimeout(()=>btn.textContent="Copy",900);}catch(e){window.prompt("Copy tag",v);}}));})();</script>';
     echo '</div>';
 }
 
