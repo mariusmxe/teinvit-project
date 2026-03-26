@@ -1251,6 +1251,21 @@ add_action( 'admin_post_teinvit_download_variant_pdf', function() {
 
     $pdf_url = esc_url_raw( (string) ( $row['pdf_url'] ?? '' ) );
     if ( $pdf_url === '' ) {
+        // Legacy fallback for Variant 0: older flows stored only the order-level PDF URL.
+        $oldest_version_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$t['versions']} WHERE token=%s ORDER BY id ASC LIMIT 1",
+                $token
+            )
+        );
+        if ( $oldest_version_id > 0 && $version_id === $oldest_version_id ) {
+            $legacy_pdf_url = esc_url_raw( (string) $order->get_meta( '_teinvit_pdf_url' ) );
+            if ( $legacy_pdf_url !== '' ) {
+                $pdf_url = $legacy_pdf_url;
+            }
+        }
+    }
+    if ( $pdf_url === '' ) {
         wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
         exit;
     }

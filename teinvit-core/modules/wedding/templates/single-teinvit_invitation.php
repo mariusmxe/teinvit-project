@@ -140,6 +140,11 @@ if ( $mode === 'invitati' ) {
     $meta_image = $logo_url ? $logo_url : ( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' );
     $site_name  = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
+    // Keep runtime queried-object title aligned with invitation metadata to avoid generic token title fallbacks.
+    if ( isset( $GLOBALS['post'] ) && $GLOBALS['post'] instanceof WP_Post ) {
+        $GLOBALS['post']->post_title = $meta_title;
+    }
+
     add_filter( 'pre_get_document_title', function( $title ) use ( $meta_title ) {
         return $meta_title !== '' ? $meta_title : $title;
     }, 999 );
@@ -150,6 +155,7 @@ if ( $mode === 'invitati' ) {
         return $parts;
     }, 999 );
     add_filter( 'wp_title', fn() => $meta_title, 999 );
+    add_filter( 'single_post_title', fn() => $meta_title, 999 );
 
     add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $site_name ) {
         echo "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
@@ -189,6 +195,7 @@ if ( $mode === 'invitati' ) {
     add_filter( 'rank_math/opengraph/twitter/title', fn() => $meta_title, 999 );
     add_filter( 'rank_math/opengraph/twitter/description', fn() => $meta_desc, 999 );
     add_filter( 'rank_math/opengraph/twitter/image', fn() => $meta_image, 999 );
+    add_filter( 'rank_math/opengraph/twitter/url', fn() => $meta_url, 999 );
 
     // Jetpack Open Graph fallback
     add_filter( 'jetpack_enable_open_graph', '__return_false', 999 );
