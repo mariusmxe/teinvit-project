@@ -95,8 +95,8 @@ $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
 $show_gifts_section = ! empty( $config['show_gifts_section'] );
-$gifts_extra_slots = isset( $config['gifts_extra_slots'] ) ? max( 0, (int) $config['gifts_extra_slots'] ) : 0;
-$gifts_max_slots = 20 + $gifts_extra_slots;
+$gifts_summary = function_exists( 'teinvit_build_gifts_summary_for_token' ) ? teinvit_build_gifts_summary_for_token( $token, $config ) : [ 'total_slots' => 20, 'used_slots' => 0, 'available_slots' => 20 ];
+$gifts_max_slots = max( 0, (int) ( $gifts_summary['total_slots'] ?? 20 ) );
 
 global $wpdb;
 $t = teinvit_db_tables();
@@ -138,8 +138,11 @@ foreach ( $gift_rows as $row ) {
         'reserved_by' => $reserved_by,
     ];
 }
-$gifts_remaining = max( 0, $gifts_max_slots - $gifts_entered );
+$gifts_remaining = max( 0, (int) ( $gifts_summary['available_slots'] ?? max( 0, $gifts_max_slots - $gifts_entered ) ) );
 $buy_gifts_url = add_query_arg( [ 'teinvit_buy_gifts_token' => $token ], home_url( '/' ) );
+$catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
+$gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
+$buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
 
 $report_sets = function_exists( 'teinvit_build_rsvp_report_sets' ) ? teinvit_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
 $report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
@@ -233,6 +236,10 @@ $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_ca
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
+$guest_page_url = home_url( '/invitati/' . rawurlencode( $token ) );
+$share_message = 'Te invităm cu drag la evenimentul nostru! Vezi invitația aici:';
+$share_icon_base = trailingslashit( TEINVIT_WEDDING_MODULE_URL . 'assets/icons/social' );
+$download_pdf_nonce = wp_create_nonce( 'teinvit_download_pdf_' . $token );
 $global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content( $token ) : '';
 ?>
 <style>
@@ -259,6 +266,14 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-gifts-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .teinvit-gifts-cta{display:inline-block}
 .teinvit-report-kpi{max-width:980px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-table-zone{margin-top:12px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:12px}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-table th{white-space:nowrap}.teinvit-report-table td:nth-child(6),.teinvit-report-table th:nth-child(6){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-report-table td:nth-child(18),.teinvit-report-table th:nth-child(18){width:30ch;min-width:30ch;white-space:normal;word-break:break-word}.teinvit-report-table td:nth-child(19),.teinvit-report-table th:nth-child(19){width:120ch;min-width:120ch;white-space:normal;word-break:break-word}.teinvit-report-row-multi{background:#fff2f2}
+.teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
+.teinvit-share-row{display:flex;align-items:center;gap:10px}
+.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}
+.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}
+.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}
+.teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle}
+.teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}
+.teinvit-pdf-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
 </style>
 <div class="teinvit-admin-page">
   <div class="teinvit-admin-title-card">
@@ -319,7 +334,11 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
             <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
             <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
-              — <a href="<?php echo esc_url( $variant['pdf_url'] ); ?>" target="_blank" rel="noopener">Descarcă PDF</a>
+              <?php $download_pdf_url = add_query_arg( [ 'action' => 'teinvit_download_variant_pdf', 'token' => $token, 'version_id' => (int) $variant['id'], '_wpnonce' => $download_pdf_nonce ], admin_url( 'admin-post.php' ) ); ?>
+              <span class="teinvit-variant-pdf-actions">
+                <a href="<?php echo esc_url( $download_pdf_url ); ?>" class="button">Descarcă PDF</a>
+                <button type="button" class="button teinvit-share-pdf-btn" data-pdf-url="<?php echo esc_attr( $variant['pdf_url'] ); ?>">Distribuie PDF</button>
+              </span>
             <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
               — <em>PDF în curs...</em>
             <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
@@ -333,6 +352,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <p><em>Publicarea de versiuni este disponibilă după upgrade la Premium.</em></p>
         <?php endif; ?>
       </form>
+      <p id="teinvit-pdf-share-status" class="teinvit-pdf-share-status" aria-live="polite"></p>
 
       <div class="teinvit-zone teinvit-admin-rsvp-settings">
         <h3 class="teinvit-rsvp-settings-title">Setările formularului de confirmare</h3>
@@ -366,11 +386,37 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
       <p style="margin-top:8px;">
         <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
-        <a href="<?php echo esc_url( home_url( '/invitati/' . rawurlencode( $token ) ) ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+        <a href="<?php echo esc_url( $guest_page_url ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
         <?php else : ?>
         <em>Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.</em>
         <?php endif; ?>
       </p>
+
+      <?php if ( ! empty( $capabilities['can_share_invitation'] ) ) : ?>
+      <div class="teinvit-zone teinvit-share-card" id="teinvit-share-card">
+        <h3>Distribuie invitația</h3>
+        <p class="teinvit-share-help">Trimite rapid invitația către familie și prieteni. Pe telefon poți folosi butonul „Distribuie”, iar în rest ai opțiuni rapide mai jos.</p>
+        <div class="teinvit-share-actions">
+          <button type="button" class="button button-primary" id="teinvit-share-native">Distribuie</button>
+          <button type="button" class="button" id="teinvit-share-copy-main">Copiază link</button>
+        </div>
+        <div class="teinvit-share-quick">
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a>
+          </div>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( $share_message . ' ' . $guest_page_url ) ); ?>" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram">Instagram</button>
+          </div>
+        </div>
+        <p class="teinvit-share-status" id="teinvit-share-status" aria-live="polite"></p>
+      </div>
+      <?php endif; ?>
     </div>
 
     <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
@@ -435,7 +481,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
               <button type="button" class="button" id="teinvit-add-gift">Adaugă cadou</button>
               <span id="teinvit-gifts-counter">Mai poți adăuga <?php echo (int) $gifts_remaining; ?> cadouri în listă</span>
               <?php if ( ! empty( $capabilities['can_buy_extra_gifts'] ) ) : ?>
-              <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button teinvit-gifts-cta" id="teinvit-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener">Cumpără pachet +10</a>
+              <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button teinvit-gifts-cta" id="teinvit-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener"><?php echo esc_html( $buy_gifts_cta_label ); ?></a>
               <?php endif; ?>
             </div>
 
@@ -507,8 +553,132 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
   const initialInvitation = <?php echo wp_json_encode( $current_invitation ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
+  const shareUrl = <?php echo wp_json_encode( $guest_page_url ); ?>;
+  const shareTitle = <?php echo wp_json_encode( 'Invitația noastră - Te Invit' ); ?>;
+  const shareText = <?php echo wp_json_encode( $share_message ); ?>;
   const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
   let isApplyingVariant = false;
+
+  const shareNativeBtn = document.getElementById('teinvit-share-native');
+  const shareCopyMainBtn = document.getElementById('teinvit-share-copy-main');
+  const shareInstagramBtn = document.getElementById('teinvit-share-instagram');
+  const shareStatus = document.getElementById('teinvit-share-status');
+  const pdfShareStatus = document.getElementById('teinvit-pdf-share-status');
+
+  function setShareStatus(message){
+    if (!shareStatus) return;
+    shareStatus.textContent = String(message || '');
+  }
+
+  function setPdfShareStatus(message){
+    if (!pdfShareStatus) return;
+    pdfShareStatus.textContent = String(message || '');
+  }
+
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', 'readonly');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return !!ok;
+  }
+
+  async function copyShareLink(showMessage){
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      } catch (e) {
+        copied = fallbackCopy(shareUrl);
+      }
+    } else {
+      copied = fallbackCopy(shareUrl);
+    }
+    if (showMessage) {
+      setShareStatus(copied ? 'Link copiat. Îl poți trimite mai departe.' : 'Nu am putut copia automat. Copiază manual linkul din bara de adrese.');
+    }
+    return copied;
+  }
+
+  if (shareCopyMainBtn) {
+    shareCopyMainBtn.addEventListener('click', async ()=>{
+      await copyShareLink(true);
+    });
+  }
+
+  if (shareInstagramBtn) {
+    shareInstagramBtn.addEventListener('click', async ()=>{
+      await copyShareLink(false);
+      setShareStatus('Instagram nu permite distribuire directă web a linkului. Am copiat linkul — îl poți lipi în bio, story sau DM.');
+    });
+  }
+
+  if (shareNativeBtn) {
+    shareNativeBtn.addEventListener('click', async ()=>{
+      if (navigator.share && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+          setShareStatus('Invitația a fost pregătită pentru distribuire.');
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') {
+            setShareStatus('Distribuirea a fost anulată.');
+            return;
+          }
+        }
+      }
+      setShareStatus('Distribuirea directă nu este disponibilă aici. Folosește butoanele Facebook, WhatsApp sau Copiere link.');
+    });
+  }
+
+  document.querySelectorAll('.teinvit-share-pdf-btn').forEach((btn)=>{
+    btn.addEventListener('click', async ()=>{
+      const pdfUrl = btn.getAttribute('data-pdf-url') || '';
+      if (!pdfUrl) {
+        setPdfShareStatus('Linkul PDF nu este disponibil.');
+        return;
+      }
+
+      if (navigator.share && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title: 'PDF invitație', text: 'Poți vedea invitația în format PDF aici:', url: pdfUrl });
+          setPdfShareStatus('PDF pregătit pentru distribuire.');
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') {
+            setPdfShareStatus('Distribuirea PDF a fost anulată.');
+            return;
+          }
+        }
+      }
+
+      const copied = await copyShareLinkToValue(pdfUrl);
+      setPdfShareStatus(copied ? 'Linkul PDF a fost copiat. Îl poți trimite mai departe.' : 'Nu am putut copia automat linkul PDF. Copiază-l manual.');
+    });
+  });
+
+  async function copyShareLinkToValue(value){
+    if (!value) return false;
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      } catch (e) {
+        copied = fallbackCopy(value);
+      }
+    } else {
+      copied = fallbackCopy(value);
+    }
+    return copied;
+  }
 
   function markMessageInvitationTextarea(){
     const scope = document.getElementById('teinvit-save-form') || document;

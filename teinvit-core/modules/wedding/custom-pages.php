@@ -505,6 +505,29 @@ add_filter( 'query_vars', function( $vars ) {
     return $vars;
 } );
 
+function teinvit_user_can_manage_all_tokens() {
+    return current_user_can( 'teinvit_manage_all_tokens' );
+}
+
+function teinvit_token_access_context( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    $order = $order_id ? wc_get_order( $order_id ) : null;
+    if ( ! $order ) {
+        return new WP_Error( 'not_found', 'Token invalid', [ 'status' => 404 ] );
+    }
+
+    if ( teinvit_user_can_manage_all_tokens() ) {
+        return [ $order_id, $order ];
+    }
+
+    if ( ! is_user_logged_in() || (int) $order->get_user_id() !== get_current_user_id() ) {
+        return new WP_Error( 'forbidden', 'Nu ai permisiunea pentru această invitație.', [ 'status' => 403 ] );
+    }
+
+    return [ $order_id, $order ];
+}
+
 add_action( 'template_redirect', function() {
     $token = get_query_var( 'teinvit_admin_client_token' );
     if ( ! $token ) {
@@ -516,23 +539,16 @@ add_action( 'template_redirect', function() {
         exit;
     }
 
-    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
-    if ( ! $order_id ) {
-        status_header( 404 );
+    $ctx = teinvit_token_access_context( $token );
+    if ( is_wp_error( $ctx ) ) {
+        $status = (int) ( $ctx->get_error_data()['status'] ?? 403 );
+        status_header( $status );
         get_header();
-        echo '<p>Token invalid.</p>';
+        echo '<p>' . esc_html( $ctx->get_error_message() ) . '</p>';
         get_footer();
         exit;
     }
-
-    $order = wc_get_order( $order_id );
-    if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
-        status_header( 403 );
-        get_header();
-        echo '<p>Nu ai permisiunea pentru această invitație.</p>';
-        get_footer();
-        exit;
-    }
+    list( $order_id, $order ) = $ctx;
 
     teinvit_seed_invitation_if_missing( $token, $order_id );
     teinvit_enqueue_wapf_assets_for_admin_client();
@@ -1122,20 +1138,33 @@ function teinvit_admin_post_guard( $token, $required_capability = null ) {
         wp_die( 'Nonce invalid' );
     }
 
-    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
-    $order = $order_id ? wc_get_order( $order_id ) : null;
-    if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
-        wp_die( 'Acces interzis' );
+    $ctx = teinvit_token_access_context( $token );
+    if ( is_wp_error( $ctx ) ) {
+        wp_die( esc_html( $ctx->get_error_message() ) );
     }
+    list( $order_id, $order ) = $ctx;
 
     if ( $required_capability !== null && function_exists( 'teinvit_capabilities_for_token' ) ) {
-        $caps = teinvit_capabilities_for_token( $token );
-        if ( empty( $caps[ $required_capability ] ) ) {
-            wp_die( 'Funcționalitatea nu este disponibilă pentru pachetul curent.' );
+        if ( ! teinvit_user_can_manage_all_tokens() ) {
+            $caps = teinvit_capabilities_for_token( $token );
+            if ( empty( $caps[ $required_capability ] ) ) {
+                wp_die( 'Funcționalitatea nu este disponibilă pentru pachetul curent.' );
+            }
         }
     }
 
     return [ $order_id, $order ];
+}
+
+function teinvit_token_total_gift_slots( $token, $config = null ) {
+    if ( function_exists( 'teinvit_build_gifts_summary_for_token' ) ) {
+        $summary = teinvit_build_gifts_summary_for_token( $token, $config );
+        return max( 0, (int) ( $summary['total_slots'] ?? 0 ) );
+    }
+
+    $cfg = is_array( $config ) ? $config : [];
+    $legacy_extra = isset( $cfg['gifts_extra_slots'] ) ? max( 0, (int) $cfg['gifts_extra_slots'] ) : 0;
+    return 20 + $legacy_extra;
 }
 
 
@@ -1206,6 +1235,97 @@ add_action( 'admin_post_teinvit_set_active_version', function() {
     }
 
     wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?saved=active' ) );
+    exit;
+} );
+
+add_action( 'admin_post_teinvit_download_variant_pdf', function() {
+    global $wpdb;
+
+    $token = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
+    $ctx = teinvit_token_access_context( $token );
+    if ( is_wp_error( $ctx ) ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );
+        exit;
+    }
+    list( $order_id, $order ) = $ctx;
+
+    if ( function_exists( 'teinvit_capabilities_for_token' ) && ! teinvit_user_can_manage_all_tokens() ) {
+        $caps = teinvit_capabilities_for_token( $token );
+        if ( empty( $caps['can_set_active_version'] ) ) {
+            wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );
+            exit;
+        }
+    }
+
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'teinvit_download_pdf_' . $token ) ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=forbidden' ) );
+        exit;
+    }
+
+    $version_id = (int) ( $_GET['version_id'] ?? 0 );
+    if ( $version_id <= 0 ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    $t = teinvit_db_tables();
+    $row = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT pdf_url, pdf_filename FROM {$t['versions']} WHERE token=%s AND id=%d LIMIT 1",
+            $token,
+            $version_id
+        ),
+        ARRAY_A
+    );
+
+    $pdf_url = esc_url_raw( (string) ( $row['pdf_url'] ?? '' ) );
+    if ( $pdf_url === '' ) {
+        // Legacy fallback for Variant 0: older flows stored only the order-level PDF URL.
+        $oldest_version_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$t['versions']} WHERE token=%s ORDER BY id ASC LIMIT 1",
+                $token
+            )
+        );
+        if ( $oldest_version_id > 0 && $version_id === $oldest_version_id ) {
+            $legacy_pdf_url = esc_url_raw( (string) $order->get_meta( '_teinvit_pdf_url' ) );
+            if ( $legacy_pdf_url !== '' ) {
+                $pdf_url = $legacy_pdf_url;
+            }
+        }
+    }
+    if ( $pdf_url === '' ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    $filename = sanitize_file_name( (string) ( $row['pdf_filename'] ?? '' ) );
+    if ( $filename === '' ) {
+        $path = wp_parse_url( $pdf_url, PHP_URL_PATH );
+        $filename = sanitize_file_name( basename( (string) $path ) );
+    }
+    if ( $filename === '' ) {
+        $filename = 'invitatie-' . $version_id . '.pdf';
+    }
+
+    $response = wp_remote_get( $pdf_url, [ 'timeout' => 60, 'redirection' => 5 ] );
+    if ( is_wp_error( $response ) ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    $code = (int) wp_remote_retrieve_response_code( $response );
+    $body = wp_remote_retrieve_body( $response );
+    if ( $code < 200 || $code >= 300 || $body === '' ) {
+        wp_safe_redirect( home_url( '/admin-client/' . rawurlencode( $token ) . '?error=pdf_missing' ) );
+        exit;
+    }
+
+    nocache_headers();
+    header( 'Content-Type: application/pdf' );
+    header( 'Content-Disposition: attachment; filename="' . str_replace( '"', '', $filename ) . '"' );
+    header( 'Content-Length: ' . strlen( $body ) );
+    echo $body;
     exit;
 } );
 
@@ -1314,8 +1434,7 @@ add_action( 'admin_post_teinvit_save_gifts', function() {
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : teinvit_default_rsvp_config();
     $config['show_gifts_section'] = isset( $_POST['show_gifts_section'] ) ? 1 : 0;
 
-    $gifts_extra_slots = isset( $config['gifts_extra_slots'] ) ? max( 0, (int) $config['gifts_extra_slots'] ) : 0;
-    $max_slots = 20 + $gifts_extra_slots;
+    $max_slots = teinvit_token_total_gift_slots( $token, $config );
 
     $t = teinvit_db_tables();
     $existing_rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['gifts']} WHERE token=%s ORDER BY id ASC", $token ), ARRAY_A );
