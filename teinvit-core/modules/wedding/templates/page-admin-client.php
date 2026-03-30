@@ -140,6 +140,9 @@ foreach ( $gift_rows as $row ) {
 }
 $gifts_remaining = max( 0, $gifts_max_slots - $gifts_entered );
 $buy_gifts_url = add_query_arg( [ 'teinvit_buy_gifts_token' => $token ], home_url( '/' ) );
+$catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+$gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
+$buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
 
 $report_sets = function_exists( 'teinvit_build_rsvp_report_sets' ) ? teinvit_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
 $report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
@@ -478,7 +481,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
               <button type="button" class="button" id="teinvit-add-gift">Adaugă cadou</button>
               <span id="teinvit-gifts-counter">Mai poți adăuga <?php echo (int) $gifts_remaining; ?> cadouri în listă</span>
               <?php if ( ! empty( $capabilities['can_buy_extra_gifts'] ) ) : ?>
-              <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button teinvit-gifts-cta" id="teinvit-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener">Cumpără pachet +10</a>
+              <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button teinvit-gifts-cta" id="teinvit-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener"><?php echo esc_html( $buy_gifts_cta_label ); ?></a>
               <?php endif; ?>
             </div>
 
