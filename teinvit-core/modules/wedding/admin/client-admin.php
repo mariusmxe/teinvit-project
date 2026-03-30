@@ -1379,11 +1379,14 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
     }
 
     $main_token = sanitize_text_field( (string) $order->get_meta( '_teinvit_token', true ) );
+    if ( $main_token === '' ) {
+        $main_token = sanitize_text_field( (string) get_post_meta( (int) $order_id, '_teinvit_token', true ) );
+    }
     if ( $main_token !== '' ) {
         $catalog_for_main = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $main_token ) : [];
         $base_slots = max( 0, (int) ( $catalog_for_main['default_free_gift_slots'] ?? 20 ) );
         $base_key = 'base:' . (int) $order_id . ':0';
-        teinvit_token_upsert_gifts_allocation( $main_token, [
+        $base_saved = teinvit_token_upsert_gifts_allocation( $main_token, [
             'allocation_key' => $base_key,
             'kind' => 'base',
             'order_id' => (int) $order_id,
@@ -1396,6 +1399,7 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
             'status' => 'applied',
             'applied_at' => current_time( 'mysql' ),
         ] );
+        $order->add_order_note( sprintf( '[TeInvit Debug Gifts] main token=%s base_slots=%d upsert=%s', $main_token, $base_slots, $base_saved ? 'yes' : 'no' ) );
         teinvit_order_gifts_allocations_upsert( $order, [
             'allocation_key' => $base_key,
             'kind' => 'base',
@@ -1407,6 +1411,8 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
         ] );
         $order->update_meta_data( '_teinvit_base_gift_slots_applied', $base_slots );
         $did_update = true;
+    } else {
+        $order->add_order_note( '[TeInvit Debug Gifts] main token missing at completed.' );
     }
 
     $order_target_token = sanitize_text_field( (string) $order->get_meta( '_teinvit_token_target', true ) );
@@ -1422,6 +1428,7 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
             $target_token = $order_target_token;
         }
         if ( $target_token === '' ) {
+            $order->add_order_note( sprintf( '[TeInvit Debug Gifts] item %d target token missing.', (int) $item_id ) );
             continue;
         }
 
@@ -1464,7 +1471,7 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
                     ? teinvit_catalog_extra_gifts_slots_for_product( $catalog, $product_id, 10 )
                     : 10;
                 $allocation_key = 'addon:' . (int) $order_id . ':' . (int) $item_id;
-                teinvit_token_upsert_gifts_allocation( $target_token, [
+                $addon_saved = teinvit_token_upsert_gifts_allocation( $target_token, [
                     'allocation_key' => $allocation_key,
                     'kind' => 'addon',
                     'order_id' => (int) $order_id,
@@ -1477,6 +1484,7 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
                     'status' => 'applied',
                     'applied_at' => current_time( 'mysql' ),
                 ] );
+                $order->add_order_note( sprintf( '[TeInvit Debug Gifts] addon item=%d token=%s product=%d qty=%d slots_per_unit=%d total=%d upsert=%s', (int) $item_id, $target_token, $product_id, $qty, $slots_per_unit, ( $qty * $slots_per_unit ), $addon_saved ? 'yes' : 'no' ) );
                 teinvit_order_gifts_allocations_upsert( $order, [
                     'allocation_key' => $allocation_key,
                     'kind' => 'addon',
@@ -1502,6 +1510,7 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
             $processed_changed = true;
             continue;
         }
+        $order->add_order_note( sprintf( '[TeInvit Debug Gifts] item=%d product=%d not recognized as gifts addon for token=%s', (int) $item_id, $product_id, $target_token ) );
 
         if ( in_array( $product_id, $premium_upgrade_product_ids, true ) ) {
             if ( function_exists( 'teinvit_get_invitation' ) && function_exists( 'teinvit_save_invitation_config' ) ) {
