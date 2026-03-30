@@ -1255,6 +1255,13 @@ function teinvit_token_upsert_gifts_allocation( $token, array $allocation ) {
     }
 
     $inv = teinvit_get_invitation( $token );
+    if ( ! $inv && function_exists( 'teinvit_seed_invitation_if_missing' ) && function_exists( 'teinvit_get_order_id_by_token' ) ) {
+        $order_id = (int) teinvit_get_order_id_by_token( $token );
+        if ( $order_id > 0 ) {
+            teinvit_seed_invitation_if_missing( $token, $order_id );
+            $inv = teinvit_get_invitation( $token );
+        }
+    }
     if ( ! $inv ) {
         return false;
     }
