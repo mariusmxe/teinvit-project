@@ -41,6 +41,7 @@ function teinvit_custom_product_defaults() {
         'extra_edits_addon_ids' => [],
         'extra_gifts_addon_ids' => [],
         'extra_gifts_addon_slots' => [],
+        'default_free_gift_slots' => 20,
     ];
 }
 
@@ -129,6 +130,7 @@ function teinvit_normalize_custom_product_catalog_entry( $entry ) {
         'extra_edits_addon_ids' => teinvit_parse_product_ids_csv( $extra_edits ),
         'extra_gifts_addon_ids' => teinvit_parse_product_ids_csv( $extra_gifts ),
         'extra_gifts_addon_slots' => teinvit_parse_addon_slots_csv( $entry['extra_gifts_addon_slots'] ?? [], $extra_gifts, 10 ),
+        'default_free_gift_slots' => max( 0, (int) ( $entry['default_free_gift_slots'] ?? $defaults['default_free_gift_slots'] ) ),
     ];
 }
 
@@ -167,6 +169,9 @@ function teinvit_get_custom_product_ids( $vertical = 'all' ) {
         $merged['extra_edits_addon_ids'] = array_merge( $merged['extra_edits_addon_ids'], (array) ( $entry['extra_edits_addon_ids'] ?? [] ) );
         $merged['extra_gifts_addon_ids'] = array_merge( $merged['extra_gifts_addon_ids'], (array) ( $entry['extra_gifts_addon_ids'] ?? [] ) );
         $merged['extra_gifts_addon_slots'] = array_merge( $merged['extra_gifts_addon_slots'], (array) ( $entry['extra_gifts_addon_slots'] ?? [] ) );
+        if ( isset( $entry['default_free_gift_slots'] ) ) {
+            $merged['default_free_gift_slots'] = max( 0, (int) $entry['default_free_gift_slots'] );
+        }
     }
 
     $merged['basic_product_ids'] = teinvit_parse_product_ids_csv( $merged['basic_product_ids'] );
@@ -175,8 +180,55 @@ function teinvit_get_custom_product_ids( $vertical = 'all' ) {
     $merged['extra_edits_addon_ids'] = teinvit_parse_product_ids_csv( $merged['extra_edits_addon_ids'] );
     $merged['extra_gifts_addon_ids'] = teinvit_parse_product_ids_csv( $merged['extra_gifts_addon_ids'] );
     $merged['extra_gifts_addon_slots'] = teinvit_parse_addon_slots_csv( $merged['extra_gifts_addon_slots'], $merged['extra_gifts_addon_ids'], 10 );
+    $merged['default_free_gift_slots'] = max( 0, (int) ( $merged['default_free_gift_slots'] ?? 20 ) );
 
     return $merged;
+}
+
+function teinvit_find_catalog_vertical_for_product_id( $product_id ) {
+    $product_id = (int) $product_id;
+    if ( $product_id <= 0 ) {
+        return '';
+    }
+
+    $catalog = teinvit_get_custom_products_catalog();
+    foreach ( $catalog as $vertical => $entry ) {
+        $pool = array_merge(
+            teinvit_catalog_role_ids( $entry, 'basic_product_ids' ),
+            teinvit_catalog_role_ids( $entry, 'premium_native_product_ids' ),
+            teinvit_catalog_role_ids( $entry, 'extra_edits_addon_ids' ),
+            teinvit_catalog_role_ids( $entry, 'extra_gifts_addon_ids' ),
+            teinvit_catalog_role_ids( $entry, 'premium_upgrade_addon_ids' )
+        );
+        if ( in_array( $product_id, array_map( 'intval', $pool ), true ) ) {
+            return (string) $vertical;
+        }
+    }
+
+    return '';
+}
+
+function teinvit_get_catalog_for_token( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    $catalog_all = teinvit_get_custom_products_catalog();
+    if ( $token === '' ) {
+        return isset( $catalog_all['wedding'] ) ? $catalog_all['wedding'] : teinvit_custom_product_defaults();
+    }
+
+    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    $order = $order_id ? wc_get_order( $order_id ) : null;
+    if ( ! $order ) {
+        return isset( $catalog_all['wedding'] ) ? $catalog_all['wedding'] : teinvit_custom_product_defaults();
+    }
+
+    foreach ( $order->get_items() as $item ) {
+        $vertical = teinvit_find_catalog_vertical_for_product_id( (int) $item->get_product_id() );
+        if ( $vertical !== '' && isset( $catalog_all[ $vertical ] ) ) {
+            return $catalog_all[ $vertical ];
+        }
+    }
+
+    return isset( $catalog_all['wedding'] ) ? $catalog_all['wedding'] : teinvit_custom_product_defaults();
 }
 
 function teinvit_catalog_role_ids( array $catalog, $role_key ) {

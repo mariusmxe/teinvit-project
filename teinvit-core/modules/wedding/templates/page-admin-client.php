@@ -95,8 +95,8 @@ $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
 $show_gifts_section = ! empty( $config['show_gifts_section'] );
-$gifts_extra_slots = isset( $config['gifts_extra_slots'] ) ? max( 0, (int) $config['gifts_extra_slots'] ) : 0;
-$gifts_max_slots = 20 + $gifts_extra_slots;
+$gifts_summary = function_exists( 'teinvit_build_gifts_summary_for_token' ) ? teinvit_build_gifts_summary_for_token( $token, $config ) : [ 'total_slots' => 20, 'used_slots' => 0, 'available_slots' => 20 ];
+$gifts_max_slots = max( 0, (int) ( $gifts_summary['total_slots'] ?? 20 ) );
 
 global $wpdb;
 $t = teinvit_db_tables();
@@ -138,9 +138,9 @@ foreach ( $gift_rows as $row ) {
         'reserved_by' => $reserved_by,
     ];
 }
-$gifts_remaining = max( 0, $gifts_max_slots - $gifts_entered );
+$gifts_remaining = max( 0, (int) ( $gifts_summary['available_slots'] ?? max( 0, $gifts_max_slots - $gifts_entered ) ) );
 $buy_gifts_url = add_query_arg( [ 'teinvit_buy_gifts_token' => $token ], home_url( '/' ) );
-$catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+$catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
 $gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
 $buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
 
