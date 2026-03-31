@@ -307,21 +307,21 @@ function teinvit_default_rsvp_config() {
 }
 
 function teinvit_cleanup_expired_invitations() {
-    global $wpdb;
-    $t = teinvit_db_tables();
-
-    $days = (int) apply_filters( 'teinvit_cleanup_days', 45 );
-    $threshold = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
-
-    $tokens = $wpdb->get_col( $wpdb->prepare( "SELECT token FROM {$t['invitations']} WHERE (event_date IS NOT NULL AND event_date < %s) OR (last_activity_at IS NOT NULL AND last_activity_at < %s)", $threshold, $threshold ) );
-    if ( empty( $tokens ) ) {
-        return;
-    }
-
-    foreach ( $tokens as $token ) {
-        $wpdb->delete( $t['gifts'], [ 'token' => $token ] );
-        $wpdb->delete( $t['rsvp'], [ 'token' => $token ] );
-        $wpdb->delete( $t['versions'], [ 'token' => $token ] );
-        $wpdb->delete( $t['invitations'], [ 'token' => $token ] );
-    }
+    // Legacy DB cleanup disabled intentionally:
+    // Business rule updated to keep DB data and only clean up PDFs on server.
+    return;
 }
+
+add_action( 'init', function() {
+    // Ensure legacy cleanup callback is detached.
+    remove_action( 'teinvit_cleanup_cron', 'teinvit_cleanup_expired_invitations' );
+}, 1 );
+
+add_action( 'init', function() {
+    // Make sure legacy cleanup cron is not left scheduled in existing installs.
+    $next = wp_next_scheduled( 'teinvit_cleanup_cron' );
+    while ( $next ) {
+        wp_unschedule_event( $next, 'teinvit_cleanup_cron' );
+        $next = wp_next_scheduled( 'teinvit_cleanup_cron' );
+    }
+}, 999 );
