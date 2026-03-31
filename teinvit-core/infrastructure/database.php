@@ -306,22 +306,16 @@ function teinvit_default_rsvp_config() {
     ];
 }
 
-function teinvit_cleanup_expired_invitations() {
-    // Legacy DB cleanup disabled intentionally:
-    // Business rule updated to keep DB data and only clean up PDFs on server.
-    return;
-}
-
-add_action( 'init', function() {
-    // Ensure legacy cleanup callback is detached.
-    remove_action( 'teinvit_cleanup_cron', 'teinvit_cleanup_expired_invitations' );
-}, 1 );
-
-add_action( 'init', function() {
-    // Make sure legacy cleanup cron is not left scheduled in existing installs.
-    $next = wp_next_scheduled( 'teinvit_cleanup_cron' );
-    while ( $next ) {
-        wp_unschedule_event( $next, 'teinvit_cleanup_cron' );
-        $next = wp_next_scheduled( 'teinvit_cleanup_cron' );
+function teinvit_cleanup_legacy_cron_migration_once() {
+    $flag_option = 'teinvit_cleanup_cron_legacy_removed_v1';
+    if ( get_option( $flag_option, '0' ) === '1' ) {
+        return;
     }
-}, 999 );
+
+    if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+        wp_clear_scheduled_hook( 'teinvit_cleanup_cron' );
+    }
+
+    update_option( $flag_option, '1', false );
+}
+add_action( 'plugins_loaded', 'teinvit_cleanup_legacy_cron_migration_once', 30 );
