@@ -523,16 +523,18 @@ function teinvit_pdf_cleanup_run_nightly() {
     }
 }
 
-add_action( 'init', function() {
-    $next = wp_next_scheduled( TEINVIT_PDF_CLEANUP_HOOK );
-    if ( ! $next ) {
-        $now = current_time( 'timestamp' );
-        $run_at = strtotime( 'tomorrow 02:15:00', $now );
-        if ( ! $run_at ) {
-            $run_at = time() + HOUR_IN_SECONDS;
-        }
-        wp_schedule_event( $run_at, 'daily', TEINVIT_PDF_CLEANUP_HOOK );
+function teinvit_pdf_cleanup_unschedule_internal_once() {
+    $flag_option = 'teinvit_pdf_cleanup_internal_schedule_removed_v1';
+    if ( get_option( $flag_option, '0' ) === '1' ) {
+        return;
     }
-}, 20 );
+
+    if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+        wp_clear_scheduled_hook( TEINVIT_PDF_CLEANUP_HOOK );
+    }
+
+    update_option( $flag_option, '1', false );
+}
+add_action( 'plugins_loaded', 'teinvit_pdf_cleanup_unschedule_internal_once', 40 );
 
 add_action( TEINVIT_PDF_CLEANUP_HOOK, 'teinvit_pdf_cleanup_run_nightly' );
