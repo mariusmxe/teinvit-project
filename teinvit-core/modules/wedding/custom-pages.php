@@ -2065,11 +2065,3 @@ add_action( 'rest_api_init', function() {
         },
     ] );
 } );
-
-add_action( 'init', function() {
-    if ( ! wp_next_scheduled( 'teinvit_cleanup_cron' ) ) {
-        wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'teinvit_cleanup_cron' );
-    }
-} );
-
-add_action( 'teinvit_cleanup_cron', 'teinvit_cleanup_expired_invitations' );

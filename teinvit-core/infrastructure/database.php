@@ -306,22 +306,16 @@ function teinvit_default_rsvp_config() {
     ];
 }
 
-function teinvit_cleanup_expired_invitations() {
-    global $wpdb;
-    $t = teinvit_db_tables();
-
-    $days = (int) apply_filters( 'teinvit_cleanup_days', 45 );
-    $threshold = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
-
-    $tokens = $wpdb->get_col( $wpdb->prepare( "SELECT token FROM {$t['invitations']} WHERE (event_date IS NOT NULL AND event_date < %s) OR (last_activity_at IS NOT NULL AND last_activity_at < %s)", $threshold, $threshold ) );
-    if ( empty( $tokens ) ) {
+function teinvit_cleanup_legacy_cron_migration_once() {
+    $flag_option = 'teinvit_cleanup_cron_legacy_removed_v1';
+    if ( get_option( $flag_option, '0' ) === '1' ) {
         return;
     }
 
-    foreach ( $tokens as $token ) {
-        $wpdb->delete( $t['gifts'], [ 'token' => $token ] );
-        $wpdb->delete( $t['rsvp'], [ 'token' => $token ] );
-        $wpdb->delete( $t['versions'], [ 'token' => $token ] );
-        $wpdb->delete( $t['invitations'], [ 'token' => $token ] );
+    if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+        wp_clear_scheduled_hook( 'teinvit_cleanup_cron' );
     }
+
+    update_option( $flag_option, '1', false );
 }
+add_action( 'plugins_loaded', 'teinvit_cleanup_legacy_cron_migration_once', 30 );
