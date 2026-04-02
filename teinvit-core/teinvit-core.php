@@ -26,6 +26,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/tokens.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/routing.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/pdf/generate.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/custom-emails.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/wp-users-sync.php';
 
 require_once TEINVIT_CORE_PATH . 'modules/wedding/module.php';
 

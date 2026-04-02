@@ -443,6 +443,28 @@ function teinvit_email_add_suppression( $email, $scope = 'marketing', $reason = 
             'created_at'     => current_time( 'mysql' ),
         ]
     );
+
+    do_action( 'teinvit_email_suppression_added', $email, sanitize_key( $scope ), sanitize_key( $reason ), $source_send_id ? sanitize_text_field( $source_send_id ) : '' );
+}
+
+function teinvit_email_remove_suppression( $email, $scope = 'marketing', $reason = 'manual_remove' ) {
+    global $wpdb;
+
+    $email = sanitize_email( $email );
+    if ( $email === '' ) {
+        return false;
+    }
+
+    $scope  = sanitize_key( $scope );
+    $tables = teinvit_email_tables();
+    $deleted = (int) $wpdb->delete( $tables['suppression'], [ 'email' => $email, 'scope' => $scope ] );
+
+    if ( $deleted > 0 ) {
+        do_action( 'teinvit_email_suppression_removed', $email, $scope, sanitize_key( $reason ) );
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -2413,7 +2435,7 @@ function teinvit_emails_page_suppression() {
     if ( isset( $_POST['teinvit_unsuppress_email'] ) && check_admin_referer( 'teinvit_unsuppress' ) ) {
         $email = sanitize_email( (string) ( $_POST['email'] ?? '' ) );
         if ( $email !== '' ) {
-            $wpdb->delete( $tables['suppression'], [ 'email' => $email, 'scope' => 'marketing' ] );
+            teinvit_email_remove_suppression( $email, 'marketing', 'admin_revoke' );
         }
     }
 

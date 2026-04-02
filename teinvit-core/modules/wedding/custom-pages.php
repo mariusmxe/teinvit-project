@@ -2056,6 +2056,7 @@ add_action( 'rest_api_init', function() {
                 'has_allergies' => $has_allergies,
                 'allergy_details' => $allergy_details,
                 'message_to_couple' => sanitize_textarea_field( $p['message_to_couple'] ?? '' ),
+                'gdpr_accepted' => 1,
                 'marketing_consent' => empty( $p['marketing_consent'] ) ? 0 : 1,
             ];
 

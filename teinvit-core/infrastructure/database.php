@@ -11,6 +11,7 @@ function teinvit_db_tables() {
         'versions'    => $wpdb->prefix . 'teinvit_versions',
         'rsvp'        => $wpdb->prefix . 'teinvit_rsvp',
         'gifts'       => $wpdb->prefix . 'teinvit_gifts',
+        'consent_journal' => $wpdb->prefix . 'teinvit_consent_journal',
     ];
 }
 
@@ -100,6 +101,25 @@ function teinvit_install_modular_tables() {
         PRIMARY KEY (id),
         UNIQUE KEY token_gift_id (token, gift_id),
         KEY token_status (token, status)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['consent_journal']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        email varchar(191) NOT NULL,
+        email_hash char(64) NOT NULL,
+        phone varchar(32) NOT NULL DEFAULT '',
+        token varchar(191) NOT NULL DEFAULT '',
+        source varchar(100) NOT NULL DEFAULT '',
+        action varchar(40) NOT NULL,
+        status varchar(40) NOT NULL DEFAULT '',
+        user_id bigint(20) unsigned NULL,
+        context longtext NULL,
+        created_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        KEY email_hash (email_hash),
+        KEY created_at (created_at),
+        KEY token (token),
+        KEY action_created (action, created_at)
     ) $charset;" );
     teinvit_ensure_versions_pdf_columns();
     teinvit_ensure_rsvp_email_column();
