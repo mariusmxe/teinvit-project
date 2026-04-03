@@ -11,6 +11,10 @@ function teinvit_db_tables() {
         'versions'    => $wpdb->prefix . 'teinvit_versions',
         'rsvp'        => $wpdb->prefix . 'teinvit_rsvp',
         'gifts'       => $wpdb->prefix . 'teinvit_gifts',
+        'marketing_contacts' => $wpdb->prefix . 'teinvit_marketing_contacts',
+        'consent_journal' => $wpdb->prefix . 'teinvit_consent_journal',
+        'integrations' => $wpdb->prefix . 'teinvit_integrations',
+        'api_keys' => $wpdb->prefix . 'teinvit_api_keys',
     ];
 }
 
@@ -101,11 +105,110 @@ function teinvit_install_modular_tables() {
         UNIQUE KEY token_gift_id (token, gift_id),
         KEY token_status (token, status)
     ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['consent_journal']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        email varchar(191) NOT NULL,
+        email_hash char(64) NOT NULL,
+        phone varchar(32) NOT NULL DEFAULT '',
+        token varchar(191) NOT NULL DEFAULT '',
+        source varchar(100) NOT NULL DEFAULT '',
+        action varchar(40) NOT NULL,
+        status varchar(40) NOT NULL DEFAULT '',
+        user_id bigint(20) unsigned NULL,
+        context longtext NULL,
+        created_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        KEY email_hash (email_hash),
+        KEY created_at (created_at),
+        KEY token (token),
+        KEY action_created (action, created_at)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['marketing_contacts']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        email varchar(191) NOT NULL,
+        email_hash char(64) NOT NULL,
+        first_name varchar(191) NOT NULL DEFAULT '',
+        last_name varchar(191) NOT NULL DEFAULT '',
+        phone varchar(32) NOT NULL DEFAULT '',
+        gdpr_accepted tinyint(1) NOT NULL DEFAULT 0,
+        marketing_consent tinyint(1) NOT NULL DEFAULT 0,
+        suppression_active tinyint(1) NOT NULL DEFAULT 0,
+        subscription_status varchar(40) NOT NULL DEFAULT 'consent_incomplete',
+        source_token varchar(191) NOT NULL DEFAULT '',
+        source_event varchar(100) NOT NULL DEFAULT '',
+        last_subscribed_at datetime NULL,
+        last_unsubscribed_at datetime NULL,
+        last_resubscribed_at datetime NULL,
+        last_consent_updated_at datetime NULL,
+        last_newsman_sync_at datetime NULL,
+        last_newsman_sync_status varchar(20) NOT NULL DEFAULT 'none',
+        last_newsman_error text NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY email_unique (email),
+        KEY email_hash (email_hash),
+        KEY subscription_status (subscription_status),
+        KEY updated_at (updated_at)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['integrations']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        provider_key varchar(64) NOT NULL,
+        enabled tinyint(1) NOT NULL DEFAULT 0,
+        config longtext NULL,
+        last_status varchar(20) NOT NULL DEFAULT 'never',
+        last_error text NULL,
+        last_tested_at datetime NULL,
+        updated_at datetime NOT NULL,
+        created_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY provider_key (provider_key)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['api_keys']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        name varchar(191) NOT NULL,
+        key_prefix varchar(20) NOT NULL,
+        key_hash char(64) NOT NULL,
+        scopes text NULL,
+        status varchar(20) NOT NULL DEFAULT 'active',
+        notes text NULL,
+        last_used_at datetime NULL,
+        revoked_at datetime NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY key_hash (key_hash),
+        KEY status (status),
+        KEY created_at (created_at)
+    ) $charset;" );
     teinvit_ensure_versions_pdf_columns();
     teinvit_ensure_rsvp_email_column();
     teinvit_ensure_rsvp_marketing_column();
     teinvit_ensure_rsvp_vegetarian_menus_column();
     teinvit_ensure_gifts_publish_columns();
+    teinvit_ensure_marketing_contacts_name_columns();
+}
+
+function teinvit_ensure_marketing_contacts_name_columns() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['marketing_contacts'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'first_name', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN first_name varchar(191) NOT NULL DEFAULT '' AFTER email_hash" );
+    }
+    if ( ! in_array( 'last_name', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN last_name varchar(191) NOT NULL DEFAULT '' AFTER first_name" );
+    }
 }
 
 function teinvit_ensure_rsvp_email_column() {
