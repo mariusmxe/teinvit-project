@@ -10,6 +10,7 @@ function teinvit_newsman_normalize_config( array $config ) {
         'user_id'      => sanitize_text_field( (string) ( $config['user_id'] ?? '' ) ),
         'api_key'      => sanitize_text_field( (string) ( $config['api_key'] ?? '' ) ),
         'list_id'      => sanitize_text_field( (string) ( $config['list_id'] ?? '' ) ),
+        'segment_id'   => sanitize_text_field( (string) ( $config['segment_id'] ?? '' ) ),
         'double_optin' => ! empty( $config['double_optin'] ) ? 1 : 0,
         'timeout'      => max( 5, (int) ( $config['timeout'] ?? 20 ) ),
     ];
@@ -102,7 +103,19 @@ function teinvit_newsman_subscribe_contact( array $config, $email, array $args =
     ];
 
     $endpoint = ! empty( $config['double_optin'] ) ? 'subscriber.initSubscribe' : 'subscriber.saveSubscribe';
-    return teinvit_newsman_request( $config, $endpoint, $payload );
+    $subscribe_result = teinvit_newsman_request( $config, $endpoint, $payload );
+    if ( is_wp_error( $subscribe_result ) ) {
+        return $subscribe_result;
+    }
+
+    if ( ! empty( $config['segment_id'] ) ) {
+        $segment_result = teinvit_newsman_attach_segment( $config, $subscribe_result );
+        if ( is_wp_error( $segment_result ) ) {
+            return $segment_result;
+        }
+    }
+
+    return $subscribe_result;
 }
 
 function teinvit_newsman_unsubscribe_contact( array $config, $email ) {
@@ -145,5 +158,63 @@ function teinvit_newsman_provider_test_connection( array $state, array $payload 
         $config,
         'list.all',
         []
+    );
+}
+
+function teinvit_newsman_provider_get_segments( array $state, array $payload = [] ) {
+    $config = teinvit_newsman_normalize_config( (array) ( $state['config'] ?? [] ) );
+    if ( ! teinvit_newsman_is_configured( $config ) ) {
+        return new WP_Error( 'newsman_not_configured', 'Missing Newsman credentials.' );
+    }
+
+    if ( empty( $config['list_id'] ) ) {
+        return new WP_Error( 'newsman_missing_list', 'Newsman list ID is required before loading segments.' );
+    }
+
+    return teinvit_newsman_request(
+        $config,
+        'list.allSegments',
+        [ 'list_id' => $config['list_id'] ]
+    );
+}
+
+function teinvit_newsman_extract_subscriber_id( $subscribe_result ) {
+    if ( is_numeric( $subscribe_result ) ) {
+        return (string) $subscribe_result;
+    }
+
+    if ( is_array( $subscribe_result ) ) {
+        $keys = [ 'subscriber_id', 'subscriberId', 'id' ];
+        foreach ( $keys as $key ) {
+            if ( isset( $subscribe_result[ $key ] ) && (string) $subscribe_result[ $key ] !== '' ) {
+                return (string) $subscribe_result[ $key ];
+            }
+        }
+        if ( isset( $subscribe_result['data'] ) && is_array( $subscribe_result['data'] ) ) {
+            foreach ( $keys as $key ) {
+                if ( isset( $subscribe_result['data'][ $key ] ) && (string) $subscribe_result['data'][ $key ] !== '' ) {
+                    return (string) $subscribe_result['data'][ $key ];
+                }
+            }
+        }
+    }
+
+    return '';
+}
+
+function teinvit_newsman_attach_segment( array $config, $subscribe_result ) {
+    $subscriber_id = teinvit_newsman_extract_subscriber_id( $subscribe_result );
+    if ( $subscriber_id === '' ) {
+        return new WP_Error( 'newsman_missing_subscriber_id', 'Could not determine Newsman subscriber id for segment mapping.' );
+    }
+
+    return teinvit_newsman_request(
+        $config,
+        'segment.addSubscriber',
+        [
+            'list_id' => $config['list_id'],
+            'segment_id' => sanitize_text_field( (string) $config['segment_id'] ),
+            'subscriber_id' => $subscriber_id,
+        ]
     );
 }

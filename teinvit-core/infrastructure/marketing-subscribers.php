@@ -58,6 +58,8 @@ function teinvit_marketing_upsert_contact( $email, array $changes ) {
     $row = [
         'email'                  => $email,
         'email_hash'             => hash( 'sha256', strtolower( $email ) ),
+        'first_name'             => (string) ( $existing['first_name'] ?? '' ),
+        'last_name'              => (string) ( $existing['last_name'] ?? '' ),
         'phone'                  => (string) ( $existing['phone'] ?? '' ),
         'gdpr_accepted'          => (int) ( $existing['gdpr_accepted'] ?? 0 ),
         'marketing_consent'      => (int) ( $existing['marketing_consent'] ?? 0 ),
@@ -83,6 +85,12 @@ function teinvit_marketing_upsert_contact( $email, array $changes ) {
 
         if ( $key === 'phone' ) {
             $value = teinvit_marketing_normalize_phone( (string) $value );
+            if ( $value === '' ) {
+                continue;
+            }
+        }
+        if ( in_array( $key, [ 'first_name', 'last_name' ], true ) ) {
+            $value = sanitize_text_field( (string) $value );
             if ( $value === '' ) {
                 continue;
             }
@@ -194,6 +202,8 @@ add_action(
             $email,
             [
                 'phone'                   => $phone,
+                'first_name'              => sanitize_text_field( (string) ( $payload['guest_first_name'] ?? '' ) ),
+                'last_name'               => sanitize_text_field( (string) ( $payload['guest_last_name'] ?? '' ) ),
                 'gdpr_accepted'           => $gdpr ? 1 : 0,
                 'marketing_consent'       => $marketing ? 1 : 0,
                 'source_token'            => $token,

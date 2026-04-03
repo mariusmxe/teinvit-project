@@ -129,6 +129,8 @@ function teinvit_install_modular_tables() {
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         email varchar(191) NOT NULL,
         email_hash char(64) NOT NULL,
+        first_name varchar(191) NOT NULL DEFAULT '',
+        last_name varchar(191) NOT NULL DEFAULT '',
         phone varchar(32) NOT NULL DEFAULT '',
         gdpr_accepted tinyint(1) NOT NULL DEFAULT 0,
         marketing_consent tinyint(1) NOT NULL DEFAULT 0,
@@ -188,6 +190,25 @@ function teinvit_install_modular_tables() {
     teinvit_ensure_rsvp_marketing_column();
     teinvit_ensure_rsvp_vegetarian_menus_column();
     teinvit_ensure_gifts_publish_columns();
+    teinvit_ensure_marketing_contacts_name_columns();
+}
+
+function teinvit_ensure_marketing_contacts_name_columns() {
+    global $wpdb;
+    $t = teinvit_db_tables();
+    $table = $t['marketing_contacts'];
+
+    $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! is_array( $cols ) ) {
+        return;
+    }
+
+    if ( ! in_array( 'first_name', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN first_name varchar(191) NOT NULL DEFAULT '' AFTER email_hash" );
+    }
+    if ( ! in_array( 'last_name', $cols, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD COLUMN last_name varchar(191) NOT NULL DEFAULT '' AFTER first_name" );
+    }
 }
 
 function teinvit_ensure_rsvp_email_column() {

@@ -31,6 +31,7 @@ function teinvit_admin_render_integrations_page() {
     }
 
     $provider_key = isset( $_GET['provider'] ) ? sanitize_key( (string) wp_unslash( $_GET['provider'] ) ) : 'newsman';
+    $providers = teinvit_integrations_registry();
     $provider = teinvit_integrations_get_provider( $provider_key );
     if ( ! is_array( $provider ) ) {
         $provider_key = 'newsman';
@@ -39,6 +40,7 @@ function teinvit_admin_render_integrations_page() {
 
     $state = teinvit_integrations_get_state( $provider_key );
     $notice = '';
+    $segments = [];
 
     if ( isset( $_POST['teinvit_integrations_save'] ) && check_admin_referer( 'teinvit_integrations_save' ) ) {
         $config = (array) ( $state['config'] ?? [] );
@@ -46,6 +48,7 @@ function teinvit_admin_render_integrations_page() {
         $config['api_version'] = sanitize_text_field( (string) ( $_POST['api_version'] ?? '' ) );
         $config['user_id'] = sanitize_text_field( (string) ( $_POST['user_id'] ?? '' ) );
         $config['list_id'] = sanitize_text_field( (string) ( $_POST['list_id'] ?? '' ) );
+        $config['segment_id'] = sanitize_text_field( (string) ( $_POST['segment_id'] ?? '' ) );
         $config['timeout'] = max( 5, (int) ( $_POST['timeout'] ?? 20 ) );
         $config['double_optin'] = ! empty( $_POST['double_optin'] ) ? 1 : 0;
 
@@ -75,10 +78,46 @@ function teinvit_admin_render_integrations_page() {
         $notice = is_wp_error( $result ) ? 'Test connection failed: ' . $result->get_error_message() : 'Test connection OK.';
     }
 
+    if ( isset( $_POST['teinvit_integrations_load_segments'] ) && check_admin_referer( 'teinvit_integrations_load_segments' ) ) {
+        $result = teinvit_integrations_run_action( $provider_key, 'get_segments', [] );
+        if ( is_wp_error( $result ) ) {
+            $notice = 'Load segments failed: ' . $result->get_error_message();
+        } else {
+            $segments = is_array( $result ) ? $result : [];
+            update_option( 'teinvit_newsman_segments_cache', $segments, false );
+            $notice = 'Segments loaded from Newsman.';
+        }
+    }
+
+    if ( empty( $segments ) ) {
+        $segments = get_option( 'teinvit_newsman_segments_cache', [] );
+        if ( ! is_array( $segments ) ) {
+            $segments = [];
+        }
+    }
+
     echo '<div class="wrap"><h1>TeInvit Integrations</h1>';
     if ( $notice !== '' ) {
         echo '<div class="notice notice-info"><p>' . esc_html( $notice ) . '</p></div>';
     }
+
+    echo '<p><strong>Provider UI mode:</strong> ';
+    if ( count( $providers ) <= 1 ) {
+        echo 'Only Newsman is currently registered in UI. Foundation remains extensible for more providers.';
+    } else {
+        echo 'Multiple providers registered.';
+    }
+    echo '</p>';
+
+    echo '<form method="get" style="margin-bottom:12px;">';
+    echo '<input type="hidden" name="page" value="teinvit-integrations">';
+    echo '<label>Provider: <select name="provider">';
+    foreach ( $providers as $key => $info ) {
+        echo '<option value="' . esc_attr( $key ) . '" ' . selected( $provider_key, $key, false ) . '>' . esc_html( (string) ( $info['label'] ?? $key ) ) . '</option>';
+    }
+    echo '</select></label> ';
+    echo '<button class="button">Load provider</button>';
+    echo '</form>';
 
     echo '<form method="post">';
     wp_nonce_field( 'teinvit_integrations_save' );
@@ -90,6 +129,20 @@ function teinvit_admin_render_integrations_page() {
     echo '<tr><th>User ID</th><td><input type="text" class="regular-text" name="user_id" value="' . esc_attr( (string) ( $state['config']['user_id'] ?? '' ) ) . '"></td></tr>';
     echo '<tr><th>API Key</th><td><input type="password" class="regular-text" name="api_key" value="" placeholder="•••••• (leave empty to keep current)"></td></tr>';
     echo '<tr><th>List ID</th><td><input type="text" class="regular-text" name="list_id" value="' . esc_attr( (string) ( $state['config']['list_id'] ?? '' ) ) . '"></td></tr>';
+    echo '<tr><th>Segment ID</th><td><input type="text" class="regular-text" name="segment_id" value="' . esc_attr( (string) ( $state['config']['segment_id'] ?? '' ) ) . '" placeholder="e.g. Invitati segment id">';
+    if ( ! empty( $segments ) ) {
+        echo '<p><select onchange="if(this.value){document.getElementsByName(\'segment_id\')[0].value=this.value;}"><option value=\"\">-- cached segments --</option>';
+        foreach ( $segments as $segment ) {
+            $sid = (string) ( $segment['segment_id'] ?? '' );
+            if ( $sid === '' ) {
+                continue;
+            }
+            $sname = (string) ( $segment['segment_name'] ?? $sid );
+            echo '<option value="' . esc_attr( $sid ) . '">' . esc_html( $sname . ' [' . $sid . ']' ) . '</option>';
+        }
+        echo '</select></p>';
+    }
+    echo '</td></tr>';
     echo '<tr><th>Timeout</th><td><input type="number" min="5" name="timeout" value="' . esc_attr( (string) ( $state['config']['timeout'] ?? 20 ) ) . '"></td></tr>';
     echo '<tr><th>Double opt-in</th><td><label><input type="checkbox" name="double_optin" value="1" ' . checked( ! empty( $state['config']['double_optin'] ), true, false ) . '> Use init subscribe endpoint</label></td></tr>';
     echo '<tr><th>Last status</th><td>' . esc_html( (string) ( $state['last_status'] ?? 'never' ) ) . '<br><small>' . esc_html( (string) ( $state['last_error'] ?? '' ) ) . '</small></td></tr>';
@@ -101,6 +154,9 @@ function teinvit_admin_render_integrations_page() {
     echo '<form method="post" style="margin-top:10px;">';
     wp_nonce_field( 'teinvit_integrations_test' );
     submit_button( 'Test connection', 'secondary', 'teinvit_integrations_test', false );
+    echo ' ';
+    wp_nonce_field( 'teinvit_integrations_load_segments' );
+    submit_button( 'Load segments', 'secondary', 'teinvit_integrations_load_segments', false );
     echo '</form>';
     echo '</div>';
 }
@@ -232,8 +288,10 @@ function teinvit_contacts_where_sql( &$params = [] ) {
 
     $search = isset( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';
     if ( $search !== '' ) {
-        $where .= ' AND (email LIKE %s OR phone LIKE %s OR source_token LIKE %s) ';
+        $where .= ' AND (email LIKE %s OR phone LIKE %s OR source_token LIKE %s OR first_name LIKE %s OR last_name LIKE %s) ';
         $like = '%' . $search . '%';
+        $params[] = $like;
+        $params[] = $like;
         $params[] = $like;
         $params[] = $like;
         $params[] = $like;
@@ -365,7 +423,7 @@ function teinvit_admin_render_contacts_page() {
     echo '</form>';
 
     echo '<table class="widefat striped"><thead><tr>';
-    $cols = [ 'email', 'phone', 'gdpr_accepted', 'marketing_consent', 'suppression_active', 'subscription_status', 'source_token', 'source_event', 'last_subscribed_at', 'last_unsubscribed_at', 'last_resubscribed_at', 'last_consent_updated_at', 'last_newsman_sync_status', 'last_newsman_error', 'created_at', 'updated_at' ];
+    $cols = [ 'first_name', 'last_name', 'email', 'phone', 'gdpr_accepted', 'marketing_consent', 'suppression_active', 'subscription_status', 'source_token', 'source_event', 'last_subscribed_at', 'last_unsubscribed_at', 'last_resubscribed_at', 'last_consent_updated_at', 'last_newsman_sync_status', 'last_newsman_error', 'created_at', 'updated_at' ];
     foreach ( $cols as $col ) {
         echo '<th>' . esc_html( $col ) . '</th>';
     }
@@ -415,27 +473,36 @@ function teinvit_admin_render_reports_page() {
     $token = isset( $_GET['token'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['token'] ) ) : '';
 
     $journal_where = ' WHERE 1=1 ';
-    $params = [];
+    $journal_params = [];
+    $contacts_where = ' WHERE 1=1 ';
+    $contacts_params = [];
     if ( $from !== '' ) {
         $journal_where .= ' AND created_at >= %s ';
-        $params[] = $from . ' 00:00:00';
+        $journal_params[] = $from . ' 00:00:00';
+        $contacts_where .= ' AND updated_at >= %s ';
+        $contacts_params[] = $from . ' 00:00:00';
     }
     if ( $to !== '' ) {
         $journal_where .= ' AND created_at <= %s ';
-        $params[] = $to . ' 23:59:59';
+        $journal_params[] = $to . ' 23:59:59';
+        $contacts_where .= ' AND updated_at <= %s ';
+        $contacts_params[] = $to . ' 23:59:59';
     }
     if ( $token !== '' ) {
         $journal_where .= ' AND token = %s ';
-        $params[] = $token;
+        $journal_params[] = $token;
+        $contacts_where .= ' AND source_token = %s ';
+        $contacts_params[] = $token;
     }
 
-    $count_row = $wpdb->get_row( "SELECT COUNT(*) total, SUM(subscription_status='subscribed') subscribed, SUM(subscription_status='unsubscribed') unsubscribed, SUM(subscription_status='consent_incomplete') consent_incomplete, SUM(suppression_active=1) suppression_active, SUM(last_newsman_sync_status='error') sync_errors FROM {$t['marketing_contacts']}", ARRAY_A );
+    $count_sql = "SELECT COUNT(*) total, SUM(subscription_status='subscribed') subscribed, SUM(subscription_status='unsubscribed') unsubscribed, SUM(subscription_status='consent_incomplete') consent_incomplete, SUM(suppression_active=1) suppression_active, SUM(last_newsman_sync_status='error') sync_errors FROM {$t['marketing_contacts']} {$contacts_where}";
+    $count_row = $contacts_params ? $wpdb->get_row( $wpdb->prepare( $count_sql, $contacts_params ), ARRAY_A ) : $wpdb->get_row( $count_sql, ARRAY_A );
 
     $action_sql = "SELECT action, COUNT(*) c FROM {$t['consent_journal']} {$journal_where} GROUP BY action ORDER BY c DESC";
-    $actions = $params ? $wpdb->get_results( $wpdb->prepare( $action_sql, $params ), ARRAY_A ) : $wpdb->get_results( $action_sql, ARRAY_A );
+    $actions = $journal_params ? $wpdb->get_results( $wpdb->prepare( $action_sql, $journal_params ), ARRAY_A ) : $wpdb->get_results( $action_sql, ARRAY_A );
 
-    $token_sql = "SELECT source_token, COUNT(*) c FROM {$t['marketing_contacts']} WHERE source_token<>'' GROUP BY source_token ORDER BY c DESC LIMIT 50";
-    $token_rows = $wpdb->get_results( $token_sql, ARRAY_A );
+    $token_sql = "SELECT source_token, COUNT(*) c FROM {$t['marketing_contacts']} {$contacts_where} AND source_token<>'' GROUP BY source_token ORDER BY c DESC LIMIT 50";
+    $token_rows = $contacts_params ? $wpdb->get_results( $wpdb->prepare( $token_sql, $contacts_params ), ARRAY_A ) : $wpdb->get_results( $token_sql, ARRAY_A );
 
     echo '<div class="wrap"><h1>TeInvit Reports</h1>';
     echo '<form method="get"><input type="hidden" name="page" value="teinvit-reports">';

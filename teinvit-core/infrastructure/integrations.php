@@ -14,11 +14,13 @@ function teinvit_integrations_registry() {
                 'user_id' => '',
                 'api_key' => '',
                 'list_id' => '',
+                'segment_id' => '',
                 'double_optin' => 0,
                 'timeout' => 20,
             ],
             'actions' => [
                 'test_connection' => 'teinvit_newsman_provider_test_connection',
+                'get_segments' => 'teinvit_newsman_provider_get_segments',
                 'subscribe' => 'teinvit_newsman_provider_subscribe',
                 'unsubscribe' => 'teinvit_newsman_provider_unsubscribe',
             ],
@@ -126,7 +128,7 @@ function teinvit_integrations_run_action( $provider_key, $action, array $payload
         return new WP_Error( 'provider_action_missing', 'Provider action is not available.' );
     }
 
-    if ( $action !== 'test_connection' && empty( $state['enabled'] ) ) {
+    if ( ! in_array( $action, [ 'test_connection', 'get_segments' ], true ) && empty( $state['enabled'] ) ) {
         return new WP_Error( 'provider_disabled', 'Provider is disabled.' );
     }
 
