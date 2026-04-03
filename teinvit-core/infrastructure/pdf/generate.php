@@ -338,13 +338,16 @@ function teinvit_pdf_cleanup_eligibility( array $invitation, array $versions ) {
     ];
 }
 
-function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames ) {
+function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames = [] ) {
     $payload = [
         'order_id'  => (int) $order_id,
-        'filenames' => array_values( array_unique( array_filter( array_map( static function( $f ) {
-            return sanitize_file_name( (string) $f );
-        }, $filenames ) ) ) ),
     ];
+    $clean_filenames = array_values( array_unique( array_filter( array_map( static function( $f ) {
+        return sanitize_file_name( (string) $f );
+    }, $filenames ) ) ) );
+    if ( ! empty( $clean_filenames ) ) {
+        $payload['filenames'] = $clean_filenames;
+    }
 
     $headers = [ 'Content-Type' => 'application/json' ];
     $secret = teinvit_pdf_cleanup_shared_secret();
@@ -369,6 +372,16 @@ function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames ) {
     $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
     if ( $code < 200 || $code >= 300 || ! is_array( $data ) || ( $data['status'] ?? '' ) !== 'ok' ) {
         return new WP_Error( 'node_delete_failed', 'Node delete failed', [ 'http_code' => $code, 'body' => $data ] );
+    }
+    $deleted_files = array_values( array_filter( array_map( 'sanitize_file_name', (array) ( $data['deleted_files'] ?? [] ) ) ) );
+    $folder_deleted = ! empty( $data['folder_deleted'] );
+    $folder_missing = ! empty( $data['folder_missing'] );
+    if ( ! $folder_missing && empty( $deleted_files ) && ! $folder_deleted ) {
+        return new WP_Error(
+            'node_delete_no_effect',
+            'Node delete finished without deleting any files',
+            [ 'http_code' => $code, 'body' => $data ]
+        );
     }
 
     return $data;
@@ -435,7 +448,6 @@ function teinvit_pdf_cleanup_run_nightly() {
         }
 
         $pdf_version_ids = [];
-        $pdf_filenames = [];
         foreach ( $versions as $version ) {
             $pdf_url = trim( (string) ( $version['pdf_url'] ?? '' ) );
             $status = trim( (string) ( $version['pdf_status'] ?? '' ) );
@@ -446,10 +458,6 @@ function teinvit_pdf_cleanup_run_nightly() {
                 continue;
             }
             $pdf_version_ids[] = (int) ( $version['id'] ?? 0 );
-            $filename = sanitize_file_name( (string) ( $version['pdf_filename'] ?? '' ) );
-            if ( $filename !== '' ) {
-                $pdf_filenames[] = $filename;
-            }
         }
         $pdf_version_ids = array_values( array_filter( array_unique( $pdf_version_ids ) ) );
         if ( empty( $pdf_version_ids ) ) {
@@ -464,7 +472,7 @@ function teinvit_pdf_cleanup_run_nightly() {
             );
         }
 
-        $result = teinvit_pdf_cleanup_node_delete( $order_id, $pdf_filenames );
+        $result = teinvit_pdf_cleanup_node_delete( $order_id );
         $order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
 
         if ( is_wp_error( $result ) ) {
