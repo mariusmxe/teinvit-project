@@ -11,6 +11,7 @@ function teinvit_db_tables() {
         'versions'    => $wpdb->prefix . 'teinvit_versions',
         'rsvp'        => $wpdb->prefix . 'teinvit_rsvp',
         'gifts'       => $wpdb->prefix . 'teinvit_gifts',
+        'marketing_contacts' => $wpdb->prefix . 'teinvit_marketing_contacts',
         'consent_journal' => $wpdb->prefix . 'teinvit_consent_journal',
     ];
 }
@@ -120,6 +121,33 @@ function teinvit_install_modular_tables() {
         KEY created_at (created_at),
         KEY token (token),
         KEY action_created (action, created_at)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['marketing_contacts']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        email varchar(191) NOT NULL,
+        email_hash char(64) NOT NULL,
+        phone varchar(32) NOT NULL DEFAULT '',
+        gdpr_accepted tinyint(1) NOT NULL DEFAULT 0,
+        marketing_consent tinyint(1) NOT NULL DEFAULT 0,
+        suppression_active tinyint(1) NOT NULL DEFAULT 0,
+        subscription_status varchar(40) NOT NULL DEFAULT 'consent_incomplete',
+        source_token varchar(191) NOT NULL DEFAULT '',
+        source_event varchar(100) NOT NULL DEFAULT '',
+        last_subscribed_at datetime NULL,
+        last_unsubscribed_at datetime NULL,
+        last_resubscribed_at datetime NULL,
+        last_consent_updated_at datetime NULL,
+        last_newsman_sync_at datetime NULL,
+        last_newsman_sync_status varchar(20) NOT NULL DEFAULT 'none',
+        last_newsman_error text NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY email_unique (email),
+        KEY email_hash (email_hash),
+        KEY subscription_status (subscription_status),
+        KEY updated_at (updated_at)
     ) $charset;" );
     teinvit_ensure_versions_pdf_columns();
     teinvit_ensure_rsvp_email_column();
