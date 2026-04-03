@@ -42,7 +42,8 @@ function teinvit_admin_render_integrations_page() {
     $notice = '';
     $segments = [];
 
-    if ( isset( $_POST['teinvit_integrations_save'] ) && check_admin_referer( 'teinvit_integrations_save' ) ) {
+    if ( isset( $_POST['teinvit_integrations_save'] ) && check_admin_referer( 'teinvit_integrations_save', 'teinvit_integrations_save_nonce' ) ) {
+        $old_list_id = (string) ( $state['config']['list_id'] ?? '' );
         $config = (array) ( $state['config'] ?? [] );
         $config['base_url'] = esc_url_raw( (string) ( $_POST['base_url'] ?? '' ) );
         $config['api_version'] = sanitize_text_field( (string) ( $_POST['api_version'] ?? '' ) );
@@ -68,17 +69,34 @@ function teinvit_admin_render_integrations_page() {
             ]
         );
 
+        if ( $old_list_id !== (string) $config['list_id'] ) {
+            update_option( 'teinvit_newsman_segments_cache', [], false );
+            if ( (string) ( $config['segment_id'] ?? '' ) !== '' ) {
+                $config['segment_id'] = '';
+                teinvit_integrations_save_state(
+                    $provider_key,
+                    [
+                        'enabled' => ! empty( $_POST['enabled'] ) ? 1 : 0,
+                        'config' => $config,
+                        'last_status' => $state['last_status'] ?? 'never',
+                        'last_error' => $state['last_error'] ?? '',
+                        'last_tested_at' => $state['last_tested_at'] ?? null,
+                    ]
+                );
+            }
+        }
+
         $state = teinvit_integrations_get_state( $provider_key );
         $notice = 'Integration settings saved.';
     }
 
-    if ( isset( $_POST['teinvit_integrations_test'] ) && check_admin_referer( 'teinvit_integrations_test' ) ) {
+    if ( isset( $_POST['teinvit_integrations_test'] ) && check_admin_referer( 'teinvit_integrations_test', 'teinvit_integrations_test_nonce' ) ) {
         $result = teinvit_integrations_run_action( $provider_key, 'test_connection', [] );
         $state = teinvit_integrations_get_state( $provider_key );
         $notice = is_wp_error( $result ) ? 'Test connection failed: ' . $result->get_error_message() : 'Test connection OK.';
     }
 
-    if ( isset( $_POST['teinvit_integrations_load_segments'] ) && check_admin_referer( 'teinvit_integrations_load_segments' ) ) {
+    if ( isset( $_POST['teinvit_integrations_load_segments'] ) && check_admin_referer( 'teinvit_integrations_load_segments', 'teinvit_integrations_load_segments_nonce' ) ) {
         $result = teinvit_integrations_run_action( $provider_key, 'get_segments', [] );
         if ( is_wp_error( $result ) ) {
             $notice = 'Load segments failed: ' . $result->get_error_message();
@@ -120,7 +138,7 @@ function teinvit_admin_render_integrations_page() {
     echo '</form>';
 
     echo '<form method="post">';
-    wp_nonce_field( 'teinvit_integrations_save' );
+    wp_nonce_field( 'teinvit_integrations_save', 'teinvit_integrations_save_nonce' );
     echo '<table class="form-table"><tbody>';
     echo '<tr><th>Provider</th><td><strong>' . esc_html( $provider['label'] ?? $provider_key ) . '</strong><p class="description">' . esc_html( (string) ( $provider['description'] ?? '' ) ) . '</p></td></tr>';
     echo '<tr><th>Enabled</th><td><label><input type="checkbox" name="enabled" value="1" ' . checked( ! empty( $state['enabled'] ), true, false ) . '> Enable provider</label></td></tr>';
@@ -129,18 +147,21 @@ function teinvit_admin_render_integrations_page() {
     echo '<tr><th>User ID</th><td><input type="text" class="regular-text" name="user_id" value="' . esc_attr( (string) ( $state['config']['user_id'] ?? '' ) ) . '"></td></tr>';
     echo '<tr><th>API Key</th><td><input type="password" class="regular-text" name="api_key" value="" placeholder="•••••• (leave empty to keep current)"></td></tr>';
     echo '<tr><th>List ID</th><td><input type="text" class="regular-text" name="list_id" value="' . esc_attr( (string) ( $state['config']['list_id'] ?? '' ) ) . '"></td></tr>';
-    echo '<tr><th>Segment ID</th><td><input type="text" class="regular-text" name="segment_id" value="' . esc_attr( (string) ( $state['config']['segment_id'] ?? '' ) ) . '" placeholder="e.g. Invitati segment id">';
+    echo '<tr><th>Segment</th><td>';
+    echo '<select name="segment_id"><option value="">-- no segment --</option>';
     if ( ! empty( $segments ) ) {
-        echo '<p><select onchange="if(this.value){document.getElementsByName(\'segment_id\')[0].value=this.value;}"><option value=\"\">-- cached segments --</option>';
         foreach ( $segments as $segment ) {
             $sid = (string) ( $segment['segment_id'] ?? '' );
             if ( $sid === '' ) {
                 continue;
             }
             $sname = (string) ( $segment['segment_name'] ?? $sid );
-            echo '<option value="' . esc_attr( $sid ) . '">' . esc_html( $sname . ' [' . $sid . ']' ) . '</option>';
+            echo '<option value="' . esc_attr( $sid ) . '" ' . selected( (string) ( $state['config']['segment_id'] ?? '' ), $sid, false ) . '>' . esc_html( $sname . ' [' . $sid . ']' ) . '</option>';
         }
-        echo '</select></p>';
+        echo '</select>';
+        echo '<p class="description">Selectați segmentul din lista curentă. Folosiți "Load segments" după ce schimbați List ID.</p>';
+    } else {
+        echo '</select><p class="description">Nu există segmente în cache. Salvați List ID, apoi apăsați "Load segments".</p>';
     }
     echo '</td></tr>';
     echo '<tr><th>Timeout</th><td><input type="number" min="5" name="timeout" value="' . esc_attr( (string) ( $state['config']['timeout'] ?? 20 ) ) . '"></td></tr>';
@@ -152,10 +173,10 @@ function teinvit_admin_render_integrations_page() {
     echo '</form>';
 
     echo '<form method="post" style="margin-top:10px;">';
-    wp_nonce_field( 'teinvit_integrations_test' );
+    wp_nonce_field( 'teinvit_integrations_test', 'teinvit_integrations_test_nonce' );
     submit_button( 'Test connection', 'secondary', 'teinvit_integrations_test', false );
     echo ' ';
-    wp_nonce_field( 'teinvit_integrations_load_segments' );
+    wp_nonce_field( 'teinvit_integrations_load_segments', 'teinvit_integrations_load_segments_nonce' );
     submit_button( 'Load segments', 'secondary', 'teinvit_integrations_load_segments', false );
     echo '</form>';
     echo '</div>';
@@ -373,6 +394,11 @@ function teinvit_admin_render_contacts_page() {
         return;
     }
 
+    if ( isset( $_POST['teinvit_contacts_backfill_names'] ) && check_admin_referer( 'teinvit_contacts_backfill_names', 'teinvit_contacts_backfill_names_nonce' ) ) {
+        teinvit_marketing_backfill_contact_names_from_rsvp( 500 );
+        echo '<div class="notice notice-success"><p>Backfill nume/prenume executat (max 500 contacte per rulare).</p></div>';
+    }
+
     $params = [];
     $where = teinvit_contacts_where_sql( $params );
 
@@ -409,6 +435,10 @@ function teinvit_admin_render_contacts_page() {
     $rows = $wpdb->get_results( $wpdb->prepare( $data_sql, $prepared_params ), ARRAY_A );
 
     echo '<div class="wrap"><h1>TeInvit Contacts</h1>';
+    echo '<form method="post" style="margin:10px 0;">';
+    wp_nonce_field( 'teinvit_contacts_backfill_names', 'teinvit_contacts_backfill_names_nonce' );
+    submit_button( 'Backfill names from RSVP history', 'secondary', 'teinvit_contacts_backfill_names', false );
+    echo '</form>';
     echo '<form method="get"><input type="hidden" name="page" value="teinvit-contacts">';
     echo '<p><input type="search" name="s" value="' . esc_attr( (string) ( $_GET['s'] ?? '' ) ) . '" placeholder="Search email/phone/token"> ';
     echo '<input type="text" name="source_token" value="' . esc_attr( (string) ( $_GET['source_token'] ?? '' ) ) . '" placeholder="Token"> ';

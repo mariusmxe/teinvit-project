@@ -109,6 +109,63 @@ function teinvit_marketing_upsert_contact( $email, array $changes ) {
     }
 }
 
+function teinvit_marketing_backfill_contact_names_from_rsvp( $limit = 500 ) {
+    global $wpdb;
+
+    $limit = max( 1, (int) $limit );
+    $tables = teinvit_db_tables();
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT mc.email
+             FROM {$tables['marketing_contacts']} mc
+             WHERE (mc.first_name='' OR mc.last_name='')
+             ORDER BY mc.id DESC
+             LIMIT %d",
+            $limit
+        ),
+        ARRAY_A
+    );
+    if ( ! is_array( $rows ) || empty( $rows ) ) {
+        return 0;
+    }
+
+    $updated = 0;
+    foreach ( $rows as $row ) {
+        $email = sanitize_email( (string) ( $row['email'] ?? '' ) );
+        if ( $email === '' ) {
+            continue;
+        }
+
+        $rsvp = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT guest_first_name, guest_last_name
+                 FROM {$tables['rsvp']}
+                 WHERE guest_email=%s
+                 AND (guest_first_name<>'' OR guest_last_name<>'')
+                 ORDER BY id DESC
+                 LIMIT 1",
+                $email
+            ),
+            ARRAY_A
+        );
+        if ( ! is_array( $rsvp ) ) {
+            continue;
+        }
+
+        teinvit_marketing_upsert_contact(
+            $email,
+            [
+                'first_name' => sanitize_text_field( (string) ( $rsvp['guest_first_name'] ?? '' ) ),
+                'last_name'  => sanitize_text_field( (string) ( $rsvp['guest_last_name'] ?? '' ) ),
+            ]
+        );
+        $updated++;
+    }
+
+    return $updated;
+}
+
 function teinvit_marketing_log_event( array $event ) {
     global $wpdb;
 
