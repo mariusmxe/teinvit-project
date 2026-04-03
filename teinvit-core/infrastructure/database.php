@@ -13,6 +13,8 @@ function teinvit_db_tables() {
         'gifts'       => $wpdb->prefix . 'teinvit_gifts',
         'marketing_contacts' => $wpdb->prefix . 'teinvit_marketing_contacts',
         'consent_journal' => $wpdb->prefix . 'teinvit_consent_journal',
+        'integrations' => $wpdb->prefix . 'teinvit_integrations',
+        'api_keys' => $wpdb->prefix . 'teinvit_api_keys',
     ];
 }
 
@@ -148,6 +150,38 @@ function teinvit_install_modular_tables() {
         KEY email_hash (email_hash),
         KEY subscription_status (subscription_status),
         KEY updated_at (updated_at)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['integrations']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        provider_key varchar(64) NOT NULL,
+        enabled tinyint(1) NOT NULL DEFAULT 0,
+        config longtext NULL,
+        last_status varchar(20) NOT NULL DEFAULT 'never',
+        last_error text NULL,
+        last_tested_at datetime NULL,
+        updated_at datetime NOT NULL,
+        created_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY provider_key (provider_key)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$t['api_keys']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        name varchar(191) NOT NULL,
+        key_prefix varchar(20) NOT NULL,
+        key_hash char(64) NOT NULL,
+        scopes text NULL,
+        status varchar(20) NOT NULL DEFAULT 'active',
+        notes text NULL,
+        last_used_at datetime NULL,
+        revoked_at datetime NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY key_hash (key_hash),
+        KEY status (status),
+        KEY created_at (created_at)
     ) $charset;" );
     teinvit_ensure_versions_pdf_columns();
     teinvit_ensure_rsvp_email_column();

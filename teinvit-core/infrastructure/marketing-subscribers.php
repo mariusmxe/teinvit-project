@@ -128,7 +128,16 @@ function teinvit_marketing_log_event( array $event ) {
 }
 
 function teinvit_marketing_sync_newsman_subscribe( $email, array $args = [] ) {
-    $result = teinvit_newsman_subscribe_contact( $email, $args );
+    $result = teinvit_integrations_run_action(
+        'newsman',
+        'subscribe',
+        array_merge(
+            $args,
+            [
+                'email' => sanitize_email( $email ),
+            ]
+        )
+    );
     $ok = ! is_wp_error( $result );
 
     teinvit_marketing_upsert_contact(
@@ -144,7 +153,13 @@ function teinvit_marketing_sync_newsman_subscribe( $email, array $args = [] ) {
 }
 
 function teinvit_marketing_sync_newsman_unsubscribe( $email ) {
-    $result = teinvit_newsman_unsubscribe_contact( $email );
+    $result = teinvit_integrations_run_action(
+        'newsman',
+        'unsubscribe',
+        [
+            'email' => sanitize_email( $email ),
+        ]
+    );
     $ok = ! is_wp_error( $result );
 
     teinvit_marketing_upsert_contact(
