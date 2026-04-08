@@ -216,6 +216,17 @@ app.post('/api/delete', async (req, res) => {
             });
         }
 
+        if (!folderMissing && deletedFiles.length === 0 && !folderDeleted) {
+            return res.status(409).json({
+                status: 'error',
+                code: 'NOTHING_DELETED',
+                order_id: parsedOrderId,
+                deleted_files: [],
+                folder_deleted: false,
+                folder_missing: false
+            });
+        }
+
         return res.json({
             status: 'ok',
             order_id: parsedOrderId,
