@@ -453,17 +453,51 @@ function teinvit_touch_invitation_activity( $token ) {
 
 function teinvit_seed_invitation_if_missing( $token, $order_id ) {
     global $wpdb;
-    $existing = teinvit_get_invitation( $token );
+
+    $module_key = function_exists( 'teinvit_resolve_token_vertical' )
+        ? teinvit_resolve_token_vertical( $token )
+        : 'wedding';
+
+    $module_key = sanitize_key( (string) $module_key );
+    if ( $module_key === '' ) {
+        $module_key = 'wedding';
+    }
+
+    $t = teinvit_db_tables();
+    if ( $module_key !== 'wedding' && function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
+        $candidate = teinvit_storage_tables_for_vertical( $module_key );
+        if ( is_array( $candidate ) && ! empty( $candidate['invitations'] ) && ! empty( $candidate['versions'] ) ) {
+            $t = $candidate;
+        }
+    }
+
+    $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['invitations']} WHERE token = %s", $token ), ARRAY_A );
     if ( $existing ) {
+        $existing['config'] = json_decode( (string) $existing['config'], true );
+        if ( ! is_array( $existing['config'] ) ) {
+            $existing['config'] = [];
+        }
         return $existing;
     }
 
     $order = wc_get_order( (int) $order_id );
+    if ( $module_key === 'wedding' && $order && function_exists( 'teinvit_resolve_vertical_for_order' ) ) {
+        $order_vertical = sanitize_key( (string) teinvit_resolve_vertical_for_order( $order ) );
+        if ( in_array( $order_vertical, [ 'baptism', 'birthday' ], true ) ) {
+            $module_key = $order_vertical;
+            if ( function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
+                $candidate = teinvit_storage_tables_for_vertical( $module_key );
+                if ( is_array( $candidate ) && ! empty( $candidate['invitations'] ) && ! empty( $candidate['versions'] ) ) {
+                    $t = $candidate;
+                }
+            }
+        }
+    }
+
     $invitation = $order ? TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order ) : [];
     $wapf_fields = $order ? TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order ) : [];
     $snapshot_id = 0;
 
-    $t = teinvit_db_tables();
     $wpdb->insert( $t['versions'], [
         'token'      => $token,
         'snapshot'   => wp_json_encode( [
@@ -481,10 +515,6 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         $snapshot_id = (int) $wpdb->insert_id;
     }
 
-    $module_key = function_exists( 'teinvit_resolve_token_vertical' )
-        ? teinvit_resolve_token_vertical( $token )
-        : 'wedding';
-
     $wpdb->insert( $t['invitations'], [
         'token'             => $token,
         'order_id'          => (int) $order_id,
@@ -499,7 +529,17 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         'updated_at'        => current_time( 'mysql' ),
     ] );
 
-    return teinvit_get_invitation( $token );
+    $created = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['invitations']} WHERE token = %s", $token ), ARRAY_A );
+    if ( ! $created ) {
+        return null;
+    }
+
+    $created['config'] = json_decode( (string) $created['config'], true );
+    if ( ! is_array( $created['config'] ) ) {
+        $created['config'] = [];
+    }
+
+    return $created;
 }
 
 function teinvit_default_rsvp_config() {
