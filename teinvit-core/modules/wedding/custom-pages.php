@@ -1926,16 +1926,25 @@ add_action( 'rest_api_init', function() {
                 }
             }
 
-            $defs = teinvit_get_wapf_defs_for_product( $product_id );
-            $built = teinvit_build_invitation_from_wapf_map_canonical( $wapf_map, $defs );
+            $vertical_key = function_exists( 'teinvit_find_catalog_vertical_for_product_id' )
+                ? teinvit_find_catalog_vertical_for_product_id( $product_id )
+                : 'wedding';
+            if ( ! is_string( $vertical_key ) || $vertical_key === '' ) {
+                $vertical_key = 'wedding';
+            }
+
+            $built = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
+                ? teinvit_build_invitation_payload_from_wapf_map( $vertical_key, $wapf_map, $product_id )
+                : [ 'invitation' => [], 'wapf_fields' => $wapf_map ];
 
             return [
                 'ok' => true,
-                'invitation' => $built['invitation'],
-                'wapf_map' => $built['wapf_map'],
+                'vertical' => $vertical_key,
+                'invitation' => isset( $built['invitation'] ) ? $built['invitation'] : [],
+                'wapf_map' => isset( $built['wapf_fields'] ) ? $built['wapf_fields'] : [],
                 'debug' => [
-                    'theme_raw' => $built['theme_raw'],
-                    'theme_resolved' => $built['theme_resolved'],
+                    'theme_raw' => isset( $wapf_map['6967752ab511b'] ) ? (string) $wapf_map['6967752ab511b'] : '',
+                    'theme_resolved' => isset( $built['invitation']['theme'] ) ? (string) $built['invitation']['theme'] : 'editorial',
                 ],
             ];
         },

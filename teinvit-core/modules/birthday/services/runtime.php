@@ -16,14 +16,35 @@ function teinvit_birthday_field_ids() {
     ];
 }
 
-function teinvit_birthday_payload_builder( array $context = [] ) {
-    $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
-    if ( ! $order ) {
-        return [ 'invitation' => [], 'wapf_fields' => [] ];
+function teinvit_birthday_theme_value_map() {
+    return [
+        '58a6u' => 'editorial',
+        'trs1l' => 'romantic',
+        'pu7cd' => 'modern',
+        'h1ww0' => 'classic',
+    ];
+}
+
+function teinvit_birthday_resolve_theme_key( $raw_theme ) {
+    $raw_theme = trim( (string) $raw_theme );
+    $map = teinvit_birthday_theme_value_map();
+    if ( $raw_theme !== '' && isset( $map[ $raw_theme ] ) ) {
+        return $map[ $raw_theme ];
     }
 
+    return function_exists( 'teinvit_resolve_theme_key_from_wapf_value' )
+        ? teinvit_resolve_theme_key_from_wapf_value( $raw_theme, $map )
+        : 'editorial';
+}
+
+function teinvit_birthday_theme_class( $theme_key ) {
+    return function_exists( 'teinvit_theme_class_from_key' )
+        ? teinvit_theme_class_from_key( $theme_key )
+        : 'theme-editorial-luxury';
+}
+
+function teinvit_birthday_payload_from_wapf_map( array $wapf ) {
     $ids = teinvit_birthday_field_ids();
-    $wapf = teinvit_extract_order_wapf_field_map( $order );
     $val = static function( $key ) use ( $wapf, $ids ) {
         $id = isset( $ids[ $key ] ) ? $ids[ $key ] : '';
         return $id !== '' && isset( $wapf[ $id ] ) ? trim( (string) $wapf[ $id ] ) : '';
@@ -33,12 +54,13 @@ function teinvit_birthday_payload_builder( array $context = [] ) {
     $celebrants = array_slice( $celebrants, 0, 4 );
     $show_party_raw = strtolower( $val( 'show_party' ) );
     $show_party = $show_party_raw !== '' && ! in_array( $show_party_raw, [ '0', 'false', 'off', 'no' ], true );
-
-    $theme = function_exists( 'teinvit_resolve_theme_key_from_wapf_value' ) ? teinvit_resolve_theme_key_from_wapf_value( $val( 'theme' ) ) : 'editorial';
+    $theme = teinvit_birthday_resolve_theme_key( $val( 'theme' ) );
 
     $date = $val( 'party_date' );
     $time = $val( 'party_time' );
     $datetime = $date !== '' ? ( $date . ( $time !== '' ? ' ora ' . $time : '' ) ) : '';
+    $message_raw = $val( 'message' );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
 
     return [
         'invitation' => [
@@ -47,7 +69,7 @@ function teinvit_birthday_payload_builder( array $context = [] ) {
             'model_key' => 'invn01',
             'celebrants' => $celebrants,
             'headline' => implode( ' și ', $celebrants ),
-            'message' => $val( 'message' ),
+            'message' => $message,
             'events' => [
                 'party' => [
                     'enabled' => $show_party,
@@ -60,6 +82,16 @@ function teinvit_birthday_payload_builder( array $context = [] ) {
         ],
         'wapf_fields' => $wapf,
     ];
+}
+
+function teinvit_birthday_payload_builder( array $context = [] ) {
+    $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
+    if ( ! $order ) {
+        return [ 'invitation' => [], 'wapf_fields' => [] ];
+    }
+
+    $wapf = teinvit_extract_order_wapf_field_map( $order );
+    return teinvit_birthday_payload_from_wapf_map( $wapf );
 }
 
 function teinvit_birthday_renderer( array $context = [] ) {
@@ -75,9 +107,12 @@ function teinvit_birthday_renderer( array $context = [] ) {
             $product_id = $item ? (int) $item->get_product_id() : 0;
         }
     }
+    if ( $product_id <= 0 ) {
+        $product_id = isset( $context['product_id'] ) ? (int) $context['product_id'] : 0;
+    }
 
     $background_url = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $product_id ) : '';
-    $theme_class = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $invitation['theme'] ?? 'editorial' ) : 'theme-editorial-luxury';
+    $theme_class = teinvit_birthday_theme_class( $invitation['theme'] ?? 'editorial' );
     $party = isset( $invitation['events']['party'] ) && is_array( $invitation['events']['party'] ) ? $invitation['events']['party'] : [];
 
     $html = '<div class="teinvit-wedding teinvit-birthday"><div class="teinvit-page"><div class="teinvit-container"><div class="teinvit-preview">';
@@ -102,6 +137,9 @@ function teinvit_birthday_renderer( array $context = [] ) {
     }
 
     $html .= '</div></div></div></div></div>';
+    if ( $is_pdf ) {
+        $html .= '<script>window.__TEINVIT_PDF_READY__ = true;</script>';
+    }
 
     static $assets_loaded = false;
     if ( ! $assets_loaded ) {

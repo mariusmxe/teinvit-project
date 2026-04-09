@@ -22,20 +22,46 @@ add_action( 'wp_enqueue_scripts', function () {
         return;
     }
 
-    // Forțăm jQuery (dependință critică pentru preview.js)
+    global $product;
+    if ( ! $product || ! $product instanceof WC_Product ) {
+        return;
+    }
+
+    $vertical = function_exists( 'teinvit_find_catalog_vertical_for_product_id' )
+        ? teinvit_find_catalog_vertical_for_product_id( (int) $product->get_id() )
+        : 'wedding';
+    if ( ! is_string( $vertical ) || $vertical === '' ) {
+        $vertical = 'wedding';
+    }
+
     wp_enqueue_script( 'jquery' );
 
-    // Preview JS – single source of truth
+    if ( $vertical === 'wedding' ) {
+        wp_enqueue_script(
+            'teinvit-preview',
+            TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js',
+            [ 'jquery' ],
+            '1.0',
+            true
+        );
+
+        wp_localize_script( 'teinvit-preview', 'teinvitPreviewConfig', [
+            'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ),
+        ] );
+        return;
+    }
+
     wp_enqueue_script(
-        'teinvit-preview',
-        TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js',
+        'teinvit-preview-vertical',
+        TEINVIT_CORE_URL . 'modules/wedding/preview/preview-vertical.js',
         [ 'jquery' ],
-        '1.0',
+        TEINVIT_CORE_VERSION,
         true
     );
-
-    wp_localize_script( 'teinvit-preview', 'teinvitPreviewConfig', [
+    wp_localize_script( 'teinvit-preview-vertical', 'teinvitVerticalPreviewConfig', [
         'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ),
+        'vertical' => $vertical,
+        'maxChars' => 250,
     ] );
 
 }, 20 );
@@ -60,10 +86,26 @@ add_action( 'woocommerce_after_add_to_cart_form', function () {
      * Pe pagina de produs NU avem order,
      * deci trimitem invitație goală → JS o populează LIVE
      */
-    echo TeInvit_Wedding_Preview_Renderer::render_from_product(
-        $product,
-        [] // ← CRITIC: al doilea argument lipsă înainte
-    );
+    $vertical = function_exists( 'teinvit_find_catalog_vertical_for_product_id' )
+        ? teinvit_find_catalog_vertical_for_product_id( (int) $product->get_id() )
+        : 'wedding';
+    if ( ! is_string( $vertical ) || $vertical === '' ) {
+        $vertical = 'wedding';
+    }
+
+    if ( $vertical === 'wedding' ) {
+        echo TeInvit_Wedding_Preview_Renderer::render_from_product( $product );
+    } else {
+        $runtime = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
+            ? teinvit_build_invitation_payload_from_wapf_map( $vertical, [], (int) $product->get_id() )
+            : [ 'invitation' => [] ];
+        $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
+            ? teinvit_render_invitation_html_for_vertical( $vertical, (array) ( $runtime['invitation'] ?? [] ), null, 'preview', (int) $product->get_id() )
+            : '';
+        echo '<div id="teinvit-vertical-product-preview" data-vertical="' . esc_attr( $vertical ) . '" data-product-id="' . (int) $product->get_id() . '">';
+        echo $preview_html;
+        echo '</div>';
+    }
 
     echo '</div>';
 

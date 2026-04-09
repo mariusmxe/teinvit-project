@@ -27,14 +27,35 @@ function teinvit_baptism_field_ids() {
     ];
 }
 
-function teinvit_baptism_payload_builder( array $context = [] ) {
-    $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
-    if ( ! $order ) {
-        return [ 'invitation' => [], 'wapf_fields' => [] ];
+function teinvit_baptism_theme_value_map() {
+    return [
+        '58a6u' => 'editorial',
+        'trs1l' => 'romantic',
+        'pu7cd' => 'modern',
+        'h1ww0' => 'classic',
+    ];
+}
+
+function teinvit_baptism_resolve_theme_key( $raw_theme ) {
+    $raw_theme = trim( (string) $raw_theme );
+    $map = teinvit_baptism_theme_value_map();
+    if ( $raw_theme !== '' && isset( $map[ $raw_theme ] ) ) {
+        return $map[ $raw_theme ];
     }
 
+    return function_exists( 'teinvit_resolve_theme_key_from_wapf_value' )
+        ? teinvit_resolve_theme_key_from_wapf_value( $raw_theme, $map )
+        : 'editorial';
+}
+
+function teinvit_baptism_theme_class( $theme_key ) {
+    return function_exists( 'teinvit_theme_class_from_key' )
+        ? teinvit_theme_class_from_key( $theme_key )
+        : 'theme-editorial-luxury';
+}
+
+function teinvit_baptism_payload_from_wapf_map( array $wapf ) {
     $ids = teinvit_baptism_field_ids();
-    $wapf = teinvit_extract_order_wapf_field_map( $order );
     $val = static function( $key ) use ( $wapf, $ids ) {
         $id = isset( $ids[ $key ] ) ? $ids[ $key ] : '';
         return $id !== '' && isset( $wapf[ $id ] ) ? trim( (string) $wapf[ $id ] ) : '';
@@ -46,13 +67,7 @@ function teinvit_baptism_payload_builder( array $context = [] ) {
 
     $children = array_values( array_filter( array_map( 'trim', preg_split( '/\s*,\s*/', $val( 'children' ) ) ) ) );
     $children = array_slice( $children, 0, 3 );
-
-    $theme = function_exists( 'teinvit_resolve_theme_key_from_wapf_value' ) ? teinvit_resolve_theme_key_from_wapf_value( $val( 'theme' ) ) : 'editorial';
-
-    $parents_enabled = $has( 'show_parents' );
-    $godparents_enabled = $has( 'show_godparents' );
-    $religious_enabled = $has( 'show_religious' );
-    $party_enabled = $has( 'show_party' );
+    $theme = teinvit_baptism_resolve_theme_key( $val( 'theme' ) );
 
     $format_dt = static function( $date, $time ) {
         $date = trim( (string) $date );
@@ -63,45 +78,56 @@ function teinvit_baptism_payload_builder( array $context = [] ) {
         return $time !== '' ? ( $date . ' ora ' . $time ) : $date;
     };
 
-    $invitation = [
-        'vertical' => 'baptism',
-        'theme' => $theme,
-        'model_key' => 'invn01',
-        'children' => $children,
-        'headline' => implode( ' și ', $children ),
-        'message' => $val( 'message' ),
-        'parents' => [
-            'enabled' => $parents_enabled,
-            'mother' => $val( 'mother' ),
-            'father' => $val( 'father' ),
-        ],
-        'godparents' => [
-            'enabled' => $godparents_enabled,
-            'godmother' => $val( 'godmother' ),
-            'godfather' => $val( 'godfather' ),
-        ],
-        'events' => [
-            'religious' => [
-                'enabled' => $religious_enabled,
-                'title' => 'Ceremonie religioasă',
-                'loc' => $val( 'religious_location' ),
-                'date' => $format_dt( $val( 'religious_date' ), $val( 'religious_time' ) ),
-                'waze' => $val( 'religious_waze' ),
-            ],
-            'party' => [
-                'enabled' => $party_enabled,
-                'title' => 'Petrecere',
-                'loc' => $val( 'party_location' ),
-                'date' => $format_dt( $val( 'party_date' ), $val( 'party_time' ) ),
-                'waze' => $val( 'party_waze' ),
-            ],
-        ],
-    ];
+    $message_raw = $val( 'message' );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
 
     return [
-        'invitation' => $invitation,
+        'invitation' => [
+            'vertical' => 'baptism',
+            'theme' => $theme,
+            'model_key' => 'invn01',
+            'children' => $children,
+            'headline' => implode( ' și ', $children ),
+            'message' => $message,
+            'parents' => [
+                'enabled' => $has( 'show_parents' ),
+                'mother' => $val( 'mother' ),
+                'father' => $val( 'father' ),
+            ],
+            'godparents' => [
+                'enabled' => $has( 'show_godparents' ),
+                'godmother' => $val( 'godmother' ),
+                'godfather' => $val( 'godfather' ),
+            ],
+            'events' => [
+                'religious' => [
+                    'enabled' => $has( 'show_religious' ),
+                    'title' => 'Ceremonie religioasă',
+                    'loc' => $val( 'religious_location' ),
+                    'date' => $format_dt( $val( 'religious_date' ), $val( 'religious_time' ) ),
+                    'waze' => $val( 'religious_waze' ),
+                ],
+                'party' => [
+                    'enabled' => $has( 'show_party' ),
+                    'title' => 'Petrecere',
+                    'loc' => $val( 'party_location' ),
+                    'date' => $format_dt( $val( 'party_date' ), $val( 'party_time' ) ),
+                    'waze' => $val( 'party_waze' ),
+                ],
+            ],
+        ],
         'wapf_fields' => $wapf,
     ];
+}
+
+function teinvit_baptism_payload_builder( array $context = [] ) {
+    $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
+    if ( ! $order ) {
+        return [ 'invitation' => [], 'wapf_fields' => [] ];
+    }
+
+    $wapf = teinvit_extract_order_wapf_field_map( $order );
+    return teinvit_baptism_payload_from_wapf_map( $wapf );
 }
 
 function teinvit_baptism_renderer( array $context = [] ) {
@@ -117,9 +143,12 @@ function teinvit_baptism_renderer( array $context = [] ) {
             $product_id = $item ? (int) $item->get_product_id() : 0;
         }
     }
+    if ( $product_id <= 0 ) {
+        $product_id = isset( $context['product_id'] ) ? (int) $context['product_id'] : 0;
+    }
 
     $background_url = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $product_id ) : '';
-    $theme_class = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $invitation['theme'] ?? 'editorial' ) : 'theme-editorial-luxury';
+    $theme_class = teinvit_baptism_theme_class( $invitation['theme'] ?? 'editorial' );
 
     $events = [];
     if ( ! empty( $invitation['events']['religious']['enabled'] ) ) {
@@ -154,8 +183,6 @@ function teinvit_baptism_renderer( array $context = [] ) {
     $html .= '<div class="inv-message">' . esc_html( (string) ( $invitation['message'] ?? '' ) ) . '</div>';
 
     if ( ! empty( $events ) ) {
-        $top = array_slice( $events, 0, 1 );
-        $bottom = array_slice( $events, 1, 1 );
         $render_event = static function( $event ) {
             $loc = esc_html( (string) ( $event['loc'] ?? '' ) );
             $date = esc_html( (string) ( $event['date'] ?? '' ) );
@@ -170,17 +197,16 @@ function teinvit_baptism_renderer( array $context = [] ) {
         };
 
         $html .= '<div class="inv-events"><div class="events-row top">';
-        foreach ( $top as $event ) {
+        foreach ( $events as $event ) {
             $html .= $render_event( $event );
         }
-        $html .= '</div><div class="events-row bottom">';
-        foreach ( $bottom as $event ) {
-            $html .= $render_event( $event );
-        }
-        $html .= '</div></div>';
+        $html .= '</div><div class="events-row bottom"></div></div>';
     }
 
     $html .= '</div></div></div></div></div>';
+    if ( $is_pdf ) {
+        $html .= '<script>window.__TEINVIT_PDF_READY__ = true;</script>';
+    }
 
     static $assets_loaded = false;
     if ( ! $assets_loaded ) {

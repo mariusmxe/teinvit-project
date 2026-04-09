@@ -31,13 +31,32 @@ function teinvit_extract_order_wapf_field_map( WC_Order $order ) {
 
     $map = [];
 
-    $collect = static function( $node ) use ( &$collect, &$map ) {
+    $append_value = static function( $id, $value ) use ( &$map ) {
+        $id = trim( (string) $id );
+        $value = trim( (string) $value );
+        if ( $id === '' || $value === '' ) {
+            return;
+        }
+
+        if ( ! isset( $map[ $id ] ) || trim( (string) $map[ $id ] ) === '' ) {
+            $map[ $id ] = $value;
+            return;
+        }
+
+        $existing = array_values( array_filter( array_map( 'trim', explode( ',', (string) $map[ $id ] ) ) ) );
+        $incoming = array_values( array_filter( array_map( 'trim', explode( ',', $value ) ) ) );
+        $merged = array_values( array_unique( array_merge( $existing, $incoming ) ) );
+        $map[ $id ] = implode( ', ', $merged );
+    };
+
+    $collect = static function( $node ) use ( &$collect, &$append_value ) {
         if ( is_array( $node ) ) {
             if ( isset( $node['id'] ) ) {
                 $id = function_exists( 'teinvit_normalize_wapf_field_id' ) ? teinvit_normalize_wapf_field_id( $node['id'] ) : trim( (string) $node['id'] );
                 $value = isset( $node['value'] ) ? $node['value'] : '';
                 if ( $id !== '' ) {
-                    $map[ $id ] = is_scalar( $value ) ? trim( (string) $value ) : trim( (string) wp_json_encode( $value ) );
+                    $normalized_value = is_scalar( $value ) ? trim( (string) $value ) : trim( (string) wp_json_encode( $value ) );
+                    $append_value( $id, $normalized_value );
                 }
             }
 
@@ -49,9 +68,9 @@ function teinvit_extract_order_wapf_field_map( WC_Order $order ) {
                             $flat = array_values( array_filter( array_map( static function( $v ) {
                                 return is_scalar( $v ) ? trim( (string) $v ) : '';
                             }, $value ) ) );
-                            $map[ $id ] = implode( ', ', $flat );
+                            $append_value( $id, implode( ', ', $flat ) );
                         } else {
-                            $map[ $id ] = is_scalar( $value ) ? trim( (string) $value ) : trim( (string) wp_json_encode( $value ) );
+                            $append_value( $id, is_scalar( $value ) ? trim( (string) $value ) : trim( (string) wp_json_encode( $value ) ) );
                         }
                     }
                 }
@@ -95,9 +114,9 @@ function teinvit_extract_order_wapf_field_map( WC_Order $order ) {
                 $flat = array_values( array_filter( array_map( static function( $v ) {
                     return is_scalar( $v ) ? trim( (string) $v ) : '';
                 }, $value ) ) );
-                $map[ $id ] = implode( ', ', $flat );
+                $append_value( $id, implode( ', ', $flat ) );
             } else {
-                $map[ $id ] = is_scalar( $value ) ? trim( (string) $value ) : '';
+                $append_value( $id, is_scalar( $value ) ? trim( (string) $value ) : '' );
             }
         }
     }
@@ -146,11 +165,42 @@ function teinvit_build_invitation_payload_from_order( $vertical_key, WC_Order $o
     ];
 }
 
-function teinvit_render_invitation_html_for_vertical( $vertical_key, array $invitation, WC_Order $order, $render_context = 'preview' ) {
+function teinvit_build_invitation_payload_from_wapf_map( $vertical_key, array $wapf_map, $product_id = 0 ) {
+    $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
+
+    if ( $vertical_key === 'wedding' ) {
+        $defs = function_exists( 'teinvit_get_wapf_defs_for_product' ) ? teinvit_get_wapf_defs_for_product( (int) $product_id ) : [];
+        $built = function_exists( 'teinvit_build_invitation_from_wapf_map_canonical' )
+            ? teinvit_build_invitation_from_wapf_map_canonical( $wapf_map, $defs )
+            : [ 'invitation' => [], 'wapf_map' => $wapf_map ];
+
+        return [
+            'invitation' => isset( $built['invitation'] ) && is_array( $built['invitation'] ) ? $built['invitation'] : [],
+            'wapf_fields' => isset( $built['wapf_map'] ) && is_array( $built['wapf_map'] ) ? $built['wapf_map'] : $wapf_map,
+        ];
+    }
+
+    $map_provider = 'teinvit_' . sanitize_key( (string) $vertical_key ) . '_payload_from_wapf_map';
+    if ( ! is_callable( $map_provider ) ) {
+        return [ 'invitation' => [], 'wapf_fields' => $wapf_map ];
+    }
+
+    $result = call_user_func( $map_provider, $wapf_map );
+    if ( ! is_array( $result ) ) {
+        return [ 'invitation' => [], 'wapf_fields' => $wapf_map ];
+    }
+
+    return [
+        'invitation' => isset( $result['invitation'] ) && is_array( $result['invitation'] ) ? $result['invitation'] : [],
+        'wapf_fields' => isset( $result['wapf_fields'] ) && is_array( $result['wapf_fields'] ) ? $result['wapf_fields'] : $wapf_map,
+    ];
+}
+
+function teinvit_render_invitation_html_for_vertical( $vertical_key, array $invitation, $order = null, $render_context = 'preview', $product_id = 0 ) {
     $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
     $GLOBALS['TEINVIT_RENDER_CONTEXT'] = $render_context === 'pdf' ? 'pdf' : 'preview';
 
-    if ( $vertical_key === 'wedding' ) {
+    if ( $vertical_key === 'wedding' && $order instanceof WC_Order ) {
         return TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $invitation, $order );
     }
 
@@ -166,6 +216,7 @@ function teinvit_render_invitation_html_for_vertical( $vertical_key, array $invi
         'invitation' => $invitation,
         'order' => $order,
         'render_context' => $GLOBALS['TEINVIT_RENDER_CONTEXT'],
+        'product_id' => (int) $product_id,
     ] );
 
     return is_string( $html ) && $html !== '' ? $html : '<p>Invitație indisponibilă.</p>';
