@@ -24,6 +24,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/helpers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/database.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/tokens.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/verticals.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-runtime.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/routing.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/pdf/generate.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/custom-emails.php';

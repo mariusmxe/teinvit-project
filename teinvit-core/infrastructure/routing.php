@@ -20,12 +20,6 @@ add_action( 'template_redirect', function () {
         return;
     }
 
-    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
-        status_header( 404 );
-        echo 'Invitația nu a fost găsită.';
-        exit;
-    }
-
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
     if ( ! $order_id ) {
         status_header( 404 );
@@ -50,7 +44,10 @@ add_action( 'template_redirect', function () {
         exit;
     }
 
-    $html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
+        ? teinvit_render_invitation_html_for_vertical( $vertical, $payload['invitation'], $order, 'preview' )
+        : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
 
     status_header( 200 );
     nocache_headers();
@@ -69,12 +66,6 @@ add_action( 'template_redirect', function () {
     $token = get_query_var( 'teinvit_pdf_token' );
     if ( ! $token ) {
         return;
-    }
-
-    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
-        status_header( 404 );
-        echo 'PDF invalid.';
-        exit;
     }
 
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
@@ -105,7 +96,7 @@ add_action( 'template_redirect', function () {
     $requested_version_id = isset( $_GET['teinvit_version_id'] ) ? (int) $_GET['teinvit_version_id'] : 0;
     if ( $requested_version_id > 0 ) {
         global $wpdb;
-        $t = function_exists( 'teinvit_db_tables' ) ? teinvit_db_tables() : [];
+        $t = function_exists( 'teinvit_storage_tables_for_token' ) ? teinvit_storage_tables_for_token( $token ) : teinvit_db_tables();
         if ( empty( $t['versions'] ) ) {
             status_header( 404 );
             echo 'PDF version invalid.';
@@ -135,7 +126,10 @@ add_action( 'template_redirect', function () {
         exit;
     }
 
-    echo TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    echo function_exists( 'teinvit_render_invitation_html_for_vertical' )
+        ? teinvit_render_invitation_html_for_vertical( $vertical, $payload['invitation'], $order, 'pdf' )
+        : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
 
     echo '</body></html>';
     exit;

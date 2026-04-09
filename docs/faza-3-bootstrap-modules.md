@@ -34,3 +34,9 @@ Pentru ambele module există boundary-uri explicite pentru:
 - fără preview/PDF final
 - fără binding final ACF pentru admin-client/invitati
 - fără expunere flow-uri publice incomplete pentru noile verticale
+
+
+## Update 2026-04-09 (Faza 4)
+- boundary-urile `payload`, `renderer`, `preview_pdf` pentru Baptism/Birthday au fost activate cu provideri reali de Phase 4.
+- `public_runtime_enabled` este activ doar pentru suprafețele publice `/i/{token}` și `/pdf/{token}`.
+- boundary-urile `/admin-client` și `/invitati` rămân scaffold pentru Faza 5 (fără binding ACF final).

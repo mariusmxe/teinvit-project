@@ -508,8 +508,12 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         }
     }
 
-    $invitation = $order ? TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order ) : [];
-    $wapf_fields = $order ? TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order ) : [];
+    $built_payload = $order && function_exists( 'teinvit_build_invitation_payload_from_order' )
+        ? teinvit_build_invitation_payload_from_order( $module_key, $order, $token )
+        : [ 'invitation' => [], 'wapf_fields' => [] ];
+
+    $invitation = isset( $built_payload['invitation'] ) && is_array( $built_payload['invitation'] ) ? $built_payload['invitation'] : [];
+    $wapf_fields = isset( $built_payload['wapf_fields'] ) && is_array( $built_payload['wapf_fields'] ) ? $built_payload['wapf_fields'] : [];
     $snapshot_id = 0;
 
     $wpdb->insert( $t['versions'], [

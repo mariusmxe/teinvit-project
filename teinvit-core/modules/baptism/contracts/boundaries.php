@@ -6,17 +6,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 function teinvit_baptism_module_boundaries_contract() {
     return [
         'payload' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_payload_builder_placeholder',
+            'status' => 'phase4_ready',
+            'provider' => 'teinvit_baptism_payload_builder',
             'source_of_truth' => 'apf',
         ],
         'renderer' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_renderer_placeholder',
+            'status' => 'phase4_ready',
+            'provider' => 'teinvit_baptism_renderer',
         ],
         'preview_pdf' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_preview_pdf_placeholder',
+            'status' => 'phase4_ready',
+            'provider' => 'teinvit_baptism_renderer',
         ],
         'admin_client' => [
             'status' => 'scaffold',

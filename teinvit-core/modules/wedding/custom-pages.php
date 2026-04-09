@@ -302,9 +302,10 @@ function teinvit_ensure_active_snapshot_payload( $token, $order = null ) {
         return $payload;
     }
 
-    $order_wapf = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
-    $defs = teinvit_get_wapf_defs_for_product( teinvit_get_order_primary_product_id( $order ) );
-    $built = teinvit_build_invitation_from_wapf_map_canonical( $order_wapf, $defs );
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $built = function_exists( 'teinvit_build_invitation_payload_from_order' )
+        ? teinvit_build_invitation_payload_from_order( $vertical_key, $order, $token )
+        : [ 'invitation' => [], 'wapf_fields' => [] ];
 
     global $wpdb;
     $t = function_exists( 'teinvit_storage_tables_for_token' ) ? teinvit_storage_tables_for_token( $token ) : teinvit_db_tables();
@@ -314,8 +315,8 @@ function teinvit_ensure_active_snapshot_payload( $token, $order = null ) {
     $wpdb->insert( $t['versions'], [
         'token' => $token,
         'snapshot' => wp_json_encode( [
-            'invitation' => $built['invitation'],
-            'wapf_fields' => $built['wapf_map'],
+            'invitation' => isset( $built['invitation'] ) ? $built['invitation'] : [],
+            'wapf_fields' => isset( $built['wapf_fields'] ) ? $built['wapf_fields'] : [],
             'meta' => [
                 'seeded_from_order' => true,
                 'order_id' => $order_id,
