@@ -86,6 +86,33 @@ function teinvit_module_contract_for_token( $token ) {
     return teinvit_vertical_module_contract( $vertical_key );
 }
 
+function teinvit_register_vertical_module_runtime( $vertical_key, array $runtime ) {
+    $vertical_key = teinvit_normalize_vertical_key( $vertical_key );
+    $current = isset( $GLOBALS['teinvit_vertical_module_runtime'] ) && is_array( $GLOBALS['teinvit_vertical_module_runtime'] )
+        ? $GLOBALS['teinvit_vertical_module_runtime']
+        : [];
+    $current[ $vertical_key ] = $runtime;
+    $GLOBALS['teinvit_vertical_module_runtime'] = $current;
+}
+
+function teinvit_get_vertical_module_runtime( $vertical_key = 'all' ) {
+    $current = isset( $GLOBALS['teinvit_vertical_module_runtime'] ) && is_array( $GLOBALS['teinvit_vertical_module_runtime'] )
+        ? $GLOBALS['teinvit_vertical_module_runtime']
+        : [];
+
+    if ( $vertical_key === 'all' ) {
+        return $current;
+    }
+
+    $vertical_key = teinvit_normalize_vertical_key( $vertical_key );
+    return isset( $current[ $vertical_key ] ) ? $current[ $vertical_key ] : [];
+}
+
+function teinvit_module_runtime_for_token( $token ) {
+    $vertical_key = teinvit_resolve_token_vertical( $token );
+    return teinvit_get_vertical_module_runtime( $vertical_key );
+}
+
 function teinvit_resolve_vertical_for_order( $order ) {
     if ( ! $order instanceof WC_Order ) {
         return teinvit_default_vertical_key();

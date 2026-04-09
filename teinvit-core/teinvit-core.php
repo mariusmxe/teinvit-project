@@ -33,6 +33,8 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/marketing-subscribers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/admin-integrations.php';
 
 require_once TEINVIT_CORE_PATH . 'modules/wedding/module.php';
+require_once TEINVIT_CORE_PATH . 'modules/baptism/module.php';
+require_once TEINVIT_CORE_PATH . 'modules/birthday/module.php';
 
 function teinvit_maybe_run_client_admin_schema_migrations() {
     $stored_version = (int) get_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, 0 );
