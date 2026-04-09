@@ -22,7 +22,8 @@ add_action( 'wp_enqueue_scripts', function () {
         return;
     }
 
-    global $product;
+    $product_id = function_exists( 'get_queried_object_id' ) ? (int) get_queried_object_id() : 0;
+    $product = $product_id > 0 ? wc_get_product( $product_id ) : null;
     if ( ! $product || ! $product instanceof WC_Product ) {
         return;
     }
@@ -71,8 +72,8 @@ add_action( 'wp_enqueue_scripts', function () {
  */
 add_action( 'woocommerce_after_add_to_cart_form', function () {
 
-    global $product;
-
+    $product_id = function_exists( 'get_queried_object_id' ) ? (int) get_queried_object_id() : 0;
+    $product = $product_id > 0 ? wc_get_product( $product_id ) : null;
     if ( ! $product || ! $product instanceof WC_Product ) {
         return;
     }
