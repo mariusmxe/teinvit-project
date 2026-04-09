@@ -436,12 +436,24 @@ function teinvit_save_invitation_config( $token, array $data ) {
 function teinvit_get_versions_for_token( $token ) {
     global $wpdb;
     $t = teinvit_db_tables();
+    if ( function_exists( 'teinvit_storage_tables_for_token' ) ) {
+        $candidate = teinvit_storage_tables_for_token( $token );
+        if ( is_array( $candidate ) && ! empty( $candidate['versions'] ) ) {
+            $t = array_merge( $t, $candidate );
+        }
+    }
     return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['versions']} WHERE token = %s ORDER BY id DESC", $token ), ARRAY_A );
 }
 
 function teinvit_get_active_snapshot( $token ) {
     global $wpdb;
     $t = teinvit_db_tables();
+    if ( function_exists( 'teinvit_storage_tables_for_token' ) ) {
+        $candidate = teinvit_storage_tables_for_token( $token );
+        if ( is_array( $candidate ) && ! empty( $candidate['versions'] ) && ! empty( $candidate['invitations'] ) ) {
+            $t = array_merge( $t, $candidate );
+        }
+    }
     return $wpdb->get_row( $wpdb->prepare( "SELECT v.* FROM {$t['versions']} v INNER JOIN {$t['invitations']} i ON i.active_version_id = v.id WHERE i.token = %s LIMIT 1", $token ), ARRAY_A );
 }
 
@@ -485,6 +497,8 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         $order_vertical = sanitize_key( (string) teinvit_resolve_vertical_for_order( $order ) );
         if ( in_array( $order_vertical, [ 'baptism', 'birthday' ], true ) ) {
             $module_key = $order_vertical;
+            update_post_meta( (int) $order_id, '_teinvit_vertical_key_snapshot', $module_key );
+            update_post_meta( (int) $order_id, '_teinvit_vertical_key', $module_key );
             if ( function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
                 $candidate = teinvit_storage_tables_for_vertical( $module_key );
                 if ( is_array( $candidate ) && ! empty( $candidate['invitations'] ) && ! empty( $candidate['versions'] ) ) {

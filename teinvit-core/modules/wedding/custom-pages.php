@@ -74,6 +74,10 @@ function teinvit_migrate_legacy_active_to_modular( $token ) {
         return false;
     }
 
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        return false;
+    }
+
     $inv = teinvit_get_invitation( $token );
     if ( ! $inv ) {
         return false;
@@ -303,7 +307,10 @@ function teinvit_ensure_active_snapshot_payload( $token, $order = null ) {
     $built = teinvit_build_invitation_from_wapf_map_canonical( $order_wapf, $defs );
 
     global $wpdb;
-    $t = teinvit_db_tables();
+    $t = function_exists( 'teinvit_storage_tables_for_token' ) ? teinvit_storage_tables_for_token( $token ) : teinvit_db_tables();
+    if ( ! is_array( $t ) || empty( $t['versions'] ) ) {
+        $t = teinvit_db_tables();
+    }
     $wpdb->insert( $t['versions'], [
         'token' => $token,
         'snapshot' => wp_json_encode( [
