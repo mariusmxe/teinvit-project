@@ -20,6 +20,12 @@ add_action( 'template_redirect', function () {
         return;
     }
 
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        status_header( 404 );
+        echo 'Invitația nu a fost găsită.';
+        exit;
+    }
+
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
     if ( ! $order_id ) {
         status_header( 404 );
@@ -63,6 +69,12 @@ add_action( 'template_redirect', function () {
     $token = get_query_var( 'teinvit_pdf_token' );
     if ( ! $token ) {
         return;
+    }
+
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        status_header( 404 );
+        echo 'PDF invalid.';
+        exit;
     }
 
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;

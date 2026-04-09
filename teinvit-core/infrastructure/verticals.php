@@ -81,6 +81,11 @@ function teinvit_vertical_module_contract( $vertical_key ) {
         : $registry[ teinvit_default_vertical_key() ];
 }
 
+function teinvit_module_contract_for_token( $token ) {
+    $vertical_key = teinvit_resolve_token_vertical( $token );
+    return teinvit_vertical_module_contract( $vertical_key );
+}
+
 function teinvit_resolve_vertical_for_order( $order ) {
     if ( ! $order instanceof WC_Order ) {
         return teinvit_default_vertical_key();
@@ -145,11 +150,20 @@ function teinvit_resolve_token_vertical( $token ) {
             return teinvit_normalize_vertical_key( $meta_vertical );
         }
 
-        $order = wc_get_order( $order_id );
-        if ( $order ) {
-            return teinvit_resolve_vertical_for_order( $order );
-        }
     }
 
     return teinvit_default_vertical_key();
+}
+
+function teinvit_storage_tables_for_vertical( $vertical_key ) {
+    return teinvit_vertical_storage_family_map( $vertical_key );
+}
+
+function teinvit_storage_tables_for_token( $token ) {
+    $vertical_key = teinvit_resolve_token_vertical( $token );
+    return teinvit_storage_tables_for_vertical( $vertical_key );
+}
+
+function teinvit_is_legacy_wedding_token( $token ) {
+    return teinvit_resolve_token_vertical( $token ) === teinvit_default_vertical_key();
 }

@@ -534,6 +534,14 @@ add_action( 'template_redirect', function() {
         return;
     }
 
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        status_header( 404 );
+        get_header();
+        echo '<p>Invitația nu a fost găsită.</p>';
+        get_footer();
+        exit;
+    }
+
     if ( ! is_user_logged_in() ) {
         wp_safe_redirect( wp_login_url( home_url( '/admin-client/' . rawurlencode( $token ) ) ) );
         exit;
@@ -568,6 +576,14 @@ add_action( 'template_redirect', function() {
     $token = get_query_var( 'teinvit_invitati_token' );
     if ( ! $token ) {
         return;
+    }
+
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        status_header( 404 );
+        get_header();
+        echo '<p>Invitația nu a fost găsită.</p>';
+        get_footer();
+        exit;
     }
 
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
