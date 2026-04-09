@@ -1,18 +1,28 @@
 (function () {
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+    function parseFieldId(name) {
+        var raw = String(name || '').trim();
+        var m = raw.match(/^wapf\[field_([^\]]+)\](?:.*)?$/);
+        if (!m) return '';
+        var id = String(m[1] || '').trim();
+        if (!id) return '';
+        return id.replace(/_\d+$/, '');
+    }
 
     function collectWapfMap() {
         var out = {};
         qsa('[name^="wapf[field_"]').forEach(function (el) {
             var name = el.getAttribute('name') || '';
-            var m = name.match(/^wapf\[field_([^\]]+)\]$/);
-            if (!m) return;
-            var id = String(m[1] || '').trim();
+            var id = parseFieldId(name);
             if (!id) return;
 
             var values = [];
-            if (el.type === 'checkbox' || el.type === 'radio') {
+            if (el.tagName === 'SELECT' && el.multiple) {
+                Array.prototype.slice.call(el.options || []).forEach(function (opt) {
+                    if (opt && opt.selected) values.push((opt.value || '').trim());
+                });
+            } else if (el.type === 'checkbox' || el.type === 'radio') {
                 if (el.checked) values.push((el.value || '').trim());
             } else {
                 values.push((el.value || '').trim());
@@ -32,6 +42,19 @@
         });
 
         return out;
+    }
+
+    function applyTheme(canvas, themeKey) {
+        if (!canvas) return;
+        ['theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant'].forEach(function (c) {
+            canvas.classList.remove(c);
+        });
+        var t = String(themeKey || '').toLowerCase();
+        var cls = 'theme-editorial-luxury';
+        if (t === 'romantic') cls = 'theme-romantic-floral';
+        else if (t === 'modern') cls = 'theme-modern-minimal';
+        else if (t === 'classic') cls = 'theme-classic-elegant';
+        canvas.classList.add(cls);
     }
 
     function buildPreview() {
@@ -57,6 +80,7 @@
 
             var canvas = qs('.teinvit-canvas', mount);
             if (!canvas) return;
+            applyTheme(canvas, json.invitation.theme || 'editorial');
 
             var names = qs('.inv-names', canvas);
             if (names) names.textContent = json.invitation.headline || '';
@@ -90,7 +114,6 @@
                 var events = [];
                 if (json.invitation.events && json.invitation.events.religious && json.invitation.events.religious.enabled) events.push(json.invitation.events.religious);
                 if (json.invitation.events && json.invitation.events.party && json.invitation.events.party.enabled) events.push(json.invitation.events.party);
-                if (events.length === 0 && json.invitation.events && json.invitation.events.party && json.invitation.events.party.enabled) events.push(json.invitation.events.party);
 
                 eventsWrap.style.display = events.length ? '' : 'none';
                 events.forEach(function (event) {
