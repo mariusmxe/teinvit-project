@@ -271,10 +271,11 @@
 
     function bridgeRepeatableCloneFieldsForWapfSubmission(form) {
         if (!form) return;
+        var wapfWrapper = qs('.wapf-wrapper', form) || form;
 
         var repeatableIds = { '2d8d1ce': true, 'd1fe0da': true };
 
-        qsa('input[data-teinvit-clone-bridge="1"]', form).forEach(function (el) {
+        qsa('input[data-teinvit-clone-bridge="1"]', wapfWrapper).forEach(function (el) {
             if (el && el.parentNode) el.parentNode.removeChild(el);
         });
 
@@ -316,7 +317,7 @@
                 hidden.setAttribute('data-teinvit-clone-bridge', '1');
                 hidden.name = 'wapf[field_' + id + '_clone_' + idx + ']';
                 hidden.value = valuesByIndex[idx] || '';
-                form.appendChild(hidden);
+                wapfWrapper.appendChild(hidden);
             });
 
             var qtyHidden = document.createElement('input');
@@ -324,7 +325,7 @@
             qtyHidden.setAttribute('data-teinvit-clone-bridge', '1');
             qtyHidden.name = 'wapf[field_' + id + '_qty]';
             qtyHidden.value = String(Math.max(0, maxIndex - 1));
-            form.appendChild(qtyHidden);
+            wapfWrapper.appendChild(qtyHidden);
         });
     }
 
