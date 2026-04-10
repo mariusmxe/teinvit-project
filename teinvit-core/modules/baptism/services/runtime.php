@@ -64,21 +64,81 @@ function teinvit_baptism_theme_class( $theme_key ) {
     return trim( $vertical . ' ' . $shared );
 }
 
-function teinvit_baptism_payload_from_wapf_map( array $wapf ) {
+function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = [] ) {
     $ids = teinvit_baptism_field_ids();
-    $val = static function( $key ) use ( $wapf, $ids ) {
-        $id = isset( $ids[ $key ] ) ? $ids[ $key ] : '';
-        if ( $id === '' ) {
+    $product_id = isset( $context['product_id'] ) ? (int) $context['product_id'] : 0;
+    $defs = $product_id > 0 && function_exists( 'teinvit_get_wapf_defs_for_product' ) ? teinvit_get_wapf_defs_for_product( $product_id ) : [];
+
+    $label_lookup = [];
+    foreach ( $defs as $def ) {
+        if ( ! is_array( $def ) ) {
+            continue;
+        }
+        $id = function_exists( 'teinvit_normalize_wapf_field_id' ) ? teinvit_normalize_wapf_field_id( $def['id'] ?? '' ) : trim( (string) ( $def['id'] ?? '' ) );
+        $label = strtolower( trim( (string) ( $def['label'] ?? '' ) ) );
+        if ( $id === '' || $label === '' ) {
+            continue;
+        }
+        $label_lookup[ $id ] = $label;
+    }
+
+    $fallback_labels = [
+        'show_parents' => [ 'afișează numele părinților', 'afiseaza numele parintilor' ],
+        'mother' => [ 'nume mamă', 'nume mama' ],
+        'father' => [ 'nume tată', 'nume tata' ],
+        'show_godparents' => [ 'afișează numele nașilor', 'afiseaza numele nasilor' ],
+        'godmother' => [ 'nume nașă', 'nume nasa' ],
+        'godfather' => [ 'nume naș', 'nume nas' ],
+        'show_religious' => [ 'afișează locația ceremonie religioase', 'afiseaza locatia ceremonie religioase' ],
+        'religious_location' => [ 'denumire locației', 'denumire locatiei' ],
+        'religious_date' => [ 'data' ],
+        'religious_time' => [ 'ora' ],
+        'religious_waze' => [ 'link waze' ],
+        'show_party' => [ 'afișează locația petrecerii', 'afiseaza locatia petrecerii' ],
+        'party_location' => [ 'denumire locației', 'denumire locatiei' ],
+        'party_date' => [ 'data' ],
+        'party_time' => [ 'ora' ],
+        'party_waze' => [ 'link waze' ],
+    ];
+
+    $resolve_ids = static function( $key ) use ( $ids, $label_lookup, $fallback_labels ) {
+        $resolved = [];
+        if ( isset( $ids[ $key ] ) && $ids[ $key ] !== '' ) {
+            $resolved[] = (string) $ids[ $key ];
+        }
+        if ( ! isset( $fallback_labels[ $key ] ) ) {
+            return $resolved;
+        }
+
+        $needles = $fallback_labels[ $key ];
+        foreach ( $label_lookup as $id => $label ) {
+            foreach ( $needles as $needle ) {
+                if ( strpos( $label, strtolower( $needle ) ) !== false ) {
+                    $resolved[] = (string) $id;
+                    break;
+                }
+            }
+        }
+
+        return array_values( array_unique( array_filter( $resolved ) ) );
+    };
+
+    $val = static function( $key ) use ( $wapf, $resolve_ids ) {
+        $candidate_ids = $resolve_ids( $key );
+        if ( empty( $candidate_ids ) ) {
             return '';
         }
 
         $matches = [];
         foreach ( $wapf as $field_id => $raw_value ) {
             $field_id = trim( (string) $field_id );
-            if ( $field_id === $id || strpos( $field_id, $id . '_' ) === 0 || strpos( $field_id, $id . '-' ) === 0 ) {
-                $parts = array_values( array_filter( array_map( 'trim', explode( ',', (string) $raw_value ) ) ) );
-                if ( ! empty( $parts ) ) {
-                    $matches = array_merge( $matches, $parts );
+            foreach ( $candidate_ids as $id ) {
+                if ( $field_id === $id || strpos( $field_id, $id . '_' ) === 0 || strpos( $field_id, $id . '-' ) === 0 ) {
+                    $parts = array_values( array_filter( array_map( 'trim', explode( ',', (string) $raw_value ) ) ) );
+                    if ( ! empty( $parts ) ) {
+                        $matches = array_merge( $matches, $parts );
+                    }
+                    break;
                 }
             }
         }

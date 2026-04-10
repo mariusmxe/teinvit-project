@@ -185,7 +185,10 @@ function teinvit_build_invitation_payload_from_wapf_map( $vertical_key, array $w
         return [ 'invitation' => [], 'wapf_fields' => $wapf_map ];
     }
 
-    $result = call_user_func( $map_provider, $wapf_map );
+    $result = call_user_func( $map_provider, $wapf_map, [
+        'product_id' => (int) $product_id,
+        'vertical' => $vertical_key,
+    ] );
     if ( ! is_array( $result ) ) {
         return [ 'invitation' => [], 'wapf_fields' => $wapf_map ];
     }
