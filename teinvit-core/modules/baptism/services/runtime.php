@@ -94,7 +94,16 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf ) {
         return $raw !== '' && ! in_array( $raw, [ '0', 'false', 'off', 'no' ], true );
     };
 
-    $children = array_values( array_filter( array_map( 'trim', preg_split( '/\s*,\s*/', $val( 'children' ) ) ) ) );
+    $children = array_values( array_filter( array_map( 'trim', preg_split( '/\s*,\s*/', $val( 'children' ) ) ), static function( $name ) {
+        $name = trim( (string) $name );
+        if ( $name === '' ) {
+            return false;
+        }
+        if ( preg_match( '/^\d+$/', $name ) ) {
+            return false;
+        }
+        return true;
+    } ) );
     $children = array_slice( $children, 0, 3 );
     $theme = teinvit_baptism_resolve_theme_key( $val( 'theme' ) );
 
@@ -110,13 +119,23 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf ) {
     $message_raw = $val( 'message' );
     $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
 
+    $headline = '';
+    $count = count( $children );
+    if ( $count === 1 ) {
+        $headline = $children[0];
+    } elseif ( $count === 2 ) {
+        $headline = $children[0] . ' și ' . $children[1];
+    } elseif ( $count > 2 ) {
+        $headline = implode( ' & ', array_slice( $children, 0, -1 ) ) . ' și ' . $children[ $count - 1 ];
+    }
+
     return [
         'invitation' => [
             'vertical' => 'baptism',
             'theme' => $theme,
             'model_key' => 'invn01',
             'children' => $children,
-            'headline' => implode( ' și ', $children ),
+            'headline' => $headline,
             'message' => $message,
             'parents' => [
                 'enabled' => $has( 'show_parents' ),
@@ -241,7 +260,8 @@ function teinvit_baptism_renderer( array $context = [] ) {
     if ( ! $assets_loaded ) {
         $assets_loaded = true;
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">' . $html;
+            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
+            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . 'preview/themes-verticals.css' ) . '">' . $html;
     }
 
     return $html;

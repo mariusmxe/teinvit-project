@@ -3,7 +3,7 @@
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
     function parseFieldId(name) {
         var raw = String(name || '').trim();
-        var m = raw.match(/^wapf\[field_([^\]]+)\](?:.*)?$/);
+        var m = raw.match(/field_([a-z0-9]+)/i);
         if (!m) return '';
         var id = String(m[1] || '').trim();
         if (!id) return '';
@@ -148,6 +148,21 @@
         .catch(function () {});
     }
 
+    function normalizeNewCloneInputs() {
+        var repeatableIds = { '2d8d1ce': true, 'd1fe0da': true };
+        qsa('[name*=\"field_\"]').forEach(function (el) {
+            var id = parseFieldId(el.getAttribute('name') || '');
+            if (!repeatableIds[id]) return;
+            if (el.__teinvitCloneNormalized) return;
+
+            var siblings = qsa('[name=\"' + (el.getAttribute('name') || '').replace(/\"/g, '\\\"') + '\"]');
+            if (siblings.length > 1 && (el.value || '').trim() !== '') {
+                el.value = '';
+            }
+            el.__teinvitCloneNormalized = true;
+        });
+    }
+
     function setupMessageCounter() {
         var maxChars = (window.teinvitVerticalPreviewConfig && parseInt(window.teinvitVerticalPreviewConfig.maxChars, 10)) || 250;
         qsa('textarea[name="wapf[field_4c3baec]"], textarea[name="wapf[field_bef895a]"]').forEach(function (textarea) {
@@ -192,7 +207,17 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         if (!qs('#teinvit-vertical-product-preview')) return;
+        normalizeNewCloneInputs();
         setupMessageCounter();
         buildPreview();
+
+        var form = qs('form.cart') || document.body;
+        if (window.MutationObserver && form) {
+            var obs = new MutationObserver(function () {
+                normalizeNewCloneInputs();
+                buildPreview();
+            });
+            obs.observe(form, { childList: true, subtree: true });
+        }
     });
 })();
