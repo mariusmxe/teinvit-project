@@ -46,15 +46,33 @@
 
     function applyTheme(canvas, themeKey) {
         if (!canvas) return;
-        ['theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant'].forEach(function (c) {
+        ['theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant', 'theme-baptism-editorial', 'theme-baptism-romantic', 'theme-baptism-modern', 'theme-baptism-classic', 'theme-birthday-editorial', 'theme-birthday-romantic', 'theme-birthday-modern', 'theme-birthday-classic'].forEach(function (c) {
             canvas.classList.remove(c);
         });
         var t = String(themeKey || '').toLowerCase();
+        var vertical = (window.teinvitVerticalPreviewConfig && String(window.teinvitVerticalPreviewConfig.vertical || '').toLowerCase()) || '';
         var cls = 'theme-editorial-luxury';
         if (t === 'romantic') cls = 'theme-romantic-floral';
         else if (t === 'modern') cls = 'theme-modern-minimal';
         else if (t === 'classic') cls = 'theme-classic-elegant';
         canvas.classList.add(cls);
+
+        var vCls = '';
+        if (vertical === 'baptism') {
+            vCls = 'theme-baptism-editorial';
+            if (t === 'romantic') vCls = 'theme-baptism-romantic';
+            else if (t === 'modern') vCls = 'theme-baptism-modern';
+            else if (t === 'classic') vCls = 'theme-baptism-classic';
+        } else if (vertical === 'birthday') {
+            vCls = 'theme-birthday-editorial';
+            if (t === 'romantic') vCls = 'theme-birthday-romantic';
+            else if (t === 'modern') vCls = 'theme-birthday-modern';
+            else if (t === 'classic') vCls = 'theme-birthday-classic';
+        }
+
+        if (vCls) {
+            canvas.classList.add(vCls);
+        }
     }
 
     function buildPreview() {

@@ -49,16 +49,45 @@ function teinvit_baptism_resolve_theme_key( $raw_theme ) {
 }
 
 function teinvit_baptism_theme_class( $theme_key ) {
-    return function_exists( 'teinvit_theme_class_from_key' )
-        ? teinvit_theme_class_from_key( $theme_key )
-        : 'theme-editorial-luxury';
+    $theme_key = strtolower( trim( (string) $theme_key ) );
+    $shared = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $theme_key ) : 'theme-editorial-luxury';
+
+    $vertical = 'theme-baptism-editorial';
+    if ( $theme_key === 'romantic' ) {
+        $vertical = 'theme-baptism-romantic';
+    } elseif ( $theme_key === 'modern' ) {
+        $vertical = 'theme-baptism-modern';
+    } elseif ( $theme_key === 'classic' ) {
+        $vertical = 'theme-baptism-classic';
+    }
+
+    return trim( $vertical . ' ' . $shared );
 }
 
 function teinvit_baptism_payload_from_wapf_map( array $wapf ) {
     $ids = teinvit_baptism_field_ids();
     $val = static function( $key ) use ( $wapf, $ids ) {
         $id = isset( $ids[ $key ] ) ? $ids[ $key ] : '';
-        return $id !== '' && isset( $wapf[ $id ] ) ? trim( (string) $wapf[ $id ] ) : '';
+        if ( $id === '' ) {
+            return '';
+        }
+
+        $matches = [];
+        foreach ( $wapf as $field_id => $raw_value ) {
+            $field_id = trim( (string) $field_id );
+            if ( $field_id === $id || strpos( $field_id, $id . '_' ) === 0 || strpos( $field_id, $id . '-' ) === 0 ) {
+                $parts = array_values( array_filter( array_map( 'trim', explode( ',', (string) $raw_value ) ) ) );
+                if ( ! empty( $parts ) ) {
+                    $matches = array_merge( $matches, $parts );
+                }
+            }
+        }
+
+        if ( empty( $matches ) ) {
+            return '';
+        }
+
+        return implode( ', ', array_values( array_unique( $matches ) ) );
     };
     $has = static function( $key ) use ( $val ) {
         $raw = strtolower( $val( $key ) );
