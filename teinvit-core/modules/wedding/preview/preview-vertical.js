@@ -269,6 +269,58 @@
         });
     }
 
+    function bridgeRepeatableCloneFieldsForWapfSubmission(form) {
+        if (!form) return;
+
+        var repeatableIds = { '2d8d1ce': true, 'd1fe0da': true };
+
+        qsa('input[data-teinvit-clone-bridge="1"]', form).forEach(function (el) {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+
+        Object.keys(repeatableIds).forEach(function (id) {
+            var maxIndex = 1;
+            var hasIndexedInputs = false;
+
+            qsa('[name^="wapf[field_' + id + '_"]', form).forEach(function (el) {
+                var name = String(el.getAttribute('name') || '');
+                var match = name.match(new RegExp('^wapf\\[field_' + id + '_(\\d+)\\]$'));
+                if (!match) return;
+
+                var idx = parseInt(match[1] || '0', 10);
+                if (!(idx > 1)) return;
+
+                hasIndexedInputs = true;
+                if (idx > maxIndex) maxIndex = idx;
+
+                var raw = '';
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    if (!el.checked) return;
+                    raw = String(el.value || '').trim();
+                } else {
+                    raw = String(el.value || '').trim();
+                }
+                if (!raw) return;
+
+                var hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.setAttribute('data-teinvit-clone-bridge', '1');
+                hidden.name = 'wapf[field_' + id + '_clone_' + idx + ']';
+                hidden.value = raw;
+                form.appendChild(hidden);
+            });
+
+            if (!hasIndexedInputs) return;
+
+            var qtyHidden = document.createElement('input');
+            qtyHidden.type = 'hidden';
+            qtyHidden.setAttribute('data-teinvit-clone-bridge', '1');
+            qtyHidden.name = 'wapf[field_' + id + '_qty]';
+            qtyHidden.value = String(Math.max(0, maxIndex - 1));
+            form.appendChild(qtyHidden);
+        });
+    }
+
     document.addEventListener('change', function (e) {
         var t = e.target;
         if (t && t.name && t.name.indexOf('wapf[') === 0) {
@@ -290,6 +342,11 @@
         buildPreview();
 
         var form = qs('form.cart') || document.body;
+        if (form && form.addEventListener) {
+            form.addEventListener('submit', function () {
+                bridgeRepeatableCloneFieldsForWapfSubmission(form);
+            });
+        }
         if (window.MutationObserver && form) {
             var obs = new MutationObserver(function (mutations) {
                 var repeatableIds = { '2d8d1ce': true, 'd1fe0da': true };
