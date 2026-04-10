@@ -279,18 +279,16 @@
         });
 
         Object.keys(repeatableIds).forEach(function (id) {
+            var valuesByIndex = {};
             var maxIndex = 1;
-            var hasIndexedInputs = false;
 
             qsa('[name^="wapf[field_' + id + '_"]', form).forEach(function (el) {
                 var name = String(el.getAttribute('name') || '');
-                var match = name.match(new RegExp('^wapf\\[field_' + id + '_(\\d+)\\]$'));
+                var match = name.match(new RegExp('^wapf\\[field_' + id + '_(?:clone_)?(\\d+)\\]$'));
                 if (!match) return;
 
                 var idx = parseInt(match[1] || '0', 10);
                 if (!(idx > 1)) return;
-
-                hasIndexedInputs = true;
                 if (idx > maxIndex) maxIndex = idx;
 
                 var raw = '';
@@ -302,15 +300,24 @@
                 }
                 if (!raw) return;
 
+                valuesByIndex[idx] = raw;
+            });
+
+            if (!Object.keys(valuesByIndex).length) {
+                return;
+            }
+
+            Object.keys(valuesByIndex).forEach(function (idxKey) {
+                var idx = parseInt(idxKey || '0', 10);
+                if (!(idx > 1)) return;
+
                 var hidden = document.createElement('input');
                 hidden.type = 'hidden';
                 hidden.setAttribute('data-teinvit-clone-bridge', '1');
                 hidden.name = 'wapf[field_' + id + '_clone_' + idx + ']';
-                hidden.value = raw;
+                hidden.value = valuesByIndex[idx] || '';
                 form.appendChild(hidden);
             });
-
-            if (!hasIndexedInputs) return;
 
             var qtyHidden = document.createElement('input');
             qtyHidden.type = 'hidden';
@@ -346,6 +353,13 @@
             form.addEventListener('submit', function () {
                 bridgeRepeatableCloneFieldsForWapfSubmission(form);
             });
+            form.addEventListener('click', function (e) {
+                var target = e && e.target ? e.target : null;
+                if (!target) return;
+                if (target.closest && target.closest('.single_add_to_cart_button')) {
+                    bridgeRepeatableCloneFieldsForWapfSubmission(form);
+                }
+            }, true);
         }
         if (window.MutationObserver && form) {
             var obs = new MutationObserver(function (mutations) {
