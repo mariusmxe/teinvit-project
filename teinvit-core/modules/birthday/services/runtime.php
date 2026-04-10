@@ -103,12 +103,7 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
         return array_values( array_unique( array_filter( $resolved ) ) );
     };
 
-    $val = static function( $key ) use ( $wapf, $resolve_ids ) {
-        $candidate_ids = $resolve_ids( $key );
-        if ( empty( $candidate_ids ) ) {
-            return '';
-        }
-
+    $collect_matches_for_ids = static function( array $candidate_ids ) use ( $wapf ) {
         $matches = [];
         foreach ( $wapf as $field_id => $raw_value ) {
             $field_id = trim( (string) $field_id );
@@ -122,6 +117,26 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
                 }
             }
         }
+        return $matches;
+    };
+
+    $val = static function( $key ) use ( $ids, $resolve_ids, $collect_matches_for_ids ) {
+        $explicit_id = isset( $ids[ $key ] ) ? trim( (string) $ids[ $key ] ) : '';
+        if ( $explicit_id !== '' ) {
+            $matches = $collect_matches_for_ids( [ $explicit_id ] );
+            if ( ! empty( $matches ) ) {
+                return implode( ', ', array_values( array_unique( $matches ) ) );
+            }
+        }
+
+        $candidate_ids = array_values( array_filter( $resolve_ids( $key ), static function( $id ) use ( $explicit_id ) {
+            return $id !== '' && $id !== $explicit_id;
+        } ) );
+        if ( empty( $candidate_ids ) ) {
+            return '';
+        }
+
+        $matches = $collect_matches_for_ids( $candidate_ids );
 
         if ( empty( $matches ) ) {
             return '';

@@ -194,8 +194,10 @@
                 parents.style.display = json.invitation.parents.enabled ? '' : 'none';
                 var mother = qs('.inv-parent-mireasa', parents);
                 var father = qs('.inv-parent-mire', parents);
-                if (mother) mother.textContent = json.invitation.parents.mother || '';
-                if (father) father.textContent = json.invitation.parents.father || '';
+                var motherText = json.invitation.parents.mother || '';
+                var fatherText = json.invitation.parents.father || '';
+                if (mother) mother.textContent = motherText;
+                if (father) father.textContent = motherText && fatherText ? ('& ' + fatherText) : fatherText;
             }
 
             var nasi = ensureGodparentsSection(canvas);
