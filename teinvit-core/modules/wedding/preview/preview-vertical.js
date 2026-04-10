@@ -12,7 +12,7 @@
 
     function collectWapfMap() {
         var out = {};
-        qsa('[name^="wapf[field_"]').forEach(function (el) {
+        qsa('[name*="field_"]').forEach(function (el) {
             var name = el.getAttribute('name') || '';
             var id = parseFieldId(name);
             if (!id) return;
@@ -154,11 +154,6 @@
             var id = parseFieldId(el.getAttribute('name') || '');
             if (!repeatableIds[id]) return;
             if (el.__teinvitCloneNormalized) return;
-
-            var siblings = qsa('[name=\"' + (el.getAttribute('name') || '').replace(/\"/g, '\\\"') + '\"]');
-            if (siblings.length > 1 && (el.value || '').trim() !== '') {
-                el.value = '';
-            }
             el.__teinvitCloneNormalized = true;
         });
     }
@@ -213,7 +208,31 @@
 
         var form = qs('form.cart') || document.body;
         if (window.MutationObserver && form) {
-            var obs = new MutationObserver(function () {
+            var obs = new MutationObserver(function (mutations) {
+                var repeatableIds = { '2d8d1ce': true, 'd1fe0da': true };
+                (mutations || []).forEach(function (mutation) {
+                    Array.prototype.slice.call((mutation && mutation.addedNodes) || []).forEach(function (node) {
+                        if (!node || node.nodeType !== 1) return;
+
+                        var candidates = [];
+                        if (node.matches && node.matches('[name*=\"field_\"]')) {
+                            candidates.push(node);
+                        }
+                        if (node.querySelectorAll) {
+                            candidates = candidates.concat(Array.prototype.slice.call(node.querySelectorAll('[name*=\"field_\"]')));
+                        }
+
+                        candidates.forEach(function (el) {
+                            var id = parseFieldId(el.getAttribute('name') || '');
+                            if (!repeatableIds[id]) return;
+                            if ((el.value || '').trim() === '') return;
+                            el.value = '';
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    });
+                });
+
                 normalizeNewCloneInputs();
                 buildPreview();
             });
