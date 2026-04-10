@@ -1,4 +1,12 @@
 (function () {
+    var PARENT_BOOLEAN_FIELD_IDS = {
+        '3ec4ca5': true, // baptism: show parents
+        '1f32dd0': true, // baptism: show godparents
+        '1eceab7': true, // baptism: show religious event
+        'b4fca64': true, // baptism: show party event
+        'fc5b530': true  // birthday: show party event
+    };
+
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
     function parseFieldId(name) {
@@ -10,35 +18,52 @@
         return id.replace(/_\d+$/, '');
     }
 
-    function collectWapfMap() {
+    function collectWapfMapFromForm() {
+        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
+        if (!form) return {};
+
         var out = {};
-        qsa('[name*="field_"]').forEach(function (el) {
-            var name = el.getAttribute('name') || '';
-            var id = parseFieldId(name);
+        var fd = new FormData(form);
+
+        fd.forEach(function (value, key) {
+            var id = parseFieldId(key || '');
             if (!id) return;
+            if (Object.prototype.hasOwnProperty.call(PARENT_BOOLEAN_FIELD_IDS, id)) return;
 
-            var values = [];
-            if (el.tagName === 'SELECT' && el.multiple) {
-                Array.prototype.slice.call(el.options || []).forEach(function (opt) {
-                    if (opt && opt.selected) values.push((opt.value || '').trim());
+            if (!Object.prototype.hasOwnProperty.call(out, id)) out[id] = [];
+            out[id].push(String(value || '').trim());
+        });
+
+        Object.keys(PARENT_BOOLEAN_FIELD_IDS).forEach(function (id) {
+            var inputs = qsa('[name="wapf[field_' + id + '][]"]', form);
+            if (!inputs.length) return;
+
+            var selected = inputs
+                .filter(function (input) {
+                    return input && input.type === 'checkbox' && input.checked;
+                })
+                .map(function (input) {
+                    return String(input.value || '').trim();
+                })
+                .filter(function (v) {
+                    return v !== '';
                 });
-            } else if (el.type === 'checkbox' || el.type === 'radio') {
-                if (el.checked) values.push((el.value || '').trim());
-            } else {
-                values.push((el.value || '').trim());
-            }
 
-            values = values.filter(Boolean);
-            if (!values.length) return;
-
-            if (!out[id]) out[id] = [];
-            out[id] = out[id].concat(values);
+            out[id] = selected.join(', ');
         });
 
         Object.keys(out).forEach(function (id) {
-            var uniq = [];
-            out[id].forEach(function (v) { if (uniq.indexOf(v) === -1) uniq.push(v); });
-            out[id] = uniq.join(', ');
+            if (Array.isArray(out[id])) {
+                var uniq = [];
+                out[id].forEach(function (v) {
+                    var val = String(v || '').trim();
+                    if (!val) return;
+                    if (uniq.indexOf(val) === -1) uniq.push(val);
+                });
+                out[id] = uniq.join(', ');
+            } else {
+                out[id] = String(out[id] || '').trim();
+            }
         });
 
         return out;
@@ -81,6 +106,9 @@
 
         var productId = parseInt(mount.getAttribute('data-product-id') || '0', 10);
         var url = (window.teinvitVerticalPreviewConfig && window.teinvitVerticalPreviewConfig.previewBuildUrl) || '';
+        if (!url && window.wpApiSettings && window.wpApiSettings.root) {
+            url = String(window.wpApiSettings.root).replace(/\/?$/, '/') + 'teinvit/v2/preview/build';
+        }
         if (!productId || !url) return;
 
         fetch(url, {
@@ -89,7 +117,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 product_id: productId,
-                wapf_map: collectWapfMap()
+                wapf_map: collectWapfMapFromForm()
             })
         })
         .then(function (r) { return r.json(); })
