@@ -232,7 +232,7 @@ function teinvit_birthday_renderer( array $context = [] ) {
         if ( ! empty( $party['waze'] ) ) {
             $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Waze</a>';
         }
-        $html .= '</div></div><div class="events-row bottom"></div></div>';
+        $html .= '</div><div class="events-row bottom"></div></div>';
     }
 
     $html .= '</div></div></div></div></div>';

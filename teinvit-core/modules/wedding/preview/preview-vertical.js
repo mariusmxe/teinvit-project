@@ -100,6 +100,61 @@
         }
     }
 
+    function ensureParentsSection(canvas) {
+        var existing = qs('.inv-parents-wrapper', canvas);
+        if (existing) return existing;
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'inv-parents-wrapper';
+        wrapper.style.display = 'none';
+        wrapper.innerHTML = '<div class="section-title">Împreună cu părinții</div><div class="inv-parents inv-parents-grid"><div class="inv-parent-col inv-parent-mireasa"></div><div class="inv-parent-col inv-parent-mire"></div></div>';
+
+        var anchor = qs('.inv-message', canvas) || qs('.inv-divider', canvas) || canvas.lastElementChild;
+        if (anchor && anchor.parentNode === canvas) {
+            if (anchor.nextSibling) canvas.insertBefore(wrapper, anchor.nextSibling);
+            else canvas.appendChild(wrapper);
+        } else {
+            canvas.appendChild(wrapper);
+        }
+        return wrapper;
+    }
+
+    function ensureGodparentsSection(canvas) {
+        var existing = qs('.inv-nasi', canvas);
+        if (existing) return existing;
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'inv-nasi';
+        wrapper.style.display = 'none';
+        wrapper.innerHTML = '<div class="section-title">Și cu nașii</div><div class="nasi-row"></div>';
+        canvas.appendChild(wrapper);
+        return wrapper;
+    }
+
+    function ensureEventsSection(canvas) {
+        var existing = qs('.inv-events', canvas);
+        if (existing) {
+            if (!qs('.events-row.top', existing)) {
+                var top = document.createElement('div');
+                top.className = 'events-row top';
+                existing.appendChild(top);
+            }
+            if (!qs('.events-row.bottom', existing)) {
+                var bottom = document.createElement('div');
+                bottom.className = 'events-row bottom';
+                existing.appendChild(bottom);
+            }
+            return existing;
+        }
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'inv-events';
+        wrapper.style.display = 'none';
+        wrapper.innerHTML = '<div class="events-row top"></div><div class="events-row bottom"></div>';
+        canvas.appendChild(wrapper);
+        return wrapper;
+    }
+
     function buildPreview() {
         var mount = qs('#teinvit-vertical-product-preview');
         if (!mount) return;
@@ -134,7 +189,7 @@
             var msg = qs('.inv-message', canvas);
             if (msg) msg.textContent = json.invitation.message || '';
 
-            var parents = qs('.inv-parents-wrapper', canvas);
+            var parents = ensureParentsSection(canvas);
             if (parents && json.invitation.parents) {
                 parents.style.display = json.invitation.parents.enabled ? '' : 'none';
                 var mother = qs('.inv-parent-mireasa', parents);
@@ -143,14 +198,14 @@
                 if (father) father.textContent = json.invitation.parents.father || '';
             }
 
-            var nasi = qs('.inv-nasi', canvas);
+            var nasi = ensureGodparentsSection(canvas);
             if (nasi && json.invitation.godparents) {
                 nasi.style.display = json.invitation.godparents.enabled ? '' : 'none';
                 var row = qs('.nasi-row', nasi);
                 if (row) row.textContent = [json.invitation.godparents.godmother || '', json.invitation.godparents.godfather || ''].filter(Boolean).join(' & ');
             }
 
-            var eventsWrap = qs('.inv-events', canvas);
+            var eventsWrap = ensureEventsSection(canvas);
             if (eventsWrap) {
                 var top = qs('.events-row.top', eventsWrap);
                 var bottom = qs('.events-row.bottom', eventsWrap);
