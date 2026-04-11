@@ -16,13 +16,15 @@ define( 'TEINVIT_CORE_VERSION', '1.0.0' );
 define( 'TEINVIT_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TEINVIT_CORE_URL', plugin_dir_url( __FILE__ ) );
 
-define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 8 );
+define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 9 );
 define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION', 'teinvit_client_admin_schema_version' );
 
 require_once TEINVIT_CORE_PATH . 'infrastructure/security.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/helpers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/database.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/tokens.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/verticals.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-runtime.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/routing.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/pdf/generate.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/custom-emails.php';
@@ -32,6 +34,8 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/marketing-subscribers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/admin-integrations.php';
 
 require_once TEINVIT_CORE_PATH . 'modules/wedding/module.php';
+require_once TEINVIT_CORE_PATH . 'modules/baptism/module.php';
+require_once TEINVIT_CORE_PATH . 'modules/birthday/module.php';
 
 function teinvit_maybe_run_client_admin_schema_migrations() {
     $stored_version = (int) get_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, 0 );
@@ -42,6 +46,7 @@ function teinvit_maybe_run_client_admin_schema_migrations() {
     if ( function_exists( 'teinvit_run_schema_migrations' ) ) {
         teinvit_run_schema_migrations();
         teinvit_install_modular_tables();
+        teinvit_install_vertical_storage_tables();
         teinvit_install_email_tables();
         flush_rewrite_rules();
         update_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION, false );
@@ -50,6 +55,7 @@ function teinvit_maybe_run_client_admin_schema_migrations() {
 
 register_activation_hook( __FILE__, 'teinvit_install_client_admin_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_modular_tables' );
+register_activation_hook( __FILE__, 'teinvit_install_vertical_storage_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_email_tables' );
 
 add_action( 'plugins_loaded', function () {

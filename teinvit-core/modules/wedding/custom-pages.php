@@ -74,6 +74,10 @@ function teinvit_migrate_legacy_active_to_modular( $token ) {
         return false;
     }
 
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        return false;
+    }
+
     $inv = teinvit_get_invitation( $token );
     if ( ! $inv ) {
         return false;
@@ -298,17 +302,21 @@ function teinvit_ensure_active_snapshot_payload( $token, $order = null ) {
         return $payload;
     }
 
-    $order_wapf = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
-    $defs = teinvit_get_wapf_defs_for_product( teinvit_get_order_primary_product_id( $order ) );
-    $built = teinvit_build_invitation_from_wapf_map_canonical( $order_wapf, $defs );
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $built = function_exists( 'teinvit_build_invitation_payload_from_order' )
+        ? teinvit_build_invitation_payload_from_order( $vertical_key, $order, $token )
+        : [ 'invitation' => [], 'wapf_fields' => [] ];
 
     global $wpdb;
-    $t = teinvit_db_tables();
+    $t = function_exists( 'teinvit_storage_tables_for_token' ) ? teinvit_storage_tables_for_token( $token ) : teinvit_db_tables();
+    if ( ! is_array( $t ) || empty( $t['versions'] ) ) {
+        $t = teinvit_db_tables();
+    }
     $wpdb->insert( $t['versions'], [
         'token' => $token,
         'snapshot' => wp_json_encode( [
-            'invitation' => $built['invitation'],
-            'wapf_fields' => $built['wapf_map'],
+            'invitation' => isset( $built['invitation'] ) ? $built['invitation'] : [],
+            'wapf_fields' => isset( $built['wapf_fields'] ) ? $built['wapf_fields'] : [],
             'meta' => [
                 'seeded_from_order' => true,
                 'order_id' => $order_id,
@@ -534,6 +542,14 @@ add_action( 'template_redirect', function() {
         return;
     }
 
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        status_header( 404 );
+        get_header();
+        echo '<p>Invitația nu a fost găsită.</p>';
+        get_footer();
+        exit;
+    }
+
     if ( ! is_user_logged_in() ) {
         wp_safe_redirect( wp_login_url( home_url( '/admin-client/' . rawurlencode( $token ) ) ) );
         exit;
@@ -568,6 +584,14 @@ add_action( 'template_redirect', function() {
     $token = get_query_var( 'teinvit_invitati_token' );
     if ( ! $token ) {
         return;
+    }
+
+    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
+        status_header( 404 );
+        get_header();
+        echo '<p>Invitația nu a fost găsită.</p>';
+        get_footer();
+        exit;
     }
 
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
@@ -1902,16 +1926,25 @@ add_action( 'rest_api_init', function() {
                 }
             }
 
-            $defs = teinvit_get_wapf_defs_for_product( $product_id );
-            $built = teinvit_build_invitation_from_wapf_map_canonical( $wapf_map, $defs );
+            $vertical_key = function_exists( 'teinvit_find_catalog_vertical_for_product_id' )
+                ? teinvit_find_catalog_vertical_for_product_id( $product_id )
+                : 'wedding';
+            if ( ! is_string( $vertical_key ) || $vertical_key === '' ) {
+                $vertical_key = 'wedding';
+            }
+
+            $built = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
+                ? teinvit_build_invitation_payload_from_wapf_map( $vertical_key, $wapf_map, $product_id )
+                : [ 'invitation' => [], 'wapf_fields' => $wapf_map ];
 
             return [
                 'ok' => true,
-                'invitation' => $built['invitation'],
-                'wapf_map' => $built['wapf_map'],
+                'vertical' => $vertical_key,
+                'invitation' => isset( $built['invitation'] ) ? $built['invitation'] : [],
+                'wapf_map' => isset( $built['wapf_fields'] ) ? $built['wapf_fields'] : [],
                 'debug' => [
-                    'theme_raw' => $built['theme_raw'],
-                    'theme_resolved' => $built['theme_resolved'],
+                    'theme_raw' => isset( $wapf_map['6967752ab511b'] ) ? (string) $wapf_map['6967752ab511b'] : '',
+                    'theme_resolved' => isset( $built['invitation']['theme'] ) ? (string) $built['invitation']['theme'] : 'editorial',
                 ],
             ];
         },

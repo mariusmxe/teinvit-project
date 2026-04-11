@@ -193,6 +193,111 @@ function teinvit_install_modular_tables() {
     teinvit_ensure_marketing_contacts_name_columns();
 }
 
+function teinvit_vertical_storage_keys() {
+    return [ 'baptism', 'birthday' ];
+}
+
+function teinvit_install_vertical_storage_tables() {
+    global $wpdb;
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $charset = $wpdb->get_charset_collate();
+
+    foreach ( teinvit_vertical_storage_keys() as $vertical_key ) {
+        if ( ! function_exists( 'teinvit_vertical_storage_family_map' ) ) {
+            continue;
+        }
+
+        $t = teinvit_vertical_storage_family_map( $vertical_key );
+        if ( empty( $t['invitations'] ) || empty( $t['versions'] ) || empty( $t['rsvp'] ) || empty( $t['gifts'] ) ) {
+            continue;
+        }
+
+        $module_default = sanitize_key( (string) $vertical_key );
+
+        dbDelta( "CREATE TABLE {$t['invitations']} (
+            token varchar(191) NOT NULL,
+            order_id bigint(20) unsigned NOT NULL,
+            module_key varchar(64) NOT NULL DEFAULT '{$module_default}',
+            model_key varchar(64) NOT NULL DEFAULT 'invn01',
+            active_version_id bigint(20) unsigned NULL,
+            event_date datetime NULL,
+            last_activity_at datetime NULL,
+            gifts_locked tinyint(1) NOT NULL DEFAULT 0,
+            config longtext NULL,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (token),
+            KEY order_id (order_id),
+            KEY active_version_id (active_version_id),
+            KEY event_date (event_date),
+            KEY last_activity_at (last_activity_at)
+        ) $charset;" );
+
+        dbDelta( "CREATE TABLE {$t['versions']} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            token varchar(191) NOT NULL,
+            snapshot longtext NOT NULL,
+            pdf_url text NULL,
+            pdf_status varchar(20) NOT NULL DEFAULT 'none',
+            pdf_generated_at datetime NULL,
+            pdf_filename text NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            KEY token (token),
+            KEY token_pdf_status (token, pdf_status)
+        ) $charset;" );
+
+        dbDelta( "CREATE TABLE {$t['rsvp']} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            token varchar(191) NOT NULL,
+            guest_first_name varchar(191) NOT NULL,
+            guest_last_name varchar(191) NOT NULL,
+            guest_email varchar(191) NOT NULL,
+            guest_phone varchar(20) NOT NULL,
+            attending_people_count int NOT NULL DEFAULT 1,
+            attending_civil tinyint(1) NOT NULL DEFAULT 0,
+            attending_religious tinyint(1) NOT NULL DEFAULT 0,
+            attending_party tinyint(1) NOT NULL DEFAULT 0,
+            bringing_kids tinyint(1) NOT NULL DEFAULT 0,
+            kids_count int NOT NULL DEFAULT 0,
+            needs_accommodation tinyint(1) NOT NULL DEFAULT 0,
+            accommodation_people_count int NOT NULL DEFAULT 0,
+            vegetarian_requested tinyint(1) NOT NULL DEFAULT 0,
+            vegetarian_menus_count int NOT NULL DEFAULT 0,
+            has_allergies tinyint(1) NOT NULL DEFAULT 0,
+            allergy_details text NULL,
+            message_to_couple text NULL,
+            gdpr_accepted tinyint(1) NOT NULL DEFAULT 0,
+            marketing_consent tinyint(1) NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            KEY token (token),
+            KEY guest_email (guest_email),
+            KEY guest_phone (guest_phone)
+        ) $charset;" );
+
+        dbDelta( "CREATE TABLE {$t['gifts']} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            token varchar(191) NOT NULL,
+            gift_id varchar(64) NOT NULL,
+            gift_name varchar(255) NOT NULL,
+            gift_link text NULL,
+            gift_delivery_address text NULL,
+            include_in_public tinyint(1) NOT NULL DEFAULT 0,
+            published_locked tinyint(1) NOT NULL DEFAULT 0,
+            locked_at datetime NULL,
+            status varchar(20) NOT NULL DEFAULT 'free',
+            reserved_by_rsvp_id bigint(20) unsigned NULL,
+            reserved_at datetime NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY token_gift_id (token, gift_id),
+            KEY token_status (token, status)
+        ) $charset;" );
+    }
+}
+
 function teinvit_ensure_marketing_contacts_name_columns() {
     global $wpdb;
     $t = teinvit_db_tables();
@@ -331,12 +436,24 @@ function teinvit_save_invitation_config( $token, array $data ) {
 function teinvit_get_versions_for_token( $token ) {
     global $wpdb;
     $t = teinvit_db_tables();
+    if ( function_exists( 'teinvit_storage_tables_for_token' ) ) {
+        $candidate = teinvit_storage_tables_for_token( $token );
+        if ( is_array( $candidate ) && ! empty( $candidate['versions'] ) ) {
+            $t = array_merge( $t, $candidate );
+        }
+    }
     return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['versions']} WHERE token = %s ORDER BY id DESC", $token ), ARRAY_A );
 }
 
 function teinvit_get_active_snapshot( $token ) {
     global $wpdb;
     $t = teinvit_db_tables();
+    if ( function_exists( 'teinvit_storage_tables_for_token' ) ) {
+        $candidate = teinvit_storage_tables_for_token( $token );
+        if ( is_array( $candidate ) && ! empty( $candidate['versions'] ) && ! empty( $candidate['invitations'] ) ) {
+            $t = array_merge( $t, $candidate );
+        }
+    }
     return $wpdb->get_row( $wpdb->prepare( "SELECT v.* FROM {$t['versions']} v INNER JOIN {$t['invitations']} i ON i.active_version_id = v.id WHERE i.token = %s LIMIT 1", $token ), ARRAY_A );
 }
 
@@ -348,17 +465,57 @@ function teinvit_touch_invitation_activity( $token ) {
 
 function teinvit_seed_invitation_if_missing( $token, $order_id ) {
     global $wpdb;
-    $existing = teinvit_get_invitation( $token );
+
+    $module_key = function_exists( 'teinvit_resolve_token_vertical' )
+        ? teinvit_resolve_token_vertical( $token )
+        : 'wedding';
+
+    $module_key = sanitize_key( (string) $module_key );
+    if ( $module_key === '' ) {
+        $module_key = 'wedding';
+    }
+
+    $t = teinvit_db_tables();
+    if ( $module_key !== 'wedding' && function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
+        $candidate = teinvit_storage_tables_for_vertical( $module_key );
+        if ( is_array( $candidate ) && ! empty( $candidate['invitations'] ) && ! empty( $candidate['versions'] ) ) {
+            $t = $candidate;
+        }
+    }
+
+    $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['invitations']} WHERE token = %s", $token ), ARRAY_A );
     if ( $existing ) {
+        $existing['config'] = json_decode( (string) $existing['config'], true );
+        if ( ! is_array( $existing['config'] ) ) {
+            $existing['config'] = [];
+        }
         return $existing;
     }
 
     $order = wc_get_order( (int) $order_id );
-    $invitation = $order ? TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order ) : [];
-    $wapf_fields = $order ? TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order ) : [];
+    if ( $module_key === 'wedding' && $order && function_exists( 'teinvit_resolve_vertical_for_order' ) ) {
+        $order_vertical = sanitize_key( (string) teinvit_resolve_vertical_for_order( $order ) );
+        if ( in_array( $order_vertical, [ 'baptism', 'birthday' ], true ) ) {
+            $module_key = $order_vertical;
+            update_post_meta( (int) $order_id, '_teinvit_vertical_key_snapshot', $module_key );
+            update_post_meta( (int) $order_id, '_teinvit_vertical_key', $module_key );
+            if ( function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
+                $candidate = teinvit_storage_tables_for_vertical( $module_key );
+                if ( is_array( $candidate ) && ! empty( $candidate['invitations'] ) && ! empty( $candidate['versions'] ) ) {
+                    $t = $candidate;
+                }
+            }
+        }
+    }
+
+    $built_payload = $order && function_exists( 'teinvit_build_invitation_payload_from_order' )
+        ? teinvit_build_invitation_payload_from_order( $module_key, $order, $token )
+        : [ 'invitation' => [], 'wapf_fields' => [] ];
+
+    $invitation = isset( $built_payload['invitation'] ) && is_array( $built_payload['invitation'] ) ? $built_payload['invitation'] : [];
+    $wapf_fields = isset( $built_payload['wapf_fields'] ) && is_array( $built_payload['wapf_fields'] ) ? $built_payload['wapf_fields'] : [];
     $snapshot_id = 0;
 
-    $t = teinvit_db_tables();
     $wpdb->insert( $t['versions'], [
         'token'      => $token,
         'snapshot'   => wp_json_encode( [
@@ -379,7 +536,7 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
     $wpdb->insert( $t['invitations'], [
         'token'             => $token,
         'order_id'          => (int) $order_id,
-        'module_key'        => 'wedding',
+        'module_key'        => $module_key,
         'model_key'         => 'invn01',
         'active_version_id' => $snapshot_id,
         'event_date'        => null,
@@ -390,7 +547,17 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         'updated_at'        => current_time( 'mysql' ),
     ] );
 
-    return teinvit_get_invitation( $token );
+    $created = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['invitations']} WHERE token = %s", $token ), ARRAY_A );
+    if ( ! $created ) {
+        return null;
+    }
+
+    $created['config'] = json_decode( (string) $created['config'], true );
+    if ( ! is_array( $created['config'] ) ) {
+        $created['config'] = [];
+    }
+
+    return $created;
 }
 
 function teinvit_default_rsvp_config() {
