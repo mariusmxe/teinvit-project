@@ -9,6 +9,7 @@ define( 'TEINVIT_BAPTISM_MODULE_URL', TEINVIT_CORE_URL . 'modules/baptism/' );
 require_once TEINVIT_BAPTISM_MODULE_PATH . 'services/placeholders.php';
 require_once TEINVIT_BAPTISM_MODULE_PATH . 'services/runtime.php';
 require_once TEINVIT_BAPTISM_MODULE_PATH . 'contracts/boundaries.php';
+require_once TEINVIT_BAPTISM_MODULE_PATH . 'hooks/product-preview.php';
 
 function teinvit_baptism_module_bootstrap_contract() {
     return [

@@ -260,7 +260,7 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $assets_loaded = true;
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
             . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . 'preview/themes-verticals.css' ) . '">' . $html;
+            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/assets/preview/themes-verticals.css' ) . '">' . $html;
     }
 
     return $html;
