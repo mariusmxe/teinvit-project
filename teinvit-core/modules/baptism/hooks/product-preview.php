@@ -25,14 +25,14 @@ add_action( 'wp_enqueue_scripts', function () {
 
     wp_enqueue_script( 'jquery' );
     wp_enqueue_script(
-        'teinvit-preview-baptism',
-        TEINVIT_CORE_URL . 'infrastructure/assets/preview/preview-vertical.js',
+        'teinvit-baptism-preview',
+        TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js',
         [ 'jquery' ],
         TEINVIT_CORE_VERSION,
         true
     );
 
-    wp_localize_script( 'teinvit-preview-baptism', 'teinvitVerticalPreviewConfig', [
+    wp_localize_script( 'teinvit-baptism-preview', 'teinvitBaptismPreviewConfig', [
         'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ),
         'vertical' => 'baptism',
         'maxChars' => 250,
