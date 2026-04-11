@@ -207,7 +207,10 @@
                 counter.textContent = String((textarea.value || '').length) + ' / ' + MESSAGE_MAX + ' caractere';
             }
 
-            textarea.addEventListener('input', update);
+            if (textarea.getAttribute('data-teinvit-counter-init') !== '1') {
+                textarea.addEventListener('input', update);
+                textarea.setAttribute('data-teinvit-counter-init', '1');
+            }
             update();
         });
     }
@@ -241,27 +244,11 @@
         if (qs('#teinvit-vertical-product-preview')) {
             buildFromApi();
         }
-
-        var form = qs('form.cart') || qs('#teinvit-save-form') || document.body;
-        if (window.MutationObserver && form) {
-            var obs = new MutationObserver(function (mutations) {
-                (mutations || []).forEach(function (m) {
-                    Array.prototype.slice.call((m && m.addedNodes) || []).forEach(function (node) {
-                        if (!node || node.nodeType !== 1) return;
-                        clearPrefilledCloneInputs(node);
-                    });
-                });
-                setupMessageCounter();
-                buildFromApi();
-            });
-            obs.observe(form, { childList: true, subtree: true });
-        }
     });
 
     document.addEventListener('input', function (e) {
         var t = e && e.target;
         if (t && t.name && t.name.indexOf('wapf[') === 0) {
-            setupMessageCounter();
             buildFromApi();
         }
     });
