@@ -35,7 +35,7 @@ add_action( 'wp_enqueue_scripts', function () {
     wp_localize_script( 'teinvit-birthday-preview', 'teinvitBirthdayPreviewConfig', [
         'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ),
         'vertical' => 'birthday',
-        'maxChars' => 250,
+        'maxChars' => 255,
     ] );
 }, 20 );
 

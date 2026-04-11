@@ -192,7 +192,7 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
     };
 
     $message_raw = $val( 'message' );
-    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
 
     $headline = '';
     $count = count( $children );

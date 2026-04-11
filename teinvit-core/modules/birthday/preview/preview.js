@@ -1,4 +1,8 @@
 (function () {
+    var REPEATABLE_ID = 'd1fe0da';
+    var MESSAGE_ID = 'bef895a';
+    var MESSAGE_MAX = 255;
+
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
@@ -25,7 +29,11 @@
         });
         Object.keys(out).forEach(function (id) {
             var uniq = [];
-            out[id].forEach(function (v) { if (v && uniq.indexOf(v) === -1) uniq.push(v); });
+            out[id].forEach(function (v) {
+                var val = String(v || '').trim();
+                if (!val) return;
+                if (uniq.indexOf(val) === -1) uniq.push(val);
+            });
             out[id] = uniq.join(', ');
         });
         return out;
@@ -94,6 +102,7 @@
         }
 
         applyAutoFit(canvas);
+        distributeVerticalSpace(canvas);
         scheduleFinalPass(canvas);
 
         if (window.__TEINVIT_PDF_MODE__) {
@@ -116,10 +125,22 @@
             size -= 0.02;
             if (size < min) break;
             canvas.style.fontSize = size.toFixed(2) + 'em';
-            var msg = qs('.inv-message', canvas);
-            if (msg) msg.style.marginTop = '0.75em';
             tries++;
         }
+    }
+
+    function distributeVerticalSpace(canvas) {
+        if (!canvas) return;
+        var blocks = ['.inv-names', '.inv-message', '.inv-events']
+            .map(function (s) { return qs(s, canvas); })
+            .filter(function (n) { return n && n.style.display !== 'none'; });
+        if (blocks.length < 2) return;
+
+        blocks.forEach(function (n) { n.style.marginTop = ''; n.style.marginBottom = ''; });
+        var used = blocks.reduce(function (acc, n) { return acc + n.offsetHeight; }, 0);
+        var free = Math.max(0, canvas.clientHeight - used - 10);
+        var gap = Math.max(8, Math.min(30, Math.floor(free / (blocks.length + 1))));
+        blocks.forEach(function (n, i) { n.style.marginTop = i === 0 ? '0px' : gap + 'px'; });
     }
 
     var finalTimer = null;
@@ -129,7 +150,7 @@
             fs: canvas && canvas.style ? canvas.style.fontSize : '',
             text: (qs('.inv-names', canvas) || {}).textContent || '',
             msg: (qs('.inv-message', canvas) || {}).textContent || '',
-            events: qsa('.inv-event', canvas).map(function (e) { return e.textContent || ''; })
+            event: (qs('.inv-event', canvas) || {}).textContent || ''
         });
     }
 
@@ -140,12 +161,55 @@
             var sig = layoutSignature(canvas);
             if (sig === lastSig) {
                 canvas.style.fontSize = '1em';
+                distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
                 });
             }
             lastSig = sig;
-        }, 260);
+        }, 280);
+    }
+
+    function clearPrefilledCloneInputs(scope) {
+        qsa('[name^="wapf[field_' + REPEATABLE_ID + '_"]', scope || document).forEach(function (el) {
+            var name = String(el.getAttribute('name') || '');
+            var m = name.match(new RegExp('^wapf\\[field_' + REPEATABLE_ID + '_(?:clone_)?(\\d+)\\]$'));
+            if (!m) return;
+            var idx = parseInt(m[1] || '0', 10);
+            if (!(idx > 1)) return;
+            if (el.getAttribute('data-teinvit-clone-init') === '1') return;
+            el.setAttribute('data-teinvit-clone-init', '1');
+            if (String(el.value || '').trim() !== '') {
+                el.value = '';
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    }
+
+    function setupMessageCounter() {
+        qsa('textarea[name="wapf[field_' + MESSAGE_ID + ']"], textarea[name="wapf[field_' + MESSAGE_ID + '][]"]').forEach(function (textarea) {
+            textarea.setAttribute('maxlength', String(MESSAGE_MAX));
+            var counter = textarea.nextElementSibling;
+            if (!counter || !counter.classList || !counter.classList.contains('teinvit-message-counter')) {
+                counter = document.createElement('div');
+                counter.className = 'teinvit-message-counter';
+                counter.style.fontSize = '12px';
+                counter.style.color = '#6b7280';
+                counter.style.marginTop = '6px';
+                counter.style.textAlign = 'right';
+                textarea.insertAdjacentElement('afterend', counter);
+            }
+
+            function update() {
+                var val = String(textarea.value || '');
+                if (val.length > MESSAGE_MAX) textarea.value = val.substring(0, MESSAGE_MAX);
+                counter.textContent = String((textarea.value || '').length) + ' / ' + MESSAGE_MAX + ' caractere';
+            }
+
+            textarea.addEventListener('input', update);
+            update();
+        });
     }
 
     function buildFromApi() {
@@ -169,20 +233,42 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        clearPrefilledCloneInputs(document);
+        setupMessageCounter();
         if (window.TEINVIT_INVITATION_DATA) {
             renderInvitation(window.TEINVIT_INVITATION_DATA);
         }
         if (qs('#teinvit-vertical-product-preview')) {
             buildFromApi();
         }
+
+        var form = qs('form.cart') || qs('#teinvit-save-form') || document.body;
+        if (window.MutationObserver && form) {
+            var obs = new MutationObserver(function (mutations) {
+                (mutations || []).forEach(function (m) {
+                    Array.prototype.slice.call((m && m.addedNodes) || []).forEach(function (node) {
+                        if (!node || node.nodeType !== 1) return;
+                        clearPrefilledCloneInputs(node);
+                    });
+                });
+                setupMessageCounter();
+                buildFromApi();
+            });
+            obs.observe(form, { childList: true, subtree: true });
+        }
     });
 
     document.addEventListener('input', function (e) {
         var t = e && e.target;
-        if (t && t.name && t.name.indexOf('wapf[') === 0) buildFromApi();
+        if (t && t.name && t.name.indexOf('wapf[') === 0) {
+            setupMessageCounter();
+            buildFromApi();
+        }
     });
     document.addEventListener('change', function (e) {
         var t = e && e.target;
-        if (t && t.name && t.name.indexOf('wapf[') === 0) buildFromApi();
+        if (t && t.name && t.name.indexOf('wapf[') === 0) {
+            buildFromApi();
+        }
     });
 })();
