@@ -294,10 +294,11 @@ function teinvit_baptism_renderer( array $context = [] ) {
     if ( ! empty( $invitation['parents']['enabled'] ) ) {
         $mother = trim( (string) ( $invitation['parents']['mother'] ?? '' ) );
         $father = trim( (string) ( $invitation['parents']['father'] ?? '' ) );
-        $father_display = ( $mother !== '' && $father !== '' ) ? ( '& ' . $father ) : $father;
+        $show_sep = ( $mother !== '' && $father !== '' );
         $html .= '<div class="inv-parents-wrapper"><div class="section-title">Împreună cu părinții</div><div class="inv-parents inv-parents-grid">';
         $html .= '<div class="inv-parent-col inv-parent-mireasa">' . esc_html( $mother ) . '</div>';
-        $html .= '<div class="inv-parent-col inv-parent-mire">' . esc_html( $father_display ) . '</div>';
+        $html .= '<div class="inv-parent-sep" aria-hidden="true" style="visibility:' . ( $show_sep ? 'visible' : 'hidden' ) . ';">&</div>';
+        $html .= '<div class="inv-parent-col inv-parent-mire">' . esc_html( $father ) . '</div>';
         $html .= '</div></div>';
     }
 
@@ -348,6 +349,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
         $html .= '<script>window.teinvitBaptismPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
         $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
         if ( ! $is_product_page ) {
+            $html .= '<script src="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' ) . '"></script>';
             $html .= '<script src="' . esc_url( TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js' ) . '"></script>';
         }
     }

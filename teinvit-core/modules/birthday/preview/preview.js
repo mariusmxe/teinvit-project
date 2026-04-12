@@ -11,6 +11,7 @@
     function getRoot() { return qs('#teinvit-vertical-product-preview') || document; }
     function getCanvas() { return qs('.teinvit-canvas', getRoot()) || qs('.teinvit-canvas'); }
     function isProductPreviewContext() { return !!qs('#teinvit-vertical-product-preview[data-product-id]'); }
+    function engine() { return window.TEINVIT_PREVIEW_LAYOUT_ENGINE || null; }
 
     function parseFieldId(name) {
         var raw = String(name || '').trim();
@@ -82,7 +83,14 @@
         applyTheme(canvas, inv.theme || 'editorial');
 
         var names = qs('.inv-names', canvas);
-        if (names) names.textContent = inv.headline || '';
+        if (names) {
+            var formattedHeadline = inv.headline || '';
+            if (engine() && typeof engine().formatNamesLayout === 'function') {
+                formattedHeadline = engine().formatNamesLayout(formattedHeadline, { lineLimit: 22 });
+            }
+            names.textContent = formattedHeadline;
+            names.style.whiteSpace = 'pre-line';
+        }
 
         var msg = qs('.inv-message', canvas) || ensureNode('.inv-message', '<div class="inv-message"></div>', canvas);
         msg.textContent = inv.message || '';
@@ -115,37 +123,21 @@
         }
     }
 
-    function hasOverflow(el) {
-        if (!el) return false;
-        return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
-    }
+    function hasOverflow(el) { return engine() ? engine().hasOverflow(el) : (el && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)); }
 
     function applyAutoFit(canvas) {
         if (!canvas) return;
-        var size = 1;
-        var min = 0.60;
-        var tries = 0;
-        canvas.style.fontSize = '1em';
-        while (hasOverflow(canvas) && tries < 50) {
-            size -= 0.02;
-            if (size < min) break;
-            canvas.style.fontSize = size.toFixed(2) + 'em';
-            tries++;
+        if (engine() && typeof engine().autoFit === 'function') {
+            engine().autoFit(canvas, { min: 0.60, step: 0.02, maxLoops: 50 });
+            return;
         }
     }
 
     function distributeVerticalSpace(canvas) {
         if (!canvas) return;
-        var blocks = ['.inv-names', '.inv-message', '.inv-events']
-            .map(function (s) { return qs(s, canvas); })
-            .filter(function (n) { return n && n.style.display !== 'none'; });
-        if (blocks.length < 2) return;
-
-        blocks.forEach(function (n) { n.style.marginTop = ''; n.style.marginBottom = ''; });
-        var used = blocks.reduce(function (acc, n) { return acc + n.offsetHeight; }, 0);
-        var free = Math.max(0, canvas.clientHeight - used - 10);
-        var gap = Math.max(8, Math.min(30, Math.floor(free / (blocks.length + 1))));
-        blocks.forEach(function (n, i) { n.style.marginTop = i === 0 ? '0px' : gap + 'px'; });
+        if (engine() && typeof engine().distributeVerticalSpace === 'function') {
+            engine().distributeVerticalSpace(canvas, ['.inv-names', '.inv-message', '.inv-events'], { reserve: 10, minGap: 8, maxGap: 30 });
+        }
     }
 
     var finalTimer = null;
@@ -161,9 +153,19 @@
 
     function scheduleFinalPass(canvas) {
         if (!canvas) return;
+        var sig = layoutSignature(canvas);
+        if (engine() && typeof engine().scheduleFinalPass === 'function') {
+            engine().scheduleFinalPass(canvas, 'birthday', sig, function () {
+                canvas.style.fontSize = '1em';
+                distributeVerticalSpace(canvas);
+                requestAnimationFrame(function () {
+                    if (hasOverflow(canvas)) applyAutoFit(canvas);
+                });
+            }, 280);
+            return;
+        }
         if (finalTimer) clearTimeout(finalTimer);
         finalTimer = setTimeout(function () {
-            var sig = layoutSignature(canvas);
             if (sig === lastSig) {
                 canvas.style.fontSize = '1em';
                 distributeVerticalSpace(canvas);

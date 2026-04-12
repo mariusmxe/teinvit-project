@@ -269,6 +269,7 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $html .= '<script>window.teinvitBirthdayPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
         $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
         if ( ! $is_product_page ) {
+            $html .= '<script src="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' ) . '"></script>';
             $html .= '<script src="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/preview.js' ) . '"></script>';
         }
     }

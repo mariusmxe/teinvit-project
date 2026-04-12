@@ -25,9 +25,16 @@ add_action( 'wp_enqueue_scripts', function () {
 
     wp_enqueue_script( 'jquery' );
     wp_enqueue_script(
+        'teinvit-preview-layout-engine',
+        TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js',
+        [],
+        TEINVIT_CORE_VERSION,
+        true
+    );
+    wp_enqueue_script(
         'teinvit-birthday-preview',
         TEINVIT_BIRTHDAY_MODULE_URL . 'preview/preview.js',
-        [ 'jquery' ],
+        [ 'jquery', 'teinvit-preview-layout-engine' ],
         TEINVIT_CORE_VERSION,
         true
     );
