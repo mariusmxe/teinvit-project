@@ -316,7 +316,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
             $out = '<div class="inv-event"><strong>' . esc_html( (string) ( $event['title'] ?? '' ) ) . '</strong>';
             $out .= '<div>' . $loc . '</div><div>' . $date . '</div>';
             if ( $waze !== '' ) {
-                $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Waze</a>';
+                $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Deschide în Waze</a>';
             }
             $out .= '</div>';
             return $out;

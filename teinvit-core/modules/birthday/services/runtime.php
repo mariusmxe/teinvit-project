@@ -245,7 +245,7 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $html .= '<div>' . esc_html( (string) ( $party['loc'] ?? '' ) ) . '</div>';
         $html .= '<div>' . esc_html( (string) ( $party['date'] ?? '' ) ) . '</div>';
         if ( ! empty( $party['waze'] ) ) {
-            $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Waze</a>';
+            $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Deschide în Waze</a>';
         }
         $html .= '</div><div class="events-row bottom"></div></div>';
     }

@@ -20,3 +20,14 @@
 .teinvit-canvas.theme-birthday-classic .inv-names { font-family: 'Source Serif 4', serif; color: #ca8a04; }
 .teinvit-canvas.theme-birthday-classic .inv-message { color: #854d0e; }
 .teinvit-canvas.theme-birthday-classic .section-title { color: #a16207; }
+
+.teinvit-birthday .events-row.top .inv-event {
+  width: 100%;
+  max-width: 100%;
+}
+
+.teinvit-birthday .inv-event strong,
+.teinvit-birthday .inv-event > div {
+  white-space: normal;
+  word-break: keep-all;
+}
