@@ -227,6 +227,14 @@
         }, BUILD_DEBOUNCE_MS);
     }
 
+    function isRepeatControl(node) {
+        if (!node || node.nodeType !== 1) return false;
+        var control = node.closest('button, a, [role="button"], .wapf-repeatable-add, .wapf-repeatable-remove, .wapf-clone-add, .wapf-clone-remove');
+        if (!control) return false;
+        var text = ((control.className || '') + ' ' + (control.getAttribute('data-action') || '') + ' ' + (control.textContent || '')).toLowerCase();
+        return text.indexOf('wapf') !== -1 || text.indexOf('repeat') !== -1 || text.indexOf('clone') !== -1 || text.indexOf('șterge') !== -1;
+    }
+
     function buildFromApi() {
         var mount = qs('#teinvit-vertical-product-preview');
         if (!mount) return;
@@ -269,5 +277,14 @@
         if (t && t.name && t.name.indexOf('wapf[') === 0 && (!t.type || t.type.toLowerCase() !== 'text') && t.tagName !== 'TEXTAREA') {
             scheduleBuildFromApi();
         }
+    });
+    document.addEventListener('click', function (e) {
+        var t = e && e.target;
+        if (!isRepeatControl(t)) return;
+        setTimeout(function () {
+            clearPrefilledCloneInputs(document);
+            setupMessageCounter();
+            scheduleBuildFromApi();
+        }, 40);
     });
 })();
