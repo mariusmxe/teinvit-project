@@ -4,7 +4,6 @@
     var MESSAGE_MAX = 255;
     var BUILD_DEBOUNCE_MS = 140;
     var buildTimer = null;
-    var formObserver = null;
 
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -228,28 +227,6 @@
         }, BUILD_DEBOUNCE_MS);
     }
 
-    function attachFormObserver() {
-        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
-        if (!form || !window.MutationObserver || formObserver) return;
-        formObserver = new MutationObserver(function (mutations) {
-            var touched = false;
-            (mutations || []).forEach(function (m) {
-                var addedNodes = Array.prototype.slice.call((m && m.addedNodes) || []);
-                var removedNodes = Array.prototype.slice.call((m && m.removedNodes) || []);
-                if (addedNodes.length || removedNodes.length) touched = true;
-                addedNodes.forEach(function (node) {
-                    if (!node || node.nodeType !== 1) return;
-                    clearPrefilledCloneInputs(node);
-                });
-            });
-            if (touched) {
-                setupMessageCounter();
-                scheduleBuildFromApi();
-            }
-        });
-        formObserver.observe(form, { childList: true, subtree: true });
-    }
-
     function buildFromApi() {
         var mount = qs('#teinvit-vertical-product-preview');
         if (!mount) return;
@@ -273,26 +250,17 @@
     document.addEventListener('DOMContentLoaded', function () {
         clearPrefilledCloneInputs(document);
         setupMessageCounter();
-        attachFormObserver();
         if (window.TEINVIT_INVITATION_DATA) {
             renderInvitation(window.TEINVIT_INVITATION_DATA);
         }
         if (qs('#teinvit-vertical-product-preview')) {
             buildFromApi();
         }
-        var tries = 0;
-        var counterBoot = setInterval(function () {
-            setupMessageCounter();
-            if (qsa('textarea[name="wapf[field_' + MESSAGE_ID + ']"], textarea[name="wapf[field_' + MESSAGE_ID + '][]"]').length || ++tries >= 12) {
-                clearInterval(counterBoot);
-            }
-        }, 300);
     });
 
     document.addEventListener('input', function (e) {
         var t = e && e.target;
         if (t && t.name && t.name.indexOf('wapf[') === 0) {
-            setupMessageCounter();
             scheduleBuildFromApi();
         }
     });
