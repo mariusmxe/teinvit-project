@@ -192,7 +192,7 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
     };
 
     $message_raw = $val( 'message' );
-    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
 
     $headline = '';
     $count = count( $children );
@@ -294,10 +294,11 @@ function teinvit_baptism_renderer( array $context = [] ) {
     if ( ! empty( $invitation['parents']['enabled'] ) ) {
         $mother = trim( (string) ( $invitation['parents']['mother'] ?? '' ) );
         $father = trim( (string) ( $invitation['parents']['father'] ?? '' ) );
-        $father_display = ( $mother !== '' && $father !== '' ) ? ( '& ' . $father ) : $father;
+        $show_sep = ( $mother !== '' && $father !== '' );
         $html .= '<div class="inv-parents-wrapper"><div class="section-title">Împreună cu părinții</div><div class="inv-parents inv-parents-grid">';
         $html .= '<div class="inv-parent-col inv-parent-mireasa">' . esc_html( $mother ) . '</div>';
-        $html .= '<div class="inv-parent-col inv-parent-mire">' . esc_html( $father_display ) . '</div>';
+        $html .= '<div class="inv-parent-sep" aria-hidden="true" style="visibility:' . ( $show_sep ? 'visible' : 'hidden' ) . ';">&</div>';
+        $html .= '<div class="inv-parent-col inv-parent-mire">' . esc_html( $father ) . '</div>';
         $html .= '</div></div>';
     }
 
@@ -316,7 +317,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
             $out = '<div class="inv-event"><strong>' . esc_html( (string) ( $event['title'] ?? '' ) ) . '</strong>';
             $out .= '<div>' . $loc . '</div><div>' . $date . '</div>';
             if ( $waze !== '' ) {
-                $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Waze</a>';
+                $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Deschide în Waze</a>';
             }
             $out .= '</div>';
             return $out;
@@ -339,7 +340,18 @@ function teinvit_baptism_renderer( array $context = [] ) {
         $assets_loaded = true;
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
             . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . 'preview/themes-verticals.css' ) . '">' . $html;
+            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_BAPTISM_MODULE_URL . 'preview/themes.css' ) . '">' . $html;
+    }
+
+    if ( ! $is_pdf ) {
+        $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+        $html .= '<script>window.__TEINVIT_PDF_MODE__ = false;</script>';
+        $html .= '<script>window.teinvitBaptismPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
+        $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
+        if ( ! $is_product_page ) {
+            $html .= '<script src="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' ) . '"></script>';
+            $html .= '<script src="' . esc_url( TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js' ) . '"></script>';
+        }
     }
 
     return $html;

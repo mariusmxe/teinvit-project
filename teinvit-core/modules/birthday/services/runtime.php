@@ -164,7 +164,7 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
     $time = $val( 'party_time' );
     $datetime = $date !== '' ? ( $date . ( $time !== '' ? ' ora ' . $time : '' ) ) : '';
     $message_raw = $val( 'message' );
-    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
 
     $headline = '';
     $count = count( $celebrants );
@@ -245,7 +245,7 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $html .= '<div>' . esc_html( (string) ( $party['loc'] ?? '' ) ) . '</div>';
         $html .= '<div>' . esc_html( (string) ( $party['date'] ?? '' ) ) . '</div>';
         if ( ! empty( $party['waze'] ) ) {
-            $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Waze</a>';
+            $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Deschide în Waze</a>';
         }
         $html .= '</div><div class="events-row bottom"></div></div>';
     }
@@ -260,7 +260,18 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $assets_loaded = true;
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
             . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . 'preview/themes-verticals.css' ) . '">' . $html;
+            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/themes.css' ) . '">' . $html;
+    }
+
+    if ( ! $is_pdf ) {
+        $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+        $html .= '<script>window.__TEINVIT_PDF_MODE__ = false;</script>';
+        $html .= '<script>window.teinvitBirthdayPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
+        $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
+        if ( ! $is_product_page ) {
+            $html .= '<script src="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' ) . '"></script>';
+            $html .= '<script src="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/preview.js' ) . '"></script>';
+        }
     }
 
     return $html;

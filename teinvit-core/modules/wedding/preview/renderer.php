@@ -503,8 +503,11 @@ class TeInvit_Wedding_Preview_Renderer {
             TEINVIT_WEDDING_MODULE_URL . 'preview/preview.css'
         ) . '">';
 
-        echo '<script src="' . esc_url(
-            TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js'
-        ) . '"></script>';
+        $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
+        if ( ! $is_product_page ) {
+            echo '<script src="' . esc_url(
+                TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js'
+            ) . '"></script>';
+        }
     }
 }

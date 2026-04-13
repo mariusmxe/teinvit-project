@@ -1,0 +1,33 @@
+.teinvit-canvas.theme-birthday-editorial,
+.teinvit-canvas.theme-birthday-romantic,
+.teinvit-canvas.theme-birthday-modern,
+.teinvit-canvas.theme-birthday-classic {
+  text-shadow: none;
+}
+
+.teinvit-canvas.theme-birthday-editorial .inv-names { font-family: 'DM Sans', sans-serif; color: #d946ef; }
+.teinvit-canvas.theme-birthday-editorial .inv-message { color: #86198f; }
+.teinvit-canvas.theme-birthday-editorial .section-title { color: #c026d3; }
+
+.teinvit-canvas.theme-birthday-romantic .inv-names { font-family: 'Parisienne', cursive; color: #ef4444; }
+.teinvit-canvas.theme-birthday-romantic .inv-message { color: #991b1b; }
+.teinvit-canvas.theme-birthday-romantic .section-title { color: #dc2626; }
+
+.teinvit-canvas.theme-birthday-modern .inv-names { font-family: 'Inter', sans-serif; color: #2563eb; }
+.teinvit-canvas.theme-birthday-modern .inv-message { color: #1d4ed8; }
+.teinvit-canvas.theme-birthday-modern .section-title { color: #3b82f6; }
+
+.teinvit-canvas.theme-birthday-classic .inv-names { font-family: 'Source Serif 4', serif; color: #ca8a04; }
+.teinvit-canvas.theme-birthday-classic .inv-message { color: #854d0e; }
+.teinvit-canvas.theme-birthday-classic .section-title { color: #a16207; }
+
+.teinvit-birthday .events-row.top .inv-event {
+  width: 100%;
+  max-width: 100%;
+}
+
+.teinvit-birthday .inv-event strong,
+.teinvit-birthday .inv-event > div {
+  white-space: normal;
+  word-break: keep-all;
+}
