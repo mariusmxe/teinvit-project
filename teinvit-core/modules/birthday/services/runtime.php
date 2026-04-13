@@ -5,6 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 function teinvit_birthday_field_ids() {
     return [
+        'show_age' => '2cac251',
+        'age' => '4e73bc1',
+        'show_event_name' => '1aa14a1',
+        'event_name' => 'cb7c1fd',
         'celebrants' => 'd1fe0da',
         'message' => 'bef895a',
         'show_party' => 'fc5b530',
@@ -22,6 +26,17 @@ function teinvit_birthday_theme_value_map() {
         'trs1l' => 'romantic',
         'pu7cd' => 'modern',
         'h1ww0' => 'classic',
+        '761q4' => 'editorial',
+        'diqh7' => 'romantic',
+        'm76bw' => 'romantic',
+        'v79ej' => 'modern',
+        'i5ldk' => 'classic',
+        'ftv53' => 'romantic',
+        '5pedl' => 'modern',
+        '8f3yw' => 'editorial',
+        'b1lnh' => 'modern',
+        '8781i' => 'classic',
+        'mwftw' => 'romantic',
     ];
 }
 
@@ -32,9 +47,29 @@ function teinvit_birthday_resolve_theme_key( $raw_theme ) {
         return $map[ $raw_theme ];
     }
 
-    return function_exists( 'teinvit_resolve_theme_key_from_wapf_value' )
-        ? teinvit_resolve_theme_key_from_wapf_value( $raw_theme, $map )
-        : 'editorial';
+    $normalized = strtolower( $raw_theme );
+    $label_map = [
+        'editorial luxury' => 'editorial',
+        'romantic floral' => 'romantic',
+        'modern minimal' => 'modern',
+        'classic elegant' => 'classic',
+        'playful confetti' => 'editorial',
+        'candy pastel' => 'romantic',
+        'storybook dream' => 'romantic',
+        'balloon party' => 'modern',
+        'golden celebration' => 'classic',
+        'chic blush' => 'romantic',
+        'midnight glam' => 'modern',
+        'botanical grace' => 'editorial',
+        'royal blue' => 'modern',
+        'velvet noir' => 'classic',
+        'sunset fiesta' => 'romantic',
+    ];
+    if ( isset( $label_map[ $normalized ] ) ) {
+        return $label_map[ $normalized ];
+    }
+
+    return function_exists( 'teinvit_resolve_theme_key_from_wapf_value' ) ? teinvit_resolve_theme_key_from_wapf_value( $raw_theme, $map ) : 'editorial';
 }
 
 function teinvit_birthday_theme_class( $theme_key ) {
@@ -72,6 +107,10 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
     }
 
     $fallback_labels = [
+        'show_age' => [ 'dorești afișarea vârstei ?', 'doresti afisarea varstei ?' ],
+        'age' => [ 'completează vârsta', 'completeaza varsta' ],
+        'show_event_name' => [ 'afișează numele evenimentului', 'afiseaza numele evenimentului' ],
+        'event_name' => [ 'completează numele evenimentului', 'completeaza numele evenimentului' ],
         'celebrants' => [ 'nume sărbătorit', 'nume sarbatorit' ],
         'show_party' => [ 'afișează locația petrecerii', 'afiseaza locatia petrecerii' ],
         'party_location' => [ 'denumire locației', 'denumire locatiei' ],
@@ -144,6 +183,10 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
 
         return implode( ', ', array_values( array_unique( $matches ) ) );
     };
+    $has = static function( $key ) use ( $val ) {
+        $raw = strtolower( trim( (string) $val( $key ) ) );
+        return $raw !== '' && ! in_array( $raw, [ '0', 'false', 'off', 'no' ], true );
+    };
 
     $celebrants = array_values( array_filter( array_map( 'trim', preg_split( '/\s*,\s*/', $val( 'celebrants' ) ) ), static function( $name ) {
         $name = trim( (string) $name );
@@ -156,15 +199,25 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
         return true;
     } ) );
     $celebrants = array_slice( $celebrants, 0, 4 );
-    $show_party_raw = strtolower( $val( 'show_party' ) );
-    $show_party = $show_party_raw !== '' && ! in_array( $show_party_raw, [ '0', 'false', 'off', 'no' ], true );
+    $show_party = $has( 'show_party' );
     $theme = teinvit_birthday_resolve_theme_key( $val( 'theme' ) );
 
     $date = $val( 'party_date' );
     $time = $val( 'party_time' );
     $datetime = $date !== '' ? ( $date . ( $time !== '' ? ' ora ' . $time : '' ) ) : '';
+    $weekday = '';
+    if ( preg_match( '/^(\d{2})-(\d{2})-(\d{4})$/', $date, $m ) ) {
+        $dt = DateTime::createFromFormat( 'd-m-Y', $m[1] . '-' . $m[2] . '-' . $m[3] );
+        if ( $dt ) {
+            $weekday_index = (int) $dt->format( 'w' );
+            $weekday_map = [ 'duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă' ];
+            $weekday = $weekday_map[ $weekday_index ] ?? '';
+        }
+    }
     $message_raw = $val( 'message' );
-    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
+    $age = preg_replace( '/[^\d]/', '', (string) $val( 'age' ) );
+    $event_name = trim( (string) $val( 'event_name' ) );
 
     $headline = '';
     $count = count( $celebrants );
@@ -182,13 +235,23 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
             'theme' => $theme,
             'model_key' => 'invn01',
             'celebrants' => $celebrants,
+            'name_units' => $celebrants,
             'headline' => $headline,
+            'age' => [
+                'enabled' => $has( 'show_age' ) && $age !== '',
+                'value' => $age,
+            ],
+            'event_name' => [
+                'enabled' => $has( 'show_event_name' ) && $event_name !== '',
+                'value' => $event_name,
+            ],
             'message' => $message,
             'events' => [
                 'party' => [
                     'enabled' => $show_party,
-                    'title' => 'Petrecere',
+                    'title' => 'PETRECERE',
                     'loc' => $val( 'party_location' ),
+                    'weekday' => $weekday,
                     'date' => $datetime,
                     'waze' => $val( 'party_waze' ),
                 ],
@@ -235,17 +298,26 @@ function teinvit_birthday_renderer( array $context = [] ) {
     }
 
     $html .= '<div class="teinvit-canvas canvas--spread ' . esc_attr( $theme_class ) . '">';
+    if ( ! empty( $invitation['age']['enabled'] ) ) {
+        $html .= '<div class="inv-age">' . esc_html( (string) $invitation['age']['value'] ) . ' ANI</div>';
+    }
+    if ( ! empty( $invitation['event_name']['enabled'] ) ) {
+        $html .= '<div class="inv-event-name">' . esc_html( (string) $invitation['event_name']['value'] ) . '</div>';
+    }
     $html .= '<div class="inv-names">' . esc_html( (string) ( $invitation['headline'] ?? '' ) ) . '</div>';
     $html .= '<div class="inv-divider" aria-hidden="true"></div>';
     $html .= '<div class="inv-message">' . esc_html( (string) ( $invitation['message'] ?? '' ) ) . '</div>';
 
     if ( ! empty( $party['enabled'] ) ) {
         $html .= '<div class="inv-events"><div class="events-row top">';
-        $html .= '<div class="inv-event"><strong>' . esc_html( (string) ( $party['title'] ?? 'Petrecere' ) ) . '</strong>';
+        $html .= '<div class="inv-event"><strong>' . esc_html( (string) ( $party['title'] ?? 'PETRECERE' ) ) . '</strong>';
         $html .= '<div>' . esc_html( (string) ( $party['loc'] ?? '' ) ) . '</div>';
+        if ( ! empty( $party['weekday'] ) ) {
+            $html .= '<div class="inv-weekday">' . esc_html( (string) $party['weekday'] ) . '</div>';
+        }
         $html .= '<div>' . esc_html( (string) ( $party['date'] ?? '' ) ) . '</div>';
         if ( ! empty( $party['waze'] ) ) {
-            $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Waze</a>';
+            $html .= '<a href="' . esc_url( (string) $party['waze'] ) . '" target="_blank" rel="noopener">Deschide în Waze</a>';
         }
         $html .= '</div><div class="events-row bottom"></div></div>';
     }
@@ -260,7 +332,18 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $assets_loaded = true;
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
             . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . 'preview/themes-verticals.css' ) . '">' . $html;
+            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/themes.css' ) . '">' . $html;
+    }
+
+    if ( ! $is_pdf ) {
+        $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+        $html .= '<script>window.__TEINVIT_PDF_MODE__ = false;</script>';
+        $html .= '<script>window.teinvitBirthdayPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
+        $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
+        if ( ! $is_product_page ) {
+            $html .= '<script src="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' ) . '"></script>';
+            $html .= '<script src="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/preview.js' ) . '"></script>';
+        }
     }
 
     return $html;
