@@ -331,6 +331,11 @@
             scheduleBuildFromApi();
         }
     });
+    document.addEventListener('wapf/date_selected', function () {
+        setTimeout(function () {
+            scheduleBuildFromApi();
+        }, 30);
+    });
     document.addEventListener('click', function (e) {
         var t = e && e.target;
         if (!isRepeatControl(t)) return;

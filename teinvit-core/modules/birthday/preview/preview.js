@@ -59,10 +59,10 @@
         if (qs('input[type="checkbox"][name^="wapf[field_' + fieldId + ']"]', form)) return;
         if (qs('input[name^="wapf[field_' + fieldId + ']"]', form)) return;
 
-        var wrapper = qs('[data-field-id="' + fieldId + '"]', form)
+        var wrapper = qs('[data-field-id="' + fieldId + '"], [data-field-id$="' + fieldId + '"], [data-field-id*="' + fieldId + '"]', form)
             || qs('[data-id="' + fieldId + '"]', form)
             || qs('[data-field="' + fieldId + '"]', form)
-            || qsa('.wapf-field', form).find(function (node) {
+            || qsa('.wapf-field, .wapf-field-container, [data-field-id]', form).find(function (node) {
                 return String((node.textContent || '')).toLowerCase().indexOf(String(labelHint || '').toLowerCase()) !== -1;
             });
         if (!wrapper) return;
@@ -360,6 +360,11 @@
         if (t && t.name && t.name.indexOf('wapf[') === 0 && (!t.type || t.type.toLowerCase() !== 'text') && t.tagName !== 'TEXTAREA') {
             scheduleBuildFromApi();
         }
+    });
+    document.addEventListener('wapf/date_selected', function () {
+        setTimeout(function () {
+            scheduleBuildFromApi();
+        }, 30);
     });
     document.addEventListener('click', function (e) {
         var t = e && e.target;
