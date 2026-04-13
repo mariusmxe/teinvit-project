@@ -57,9 +57,11 @@
         var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
         if (!form) return;
         if (qs('input[type="checkbox"][name^="wapf[field_' + fieldId + ']"]', form)) return;
+        if (qs('input[name^="wapf[field_' + fieldId + ']"]', form)) return;
 
         var wrapper = qs('[data-field-id="' + fieldId + '"]', form)
             || qs('[data-id="' + fieldId + '"]', form)
+            || qs('[data-field="' + fieldId + '"]', form)
             || qsa('.wapf-field', form).find(function (node) {
                 return String((node.textContent || '')).toLowerCase().indexOf(String(labelHint || '').toLowerCase()) !== -1;
             });
@@ -78,6 +80,8 @@
         input.name = 'wapf[field_' + fieldId + '][]';
         input.value = '1';
         input.addEventListener('change', function () {
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
             scheduleBuildFromApi();
         });
 
@@ -86,6 +90,22 @@
         checkboxLabel.appendChild(input);
         checkboxLabel.appendChild(text);
         host.appendChild(checkboxLabel);
+    }
+
+    function ensureBooleanCheckboxes() {
+        ensureBooleanFieldCheckbox('2cac251', 'afișarea vârstei');
+        ensureBooleanFieldCheckbox('1aa14a1', 'numele evenimentului');
+    }
+
+    var wapfObserver = null;
+    function setupWapfObserver() {
+        if (wapfObserver) return;
+        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
+        if (!form || !window.MutationObserver) return;
+        wapfObserver = new MutationObserver(function () {
+            ensureBooleanCheckboxes();
+        });
+        wapfObserver.observe(form, { childList: true, subtree: true });
     }
 
     function applyTheme(canvas, themeKey) {
@@ -317,8 +337,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        ensureBooleanFieldCheckbox('2cac251', 'afișarea vârstei');
-        ensureBooleanFieldCheckbox('1aa14a1', 'numele evenimentului');
+        ensureBooleanCheckboxes();
+        setupWapfObserver();
         clearPrefilledCloneInputs(document);
         setupMessageCounter();
         if (window.TEINVIT_INVITATION_DATA) {

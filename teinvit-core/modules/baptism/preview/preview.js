@@ -29,18 +29,28 @@
         fd.forEach(function (value, key) {
             var id = parseFieldId(key);
             if (!id) return;
-            if (!Object.prototype.hasOwnProperty.call(out, id)) out[id] = [];
-            out[id].push(String(value || '').trim());
+            var val = String(value || '').trim();
+            var isRepeatable = id === REPEATABLE_ID || /field_[a-z0-9]+_(?:clone_)?\d+/i.test(String(key || ''));
+            if (isRepeatable) {
+                if (!Object.prototype.hasOwnProperty.call(out, id) || !Array.isArray(out[id])) out[id] = [];
+                out[id].push(val);
+            } else {
+                out[id] = val;
+            }
         });
 
         Object.keys(out).forEach(function (id) {
-            var uniq = [];
-            out[id].forEach(function (v) {
-                var val = String(v || '').trim();
-                if (!val) return;
-                if (uniq.indexOf(val) === -1) uniq.push(val);
-            });
-            out[id] = uniq.join(', ');
+            if (Array.isArray(out[id])) {
+                var uniq = [];
+                out[id].forEach(function (v) {
+                    var val = String(v || '').trim();
+                    if (!val) return;
+                    if (uniq.indexOf(val) === -1) uniq.push(val);
+                });
+                out[id] = uniq.join(', ');
+            } else {
+                out[id] = String(out[id] || '').trim();
+            }
         });
 
         return out;
