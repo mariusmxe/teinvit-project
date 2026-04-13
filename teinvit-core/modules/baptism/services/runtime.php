@@ -130,6 +130,8 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
         $needles = array_map( $normalize_label, $fallback_labels[ $key ] );
         $exact = [];
         $contains = [];
+        $strict_exact_keys = [ 'mother', 'father', 'godmother', 'godfather' ];
+        $allow_contains = ! in_array( $key, $strict_exact_keys, true );
         foreach ( $label_lookup as $id => $label ) {
             $normalized_label = $normalize_label( $label );
             foreach ( $needles as $needle ) {
@@ -137,7 +139,7 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
                     $exact[] = (string) $id;
                     break;
                 }
-                if ( strpos( $normalized_label, $needle ) !== false ) {
+                if ( $allow_contains && strpos( $normalized_label, $needle ) !== false ) {
                     $contains[] = (string) $id;
                     break;
                 }

@@ -214,6 +214,9 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
             $weekday = $weekday_map[ $weekday_index ] ?? '';
         }
     }
+    if ( $weekday !== '' ) {
+        $weekday = function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $weekday, 'UTF-8' ) : strtoupper( $weekday );
+    }
     $message_raw = $val( 'message' );
     $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
     $age = preg_replace( '/[^\d]/', '', (string) $val( 'age' ) );
@@ -240,10 +243,12 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
             'age' => [
                 'enabled' => $has( 'show_age' ) && $age !== '',
                 'value' => $age,
+                'line' => ( $has( 'show_age' ) && $age !== '' ) ? ( 'Împlinesc ' . $age . ' de ani!' ) : '',
             ],
             'event_name' => [
                 'enabled' => $has( 'show_event_name' ) && $event_name !== '',
                 'value' => $event_name,
+                'line' => ( $has( 'show_event_name' ) && $event_name !== '' ) ? ( ( count( $celebrants ) > 1 ? 'Te invităm la ' : 'Te invit la ' ) . $event_name ) : '',
             ],
             'message' => $message,
             'events' => [
@@ -299,10 +304,10 @@ function teinvit_birthday_renderer( array $context = [] ) {
 
     $html .= '<div class="teinvit-canvas canvas--spread ' . esc_attr( $theme_class ) . '">';
     if ( ! empty( $invitation['age']['enabled'] ) ) {
-        $html .= '<div class="inv-age">' . esc_html( (string) $invitation['age']['value'] ) . ' ANI</div>';
+        $html .= '<div class="inv-age">' . esc_html( (string) ( $invitation['age']['line'] ?? '' ) ) . '</div>';
     }
     if ( ! empty( $invitation['event_name']['enabled'] ) ) {
-        $html .= '<div class="inv-event-name">' . esc_html( (string) $invitation['event_name']['value'] ) . '</div>';
+        $html .= '<div class="inv-event-name">' . esc_html( (string) ( $invitation['event_name']['line'] ?? '' ) ) . '</div>';
     }
     $html .= '<div class="inv-names">' . esc_html( (string) ( $invitation['headline'] ?? '' ) ) . '</div>';
     $html .= '<div class="inv-divider" aria-hidden="true"></div>';

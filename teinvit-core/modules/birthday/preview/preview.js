@@ -28,19 +28,64 @@
         fd.forEach(function (value, key) {
             var id = parseFieldId(key);
             if (!id) return;
-            if (!Object.prototype.hasOwnProperty.call(out, id)) out[id] = [];
-            out[id].push(String(value || '').trim());
+            var val = String(value || '').trim();
+            var isRepeatable = id === REPEATABLE_ID || /field_[a-z0-9]+_(?:clone_)?\d+/i.test(String(key || ''));
+            if (isRepeatable) {
+                if (!Object.prototype.hasOwnProperty.call(out, id) || !Array.isArray(out[id])) out[id] = [];
+                out[id].push(val);
+            } else {
+                out[id] = val;
+            }
         });
         Object.keys(out).forEach(function (id) {
-            var uniq = [];
-            out[id].forEach(function (v) {
-                var val = String(v || '').trim();
-                if (!val) return;
-                if (uniq.indexOf(val) === -1) uniq.push(val);
-            });
-            out[id] = uniq.join(', ');
+            if (Array.isArray(out[id])) {
+                var uniq = [];
+                out[id].forEach(function (v) {
+                    var val = String(v || '').trim();
+                    if (!val) return;
+                    if (uniq.indexOf(val) === -1) uniq.push(val);
+                });
+                out[id] = uniq.join(', ');
+            } else {
+                out[id] = String(out[id] || '').trim();
+            }
         });
         return out;
+    }
+
+    function ensureBooleanFieldCheckbox(fieldId, labelHint) {
+        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
+        if (!form) return;
+        if (qs('input[type="checkbox"][name^="wapf[field_' + fieldId + ']"]', form)) return;
+
+        var wrapper = qs('[data-field-id="' + fieldId + '"]', form)
+            || qs('[data-id="' + fieldId + '"]', form)
+            || qsa('.wapf-field', form).find(function (node) {
+                return String((node.textContent || '')).toLowerCase().indexOf(String(labelHint || '').toLowerCase()) !== -1;
+            });
+        if (!wrapper) return;
+        if (qs('input[type="checkbox"]', wrapper)) return;
+
+        var host = qs('.wapf-field-input', wrapper) || wrapper;
+        var checkboxLabel = document.createElement('label');
+        checkboxLabel.className = 'teinvit-bool-checkbox';
+        checkboxLabel.style.display = 'inline-flex';
+        checkboxLabel.style.alignItems = 'center';
+        checkboxLabel.style.gap = '8px';
+
+        var input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'wapf[field_' + fieldId + '][]';
+        input.value = '1';
+        input.addEventListener('change', function () {
+            scheduleBuildFromApi();
+        });
+
+        var text = document.createElement('span');
+        text.textContent = 'Da';
+        checkboxLabel.appendChild(input);
+        checkboxLabel.appendChild(text);
+        host.appendChild(checkboxLabel);
     }
 
     function applyTheme(canvas, themeKey) {
@@ -99,12 +144,12 @@
         var age = qs('.inv-age', canvas) || ensureNode('.inv-age', '<div class="inv-age"></div>', canvas);
         var eventName = qs('.inv-event-name', canvas) || ensureNode('.inv-event-name', '<div class="inv-event-name"></div>', canvas);
         var msg = qs('.inv-message', canvas) || ensureNode('.inv-message', '<div class="inv-message"></div>', canvas);
-        var hasAge = !!(inv.age && inv.age.enabled && inv.age.value);
-        var hasEventName = !!(inv.event_name && inv.event_name.enabled && inv.event_name.value);
+        var hasAge = !!(inv.age && inv.age.enabled && (inv.age.line || inv.age.value));
+        var hasEventName = !!(inv.event_name && inv.event_name.enabled && (inv.event_name.line || inv.event_name.value));
         age.style.display = hasAge ? '' : 'none';
         eventName.style.display = hasEventName ? '' : 'none';
-        age.textContent = hasAge ? (String(inv.age.value) + ' ANI') : '';
-        eventName.textContent = hasEventName ? inv.event_name.value : '';
+        age.textContent = hasAge ? (inv.age.line || '') : '';
+        eventName.textContent = hasEventName ? (inv.event_name.line || '') : '';
         msg.textContent = inv.message || '';
 
         var eventsWrap = qs('.inv-events', canvas) || ensureNode('.inv-events', '<div class="inv-events"><div class="events-row top"></div><div class="events-row bottom"></div></div>', canvas);
@@ -272,6 +317,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        ensureBooleanFieldCheckbox('2cac251', 'afișarea vârstei');
+        ensureBooleanFieldCheckbox('1aa14a1', 'numele evenimentului');
         clearPrefilledCloneInputs(document);
         setupMessageCounter();
         if (window.TEINVIT_INVITATION_DATA) {

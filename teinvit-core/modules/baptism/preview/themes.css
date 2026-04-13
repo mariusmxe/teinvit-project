@@ -38,6 +38,23 @@
   text-align: left;
 }
 
+.teinvit-baptism .inv-parent-mireasa {
+  text-align: right;
+}
+
+.teinvit-baptism .inv-nasi .inv-parents-grid {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 3px;
+}
+
+.teinvit-baptism .inv-nasi .nasi-godmother {
+  text-align: right;
+}
+
+.teinvit-baptism .inv-nasi .nasi-godfather {
+  text-align: left;
+}
+
 .teinvit-baptism .inv-parents-grid.is-single {
   grid-template-columns: minmax(0, 1fr);
 }
