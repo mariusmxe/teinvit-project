@@ -155,7 +155,7 @@
         var canvas = getCanvas();
         if (!canvas) return;
 
-        applyTheme(canvas, inv.theme || 'editorial');
+        applyTheme(canvas, inv.theme || 'little-princess');
 
         var names = qs('.inv-names', canvas);
         if (names) {
@@ -216,7 +216,7 @@
             if (!top) return;
             var node = document.createElement('div');
             node.className = 'inv-event';
-            var html = '<strong>' + (e.title || '') + '</strong><div>' + (e.loc || '') + '</div><div>' + (e.date || '') + '</div>';
+            var html = '<strong>' + (e.title || '') + '</strong><div class="inv-place">' + (e.loc || '') + '</div><div class="inv-datetime">' + (e.date || '') + '</div>';
             if (e.waze) html += '<a href="' + e.waze + '" target="_blank" rel="noopener">Deschide în Waze</a>';
             node.innerHTML = html;
             top.appendChild(node);

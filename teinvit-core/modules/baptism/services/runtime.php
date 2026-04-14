@@ -352,7 +352,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
     }
 
     $background_url = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $product_id ) : '';
-    $theme_class = teinvit_baptism_theme_class( $invitation['theme'] ?? 'editorial' );
+    $theme_class = teinvit_baptism_theme_class( $invitation['theme'] ?? 'little-princess' );
 
     $events = [];
     if ( ! empty( $invitation['events']['religious']['enabled'] ) ) {
@@ -406,7 +406,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
             $date = esc_html( (string) ( $event['date'] ?? '' ) );
             $waze = esc_url( (string) ( $event['waze'] ?? '' ) );
             $out = '<div class="inv-event"><strong>' . esc_html( (string) ( $event['title'] ?? '' ) ) . '</strong>';
-            $out .= '<div>' . $loc . '</div><div>' . $date . '</div>';
+            $out .= '<div class="inv-place">' . $loc . '</div><div class="inv-datetime">' . $date . '</div>';
             if ( $waze !== '' ) {
                 $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Deschide în Waze</a>';
             }
@@ -429,7 +429,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
     static $assets_loaded = false;
     if ( ! $assets_loaded ) {
         $assets_loaded = true;
-        $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
+        $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@500;600;700&family=Alex+Brush&family=Lora:wght@400;600&family=Prata&family=Cinzel:wght@400;600;700&family=Satisfy&family=Pacifico&family=DM+Sans:wght@400;600;700&family=Spectral:wght@400;600&family=Source+Serif+4:wght@400;600&family=Inter:wght@400;600;700&family=Oswald:wght@400;500;600&family=Bodoni+Moda:wght@400;600;700&family=Raleway:wght@500;600;700&family=DM+Serif+Display&family=Alice&family=Allura&display=swap">'
             . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
             . '<link rel="stylesheet" href="' . esc_url( TEINVIT_BAPTISM_MODULE_URL . 'preview/themes.css' ) . '">' . $html;
     }

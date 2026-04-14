@@ -53,27 +53,84 @@
         return out;
     }
 
+    function themeCatalog() {
+        return {
+            'editorial-luxury': { shared: 'theme-editorial-luxury' },
+            'romantic-floral': { shared: 'theme-romantic-floral' },
+            'modern-minimal': { shared: 'theme-modern-minimal' },
+            'classic-elegant': { shared: 'theme-classic-elegant' },
+            'playful-confetti': { shared: 'theme-editorial-luxury' },
+            'candy-pastel': { shared: 'theme-romantic-floral' },
+            'storybook-dream': { shared: 'theme-romantic-floral' },
+            'balloon-party': { shared: 'theme-modern-minimal' },
+            'golden-celebration': { shared: 'theme-classic-elegant' },
+            'chic-blush': { shared: 'theme-romantic-floral' },
+            'midnight-glam': { shared: 'theme-modern-minimal' },
+            'botanical-grace': { shared: 'theme-editorial-luxury' },
+            'royal-blue': { shared: 'theme-modern-minimal' },
+            'velvet-noir': { shared: 'theme-classic-elegant' },
+            'sunset-fiesta': { shared: 'theme-romantic-floral' }
+        };
+    }
+
+    function normalizeThemeKey(themeKey) {
+        var raw = String(themeKey || '').toLowerCase().trim();
+        if (!raw) return 'editorial-luxury';
+        var catalog = themeCatalog();
+        if (catalog[raw]) return raw;
+
+        var aliases = {
+            '58a6u': 'editorial-luxury',
+            'trs1l': 'romantic-floral',
+            'pu7cd': 'modern-minimal',
+            'h1ww0': 'classic-elegant',
+            '761q4': 'playful-confetti',
+            'diqh7': 'candy-pastel',
+            'm76bw': 'storybook-dream',
+            'v79ej': 'balloon-party',
+            'i5ldk': 'golden-celebration',
+            'ftv53': 'chic-blush',
+            '5pedl': 'midnight-glam',
+            '8f3yw': 'botanical-grace',
+            'b1lnh': 'royal-blue',
+            '8781i': 'velvet-noir',
+            'mwftw': 'sunset-fiesta',
+            'editorial luxury': 'editorial-luxury',
+            'romantic floral': 'romantic-floral',
+            'modern minimal': 'modern-minimal',
+            'classic elegant': 'classic-elegant',
+            'playful confetti': 'playful-confetti',
+            'candy pastel': 'candy-pastel',
+            'storybook dream': 'storybook-dream',
+            'balloon party': 'balloon-party',
+            'golden celebration': 'golden-celebration',
+            'chic blush': 'chic-blush',
+            'midnight glam': 'midnight-glam',
+            'botanical grace': 'botanical-grace',
+            'royal blue': 'royal-blue',
+            'velvet noir': 'velvet-noir',
+            'sunset fiesta': 'sunset-fiesta'
+        };
+        if (aliases[raw]) return aliases[raw];
+
+        raw = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return catalog[raw] ? raw : 'editorial-luxury';
+    }
+
     function applyTheme(canvas, themeKey) {
         if (!canvas) return;
         [
             'theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant',
-            'theme-birthday-editorial', 'theme-birthday-romantic', 'theme-birthday-modern', 'theme-birthday-classic'
+            'theme-birthday-editorial-luxury', 'theme-birthday-romantic-floral', 'theme-birthday-modern-minimal', 'theme-birthday-classic-elegant',
+            'theme-birthday-playful-confetti', 'theme-birthday-candy-pastel', 'theme-birthday-storybook-dream', 'theme-birthday-balloon-party',
+            'theme-birthday-golden-celebration', 'theme-birthday-chic-blush', 'theme-birthday-midnight-glam', 'theme-birthday-botanical-grace',
+            'theme-birthday-royal-blue', 'theme-birthday-velvet-noir', 'theme-birthday-sunset-fiesta'
         ].forEach(function (c) { canvas.classList.remove(c); });
 
-        var t = String(themeKey || 'editorial').toLowerCase();
-        if (t === 'playful-confetti' || t === 'botanical-grace') t = 'editorial';
-        if (t === 'candy-pastel' || t === 'storybook-dream' || t === 'chic-blush' || t === 'sunset-fiesta') t = 'romantic';
-        if (t === 'balloon-party' || t === 'midnight-glam' || t === 'royal-blue') t = 'modern';
-        if (t === 'golden-celebration' || t === 'velvet-noir') t = 'classic';
-        var shared = 'theme-editorial-luxury';
-        if (t === 'romantic') shared = 'theme-romantic-floral';
-        else if (t === 'modern') shared = 'theme-modern-minimal';
-        else if (t === 'classic') shared = 'theme-classic-elegant';
-
-        var vertical = 'theme-birthday-editorial';
-        if (t === 'romantic') vertical = 'theme-birthday-romantic';
-        else if (t === 'modern') vertical = 'theme-birthday-modern';
-        else if (t === 'classic') vertical = 'theme-birthday-classic';
+        var key = normalizeThemeKey(themeKey);
+        var catalog = themeCatalog();
+        var shared = (catalog[key] && catalog[key].shared) || 'theme-editorial-luxury';
+        var vertical = 'theme-birthday-' + key;
 
         canvas.classList.add(shared);
         canvas.classList.add(vertical);
@@ -94,7 +151,7 @@
         var canvas = getCanvas();
         if (!canvas) return;
 
-        applyTheme(canvas, inv.theme || 'editorial');
+        applyTheme(canvas, inv.theme || 'editorial-luxury');
 
         var names = qs('.inv-names', canvas);
         if (names) {
@@ -140,7 +197,7 @@
         if (enabled && top) {
             var node = document.createElement('div');
             node.className = 'inv-event';
-            var html = '<strong>' + (party.title || 'PETRECERE') + '</strong><div>' + (party.loc || '') + '</div>';
+            var html = '<strong>' + (party.title || 'PETRECERE') + '</strong><div class="inv-place">' + (party.loc || '') + '</div>';
             if (party.weekday) html += '<div class="inv-weekday">' + party.weekday + '</div>';
             html += '<div class="inv-datetime">' + (party.date || '') + '</div>';
             if (party.waze) html += '<a href="' + party.waze + '" target="_blank" rel="noopener">Deschide în Waze</a>';
