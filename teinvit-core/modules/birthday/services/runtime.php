@@ -248,7 +248,7 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
             'event_name' => [
                 'enabled' => $has( 'show_event_name' ) && $event_name !== '',
                 'value' => $event_name,
-                'line' => ( $has( 'show_event_name' ) && $event_name !== '' ) ? ( ( count( $celebrants ) > 1 ? 'Te invităm la ' : 'Te invit la ' ) . $event_name ) : '',
+                'line' => ( $has( 'show_event_name' ) && $event_name !== '' ) ? ( 'Te invită la ' . $event_name ) : '',
             ],
             'message' => $message,
             'events' => [
@@ -306,10 +306,10 @@ function teinvit_birthday_renderer( array $context = [] ) {
     if ( ! empty( $invitation['age']['enabled'] ) ) {
         $html .= '<div class="inv-age">' . esc_html( (string) ( $invitation['age']['line'] ?? '' ) ) . '</div>';
     }
+    $html .= '<div class="inv-names">' . esc_html( (string) ( $invitation['headline'] ?? '' ) ) . '</div>';
     if ( ! empty( $invitation['event_name']['enabled'] ) ) {
         $html .= '<div class="inv-event-name">' . esc_html( (string) ( $invitation['event_name']['line'] ?? '' ) ) . '</div>';
     }
-    $html .= '<div class="inv-names">' . esc_html( (string) ( $invitation['headline'] ?? '' ) ) . '</div>';
     $html .= '<div class="inv-divider" aria-hidden="true"></div>';
     $html .= '<div class="inv-message">' . esc_html( (string) ( $invitation['message'] ?? '' ) ) . '</div>';
 

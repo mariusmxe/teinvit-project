@@ -53,61 +53,6 @@
         return out;
     }
 
-    function ensureBooleanFieldCheckbox(fieldId, labelHint) {
-        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
-        if (!form) return;
-        if (qs('input[type="checkbox"][name^="wapf[field_' + fieldId + ']"]', form)) return;
-        if (qs('input[name^="wapf[field_' + fieldId + ']"]', form)) return;
-
-        var wrapper = qs('[data-field-id="' + fieldId + '"], [data-field-id$="' + fieldId + '"], [data-field-id*="' + fieldId + '"]', form)
-            || qs('[data-id="' + fieldId + '"]', form)
-            || qs('[data-field="' + fieldId + '"]', form)
-            || qsa('.wapf-field, .wapf-field-container, [data-field-id]', form).find(function (node) {
-                return String((node.textContent || '')).toLowerCase().indexOf(String(labelHint || '').toLowerCase()) !== -1;
-            });
-        if (!wrapper) return;
-        if (qs('input[type="checkbox"]', wrapper)) return;
-
-        var host = qs('.wapf-field-input', wrapper) || wrapper;
-        var checkboxLabel = document.createElement('label');
-        checkboxLabel.className = 'teinvit-bool-checkbox';
-        checkboxLabel.style.display = 'inline-flex';
-        checkboxLabel.style.alignItems = 'center';
-        checkboxLabel.style.gap = '8px';
-
-        var input = document.createElement('input');
-        input.type = 'checkbox';
-        input.name = 'wapf[field_' + fieldId + '][]';
-        input.value = '1';
-        input.addEventListener('change', function () {
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            scheduleBuildFromApi();
-        });
-
-        var text = document.createElement('span');
-        text.textContent = 'Da';
-        checkboxLabel.appendChild(input);
-        checkboxLabel.appendChild(text);
-        host.appendChild(checkboxLabel);
-    }
-
-    function ensureBooleanCheckboxes() {
-        ensureBooleanFieldCheckbox('2cac251', 'afișarea vârstei');
-        ensureBooleanFieldCheckbox('1aa14a1', 'numele evenimentului');
-    }
-
-    var wapfObserver = null;
-    function setupWapfObserver() {
-        if (wapfObserver) return;
-        var form = qs('#teinvit-save-form') || qs('form.cart') || qs('form');
-        if (!form || !window.MutationObserver) return;
-        wapfObserver = new MutationObserver(function () {
-            ensureBooleanCheckboxes();
-        });
-        wapfObserver.observe(form, { childList: true, subtree: true });
-    }
-
     function applyTheme(canvas, themeKey) {
         if (!canvas) return;
         [
@@ -172,6 +117,18 @@
         eventName.textContent = hasEventName ? (inv.event_name.line || '') : '';
         msg.textContent = inv.message || '';
 
+        if (names && age && age.parentNode === canvas) {
+            canvas.insertBefore(age, names);
+        }
+        if (names && eventName && eventName.parentNode === canvas) {
+            var afterNames = names.nextSibling;
+            if (afterNames) canvas.insertBefore(eventName, afterNames);
+            else canvas.appendChild(eventName);
+        }
+        if (eventName && msg && eventName.parentNode === canvas) {
+            canvas.insertBefore(msg, eventName.nextSibling);
+        }
+
         var eventsWrap = qs('.inv-events', canvas) || ensureNode('.inv-events', '<div class="inv-events"><div class="events-row top"></div><div class="events-row bottom"></div></div>', canvas);
         var top = qs('.events-row.top', eventsWrap);
         if (top) top.innerHTML = '';
@@ -215,7 +172,7 @@
     function distributeVerticalSpace(canvas) {
         if (!canvas) return;
         if (engine() && typeof engine().distributeVerticalSpace === 'function') {
-            engine().distributeVerticalSpace(canvas, ['.inv-age', '.inv-event-name', '.inv-names', '.inv-message', '.inv-events'], { reserve: 10, minGap: 7, maxGap: 24 });
+            engine().distributeVerticalSpace(canvas, ['.inv-age', '.inv-names', '.inv-event-name', '.inv-message', '.inv-events'], { reserve: 10, minGap: 7, maxGap: 24 });
         }
     }
 
@@ -337,8 +294,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        ensureBooleanCheckboxes();
-        setupWapfObserver();
         clearPrefilledCloneInputs(document);
         setupMessageCounter();
         if (window.TEINVIT_INVITATION_DATA) {
