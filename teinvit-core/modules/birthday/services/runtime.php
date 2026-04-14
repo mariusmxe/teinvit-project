@@ -248,7 +248,7 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
             'event_name' => [
                 'enabled' => $has( 'show_event_name' ) && $event_name !== '',
                 'value' => $event_name,
-                'line' => ( $has( 'show_event_name' ) && $event_name !== '' ) ? ( 'Te invită la ' . $event_name ) : '',
+                'line' => ( $has( 'show_event_name' ) && $event_name !== '' ) ? ( ( count( $celebrants ) > 1 ? 'Te invităm la ' : 'Te invită la ' ) . $event_name ) : '',
             ],
             'message' => $message,
             'events' => [
