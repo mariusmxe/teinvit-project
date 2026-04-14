@@ -28,40 +28,73 @@ function teinvit_baptism_field_ids() {
 }
 
 function teinvit_baptism_theme_value_map() {
-    return [
-        '58a6u' => 'editorial',
-        'trs1l' => 'romantic',
-        'pu7cd' => 'modern',
-        'h1ww0' => 'classic',
-    ];
+    $map = [];
+    foreach ( teinvit_baptism_theme_catalog() as $key => $entry ) {
+        $slug = trim( (string) ( $entry['slug'] ?? '' ) );
+        $label = trim( (string) ( $entry['label'] ?? '' ) );
+        if ( $slug !== '' ) {
+            $map[ $slug ] = $key;
+        }
+        if ( $label !== '' ) {
+            $map[ strtolower( $label ) ] = $key;
+        }
+    }
+    return $map;
 }
 
 function teinvit_baptism_resolve_theme_key( $raw_theme ) {
     $raw_theme = trim( (string) $raw_theme );
+    $raw_theme_lower = strtolower( $raw_theme );
     $map = teinvit_baptism_theme_value_map();
     if ( $raw_theme !== '' && isset( $map[ $raw_theme ] ) ) {
         return $map[ $raw_theme ];
     }
+    if ( $raw_theme_lower !== '' && isset( $map[ $raw_theme_lower ] ) ) {
+        return $map[ $raw_theme_lower ];
+    }
+    if ( $raw_theme_lower !== '' ) {
+        $normalized = preg_replace( '/[^a-z0-9]+/i', '-', $raw_theme_lower );
+        $normalized = trim( (string) $normalized, '-' );
+        if ( $normalized !== '' && isset( teinvit_baptism_theme_catalog()[ $normalized ] ) ) {
+            return $normalized;
+        }
+    }
 
-    return function_exists( 'teinvit_resolve_theme_key_from_wapf_value' )
-        ? teinvit_resolve_theme_key_from_wapf_value( $raw_theme, $map )
-        : 'editorial';
+    return 'little-princess';
 }
 
 function teinvit_baptism_theme_class( $theme_key ) {
     $theme_key = strtolower( trim( (string) $theme_key ) );
-    $shared = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $theme_key ) : 'theme-editorial-luxury';
-
-    $vertical = 'theme-baptism-editorial';
-    if ( $theme_key === 'romantic' ) {
-        $vertical = 'theme-baptism-romantic';
-    } elseif ( $theme_key === 'modern' ) {
-        $vertical = 'theme-baptism-modern';
-    } elseif ( $theme_key === 'classic' ) {
-        $vertical = 'theme-baptism-classic';
+    $catalog = teinvit_baptism_theme_catalog();
+    if ( ! isset( $catalog[ $theme_key ] ) ) {
+        $theme_key = 'little-princess';
     }
+    $entry = $catalog[ $theme_key ];
+    $shared_key = trim( (string) ( $entry['shared'] ?? 'editorial' ) );
+    $shared = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $shared_key ) : 'theme-editorial-luxury';
+    $vertical = 'theme-baptism-' . sanitize_html_class( $theme_key );
 
     return trim( $vertical . ' ' . $shared );
+}
+
+function teinvit_baptism_theme_catalog() {
+    return [
+        'little-princess' => [ 'slug' => '58a6u', 'label' => 'Little Princess', 'shared' => 'editorial' ],
+        'blush-angel' => [ 'slug' => 'trs1l', 'label' => 'Blush Angel', 'shared' => 'romantic' ],
+        'rosy-grace' => [ 'slug' => 'pu7cd', 'label' => 'Rosy Grace', 'shared' => 'modern' ],
+        'sweet-peony' => [ 'slug' => 'h1ww0', 'label' => 'Sweet Peony', 'shared' => 'classic' ],
+        'pink-cherub' => [ 'slug' => '0jzln', 'label' => 'Pink Cherub', 'shared' => 'romantic' ],
+        'little-prince' => [ 'slug' => '0487g', 'label' => 'Little Prince', 'shared' => 'modern' ],
+        'blue-angel' => [ 'slug' => 'aq8z0', 'label' => 'Blue Angel', 'shared' => 'modern' ],
+        'gentle-sailor' => [ 'slug' => 'yqsze', 'label' => 'Gentle Sailor', 'shared' => 'modern' ],
+        'sky-blessing' => [ 'slug' => '1irb5', 'label' => 'Sky Blessing', 'shared' => 'editorial' ],
+        'royal-baptism' => [ 'slug' => '5o9gi', 'label' => 'Royal Baptism', 'shared' => 'classic' ],
+        'twin-harmony' => [ 'slug' => 'w1a2c', 'label' => 'Twin Harmony', 'shared' => 'editorial' ],
+        'triple-blessing' => [ 'slug' => '5o9dm', 'label' => 'Triple Blessing', 'shared' => 'classic' ],
+        'heavenly-stars' => [ 'slug' => 't0bes', 'label' => 'Heavenly Stars', 'shared' => 'editorial' ],
+        'little-miracles' => [ 'slug' => 'mjibs', 'label' => 'Little Miracles', 'shared' => 'romantic' ],
+        'angelic-trio' => [ 'slug' => 'gks08', 'label' => 'Angelic Trio', 'shared' => 'classic' ],
+    ];
 }
 
 function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = [] ) {

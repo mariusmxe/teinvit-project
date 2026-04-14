@@ -56,23 +56,84 @@
         return out;
     }
 
+    function themeCatalog() {
+        return {
+            'little-princess': { shared: 'theme-editorial-luxury' },
+            'blush-angel': { shared: 'theme-romantic-floral' },
+            'rosy-grace': { shared: 'theme-modern-minimal' },
+            'sweet-peony': { shared: 'theme-classic-elegant' },
+            'pink-cherub': { shared: 'theme-romantic-floral' },
+            'little-prince': { shared: 'theme-modern-minimal' },
+            'blue-angel': { shared: 'theme-modern-minimal' },
+            'gentle-sailor': { shared: 'theme-modern-minimal' },
+            'sky-blessing': { shared: 'theme-editorial-luxury' },
+            'royal-baptism': { shared: 'theme-classic-elegant' },
+            'twin-harmony': { shared: 'theme-editorial-luxury' },
+            'triple-blessing': { shared: 'theme-classic-elegant' },
+            'heavenly-stars': { shared: 'theme-editorial-luxury' },
+            'little-miracles': { shared: 'theme-romantic-floral' },
+            'angelic-trio': { shared: 'theme-classic-elegant' }
+        };
+    }
+
+    function normalizeThemeKey(themeKey) {
+        var raw = String(themeKey || '').toLowerCase().trim();
+        if (!raw) return 'little-princess';
+        var catalog = themeCatalog();
+        if (catalog[raw]) return raw;
+
+        var aliases = {
+            '58a6u': 'little-princess',
+            'trs1l': 'blush-angel',
+            'pu7cd': 'rosy-grace',
+            'h1ww0': 'sweet-peony',
+            '0jzln': 'pink-cherub',
+            '0487g': 'little-prince',
+            'aq8z0': 'blue-angel',
+            'yqsze': 'gentle-sailor',
+            '1irb5': 'sky-blessing',
+            '5o9gi': 'royal-baptism',
+            'w1a2c': 'twin-harmony',
+            '5o9dm': 'triple-blessing',
+            't0bes': 'heavenly-stars',
+            'mjibs': 'little-miracles',
+            'gks08': 'angelic-trio',
+            'little princess': 'little-princess',
+            'blush angel': 'blush-angel',
+            'rosy grace': 'rosy-grace',
+            'sweet peony': 'sweet-peony',
+            'pink cherub': 'pink-cherub',
+            'little prince': 'little-prince',
+            'blue angel': 'blue-angel',
+            'gentle sailor': 'gentle-sailor',
+            'sky blessing': 'sky-blessing',
+            'royal baptism': 'royal-baptism',
+            'twin harmony': 'twin-harmony',
+            'triple blessing': 'triple-blessing',
+            'heavenly stars': 'heavenly-stars',
+            'little miracles': 'little-miracles',
+            'angelic trio': 'angelic-trio'
+        };
+        if (aliases[raw]) return aliases[raw];
+
+        raw = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return catalog[raw] ? raw : 'little-princess';
+    }
+
     function applyTheme(canvas, themeKey) {
         if (!canvas) return;
         [
             'theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant',
-            'theme-baptism-editorial', 'theme-baptism-romantic', 'theme-baptism-modern', 'theme-baptism-classic'
+            'theme-baptism-little-princess', 'theme-baptism-blush-angel', 'theme-baptism-rosy-grace', 'theme-baptism-sweet-peony',
+            'theme-baptism-pink-cherub', 'theme-baptism-little-prince', 'theme-baptism-blue-angel', 'theme-baptism-gentle-sailor',
+            'theme-baptism-sky-blessing', 'theme-baptism-royal-baptism', 'theme-baptism-twin-harmony', 'theme-baptism-triple-blessing',
+            'theme-baptism-heavenly-stars', 'theme-baptism-little-miracles', 'theme-baptism-angelic-trio'
         ].forEach(function (c) { canvas.classList.remove(c); });
 
-        var t = String(themeKey || 'editorial').toLowerCase();
-        var shared = 'theme-editorial-luxury';
-        if (t === 'romantic') shared = 'theme-romantic-floral';
-        else if (t === 'modern') shared = 'theme-modern-minimal';
-        else if (t === 'classic') shared = 'theme-classic-elegant';
-
-        var vertical = 'theme-baptism-editorial';
-        if (t === 'romantic') vertical = 'theme-baptism-romantic';
-        else if (t === 'modern') vertical = 'theme-baptism-modern';
-        else if (t === 'classic') vertical = 'theme-baptism-classic';
+        var key = normalizeThemeKey(themeKey);
+        var catalog = themeCatalog();
+        var shared = (catalog[key] && catalog[key].shared) || 'theme-editorial-luxury';
+        var vertical = 'theme-baptism-' + key;
 
         canvas.classList.add(shared);
         canvas.classList.add(vertical);

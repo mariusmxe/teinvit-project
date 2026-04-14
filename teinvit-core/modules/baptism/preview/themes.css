@@ -1,25 +1,69 @@
-.teinvit-canvas.theme-baptism-editorial,
-.teinvit-canvas.theme-baptism-romantic,
-.teinvit-canvas.theme-baptism-modern,
-.teinvit-canvas.theme-baptism-classic {
+.teinvit-canvas.theme-baptism-little-princess,
+.teinvit-canvas.theme-baptism-blush-angel,
+.teinvit-canvas.theme-baptism-rosy-grace,
+.teinvit-canvas.theme-baptism-sweet-peony,
+.teinvit-canvas.theme-baptism-pink-cherub,
+.teinvit-canvas.theme-baptism-little-prince,
+.teinvit-canvas.theme-baptism-blue-angel,
+.teinvit-canvas.theme-baptism-gentle-sailor,
+.teinvit-canvas.theme-baptism-sky-blessing,
+.teinvit-canvas.theme-baptism-royal-baptism,
+.teinvit-canvas.theme-baptism-twin-harmony,
+.teinvit-canvas.theme-baptism-triple-blessing,
+.teinvit-canvas.theme-baptism-heavenly-stars,
+.teinvit-canvas.theme-baptism-little-miracles,
+.teinvit-canvas.theme-baptism-angelic-trio {
   text-shadow: none;
 }
 
-.teinvit-canvas.theme-baptism-editorial .inv-names { font-family: 'Inter', sans-serif; color: #244a9b; }
-.teinvit-canvas.theme-baptism-editorial .inv-message { color: #1f2f57; }
-.teinvit-canvas.theme-baptism-editorial .section-title { color: #4d6eb3; }
+.teinvit-canvas.theme-baptism-little-princess .inv-names,
+.teinvit-canvas.theme-baptism-sky-blessing .inv-names,
+.teinvit-canvas.theme-baptism-twin-harmony .inv-names,
+.teinvit-canvas.theme-baptism-heavenly-stars .inv-names { font-family: 'Inter', sans-serif; color: #244a9b; }
+.teinvit-canvas.theme-baptism-little-princess .inv-message,
+.teinvit-canvas.theme-baptism-sky-blessing .inv-message,
+.teinvit-canvas.theme-baptism-twin-harmony .inv-message,
+.teinvit-canvas.theme-baptism-heavenly-stars .inv-message { color: #1f2f57; }
+.teinvit-canvas.theme-baptism-little-princess .section-title,
+.teinvit-canvas.theme-baptism-sky-blessing .section-title,
+.teinvit-canvas.theme-baptism-twin-harmony .section-title,
+.teinvit-canvas.theme-baptism-heavenly-stars .section-title { color: #4d6eb3; }
 
-.teinvit-canvas.theme-baptism-romantic .inv-names { font-family: 'Parisienne', cursive; color: #8d3f9e; }
-.teinvit-canvas.theme-baptism-romantic .inv-message { color: #5c2e66; }
-.teinvit-canvas.theme-baptism-romantic .section-title { color: #9b57a8; }
+.teinvit-canvas.theme-baptism-blush-angel .inv-names,
+.teinvit-canvas.theme-baptism-pink-cherub .inv-names,
+.teinvit-canvas.theme-baptism-little-miracles .inv-names { font-family: 'Parisienne', cursive; color: #8d3f9e; }
+.teinvit-canvas.theme-baptism-blush-angel .inv-message,
+.teinvit-canvas.theme-baptism-pink-cherub .inv-message,
+.teinvit-canvas.theme-baptism-little-miracles .inv-message { color: #5c2e66; }
+.teinvit-canvas.theme-baptism-blush-angel .section-title,
+.teinvit-canvas.theme-baptism-pink-cherub .section-title,
+.teinvit-canvas.theme-baptism-little-miracles .section-title { color: #9b57a8; }
 
-.teinvit-canvas.theme-baptism-modern .inv-names { font-family: 'DM Sans', sans-serif; color: #0f766e; }
-.teinvit-canvas.theme-baptism-modern .inv-message { color: #115e59; }
-.teinvit-canvas.theme-baptism-modern .section-title { color: #0d9488; }
+.teinvit-canvas.theme-baptism-rosy-grace .inv-names,
+.teinvit-canvas.theme-baptism-little-prince .inv-names,
+.teinvit-canvas.theme-baptism-blue-angel .inv-names,
+.teinvit-canvas.theme-baptism-gentle-sailor .inv-names { font-family: 'DM Sans', sans-serif; color: #0f766e; }
+.teinvit-canvas.theme-baptism-rosy-grace .inv-message,
+.teinvit-canvas.theme-baptism-little-prince .inv-message,
+.teinvit-canvas.theme-baptism-blue-angel .inv-message,
+.teinvit-canvas.theme-baptism-gentle-sailor .inv-message { color: #115e59; }
+.teinvit-canvas.theme-baptism-rosy-grace .section-title,
+.teinvit-canvas.theme-baptism-little-prince .section-title,
+.teinvit-canvas.theme-baptism-blue-angel .section-title,
+.teinvit-canvas.theme-baptism-gentle-sailor .section-title { color: #0d9488; }
 
-.teinvit-canvas.theme-baptism-classic .inv-names { font-family: 'Source Serif 4', serif; color: #7a4a12; }
-.teinvit-canvas.theme-baptism-classic .inv-message { color: #5a3b18; }
-.teinvit-canvas.theme-baptism-classic .section-title { color: #9a6a2e; }
+.teinvit-canvas.theme-baptism-sweet-peony .inv-names,
+.teinvit-canvas.theme-baptism-royal-baptism .inv-names,
+.teinvit-canvas.theme-baptism-triple-blessing .inv-names,
+.teinvit-canvas.theme-baptism-angelic-trio .inv-names { font-family: 'Source Serif 4', serif; color: #7a4a12; }
+.teinvit-canvas.theme-baptism-sweet-peony .inv-message,
+.teinvit-canvas.theme-baptism-royal-baptism .inv-message,
+.teinvit-canvas.theme-baptism-triple-blessing .inv-message,
+.teinvit-canvas.theme-baptism-angelic-trio .inv-message { color: #5a3b18; }
+.teinvit-canvas.theme-baptism-sweet-peony .section-title,
+.teinvit-canvas.theme-baptism-royal-baptism .section-title,
+.teinvit-canvas.theme-baptism-triple-blessing .section-title,
+.teinvit-canvas.theme-baptism-angelic-trio .section-title { color: #9a6a2e; }
 
 .teinvit-baptism .inv-parents-grid {
   display: grid;
