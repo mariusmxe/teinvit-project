@@ -331,6 +331,14 @@
   text-transform: uppercase;
 }
 
+.teinvit-baptism .inv-event strong {
+  font-family: var(--ba-caps-font);
+  color: var(--ba-color-accent);
+  font-size: var(--ba-size-caps);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 .teinvit-baptism .inv-parent-col,
 .teinvit-baptism .inv-parent-sep,
 .teinvit-baptism .inv-event > div {

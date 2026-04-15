@@ -76,6 +76,15 @@
         };
     }
 
+    function parseUnitsFromHeadline(headline) {
+        var raw = String(headline || '').replace(/\s+/g, ' ').trim();
+        if (!raw) return [];
+        return raw
+            .split(/\s*(?:,|&|și)\s*/i)
+            .map(function (part) { return String(part || '').trim(); })
+            .filter(Boolean);
+    }
+
     function normalizeNameUnits(units, fallbackHeadline) {
         if (Array.isArray(units)) {
             var cleaned = units.map(function (u) {
@@ -83,6 +92,8 @@
             }).filter(Boolean);
             if (cleaned.length) return cleaned;
         }
+        var parsed = parseUnitsFromHeadline(fallbackHeadline);
+        if (parsed.length) return parsed;
         var fallback = String(fallbackHeadline || '').replace(/\s+/g, ' ').trim();
         return fallback ? [fallback] : [];
     }
