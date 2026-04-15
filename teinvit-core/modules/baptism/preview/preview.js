@@ -76,6 +76,55 @@
         };
     }
 
+    function normalizeNameUnits(units, fallbackHeadline) {
+        if (Array.isArray(units)) {
+            var cleaned = units.map(function (u) {
+                return String(u || '').replace(/\s+/g, ' ').trim();
+            }).filter(Boolean);
+            if (cleaned.length) return cleaned;
+        }
+        var fallback = String(fallbackHeadline || '').replace(/\s+/g, ' ').trim();
+        return fallback ? [fallback] : [];
+    }
+
+    function toNoWrap(text) {
+        return String(text || '').replace(/\s+/g, ' ').trim().replace(/ /g, '\u00A0');
+    }
+
+    function formatNamesWeddingRule(units, maxCharsPerLine, fallbackHeadline) {
+        var names = normalizeNameUnits(units, fallbackHeadline);
+        if (!names.length) return '';
+        var limit = Math.max(12, parseInt(maxCharsPerLine || 22, 10));
+        var tokens = [];
+
+        names.forEach(function (name, idx) {
+            var connector = '';
+            if (idx > 0) {
+                connector = (idx === names.length - 1) ? 'și ' : '& ';
+            }
+            var rawToken = connector + name;
+            tokens.push({
+                measure: rawToken
+            });
+        });
+
+        var lines = [];
+        var current = '';
+
+        tokens.forEach(function (token) {
+            var probe = current ? (current + ' ' + token.measure) : token.measure;
+            if (!current || probe.length <= limit) {
+                current = probe;
+                return;
+            }
+            lines.push(current);
+            current = token.measure;
+        });
+        if (current) lines.push(current);
+
+        return lines.map(function (line) { return toNoWrap(line); }).join('\n');
+    }
+
     function normalizeThemeKey(themeKey) {
         var raw = String(themeKey || '').toLowerCase().trim();
         if (!raw) return 'little-princess';
@@ -155,10 +204,7 @@
 
         var names = qs('.inv-names', canvas);
         if (names) {
-            var formattedHeadline = inv.headline || '';
-            if (engine() && typeof engine().formatNamesLayout === 'function') {
-                formattedHeadline = engine().formatNamesLayout(formattedHeadline, { lineLimit: 22, units: inv.name_units || [] });
-            }
+            var formattedHeadline = formatNamesWeddingRule(inv.name_units || [], inv.name_line_limit || 22, inv.headline || '');
             names.textContent = formattedHeadline;
             names.style.whiteSpace = 'pre-line';
         }

@@ -73,6 +73,55 @@
         };
     }
 
+    function normalizeNameUnits(units, fallbackHeadline) {
+        if (Array.isArray(units)) {
+            var cleaned = units.map(function (u) {
+                return String(u || '').replace(/\s+/g, ' ').trim();
+            }).filter(Boolean);
+            if (cleaned.length) return cleaned;
+        }
+        var fallback = String(fallbackHeadline || '').replace(/\s+/g, ' ').trim();
+        return fallback ? [fallback] : [];
+    }
+
+    function toNoWrap(text) {
+        return String(text || '').replace(/\s+/g, ' ').trim().replace(/ /g, '\u00A0');
+    }
+
+    function formatNamesWeddingRule(units, maxCharsPerLine, fallbackHeadline) {
+        var names = normalizeNameUnits(units, fallbackHeadline);
+        if (!names.length) return '';
+        var limit = Math.max(12, parseInt(maxCharsPerLine || 22, 10));
+        var tokens = [];
+
+        names.forEach(function (name, idx) {
+            var connector = '';
+            if (idx > 0) {
+                connector = (idx === names.length - 1) ? 'și ' : '& ';
+            }
+            var rawToken = connector + name;
+            tokens.push({
+                measure: rawToken
+            });
+        });
+
+        var lines = [];
+        var current = '';
+
+        tokens.forEach(function (token) {
+            var probe = current ? (current + ' ' + token.measure) : token.measure;
+            if (!current || probe.length <= limit) {
+                current = probe;
+                return;
+            }
+            lines.push(current);
+            current = token.measure;
+        });
+        if (current) lines.push(current);
+
+        return lines.map(function (line) { return toNoWrap(line); }).join('\n');
+    }
+
     function normalizeThemeKey(themeKey) {
         var raw = String(themeKey || '').toLowerCase().trim();
         if (!raw) return 'editorial-luxury';
@@ -151,10 +200,7 @@
 
         var names = qs('.inv-names', canvas);
         if (names) {
-            var formattedHeadline = inv.headline || '';
-            if (engine() && typeof engine().formatNamesLayout === 'function') {
-                formattedHeadline = engine().formatNamesLayout(formattedHeadline, { lineLimit: 22, units: inv.name_units || [] });
-            }
+            var formattedHeadline = formatNamesWeddingRule(inv.name_units || [], inv.name_line_limit || 22, inv.headline || '');
             names.textContent = formattedHeadline;
             names.style.whiteSpace = 'pre-line';
         }
@@ -217,15 +263,41 @@
     function applyAutoFit(canvas) {
         if (!canvas) return;
         if (engine() && typeof engine().autoFit === 'function') {
-            engine().autoFit(canvas, { min: 0.60, step: 0.02, maxLoops: 50 });
+            engine().autoFit(canvas, { min: 0.66, step: 0.02, maxLoops: 50 });
             return;
         }
     }
 
     function distributeVerticalSpace(canvas) {
         if (!canvas) return;
-        if (engine() && typeof engine().distributeVerticalSpace === 'function') {
-            engine().distributeVerticalSpace(canvas, ['.inv-age', '.inv-names', '.inv-event-name', '.inv-message', '.inv-events'], { reserve: 10, minGap: 7, maxGap: 24 });
+        var age = qs('.inv-age', canvas);
+        var names = qs('.inv-names', canvas);
+        var eventName = qs('.inv-event-name', canvas);
+        var msg = qs('.inv-message', canvas);
+        var events = qs('.inv-events', canvas);
+        var nodes = [age, names, eventName, msg, events].filter(function (node) {
+            return node && node.style.display !== 'none';
+        });
+        if (!nodes.length) return;
+
+        nodes.forEach(function (node) {
+            node.style.marginTop = '';
+            node.style.marginBottom = '';
+        });
+
+        if (names) names.style.marginTop = age && age.style.display !== 'none' ? '4px' : '0px';
+        if (eventName && eventName.style.display !== 'none') eventName.style.marginTop = '4px';
+        if (msg && msg.style.display !== 'none') msg.style.marginTop = '6px';
+        if (events && events.style.display !== 'none') events.style.marginTop = '10px';
+
+        var used = nodes.reduce(function (acc, node) {
+            return acc + node.offsetHeight;
+        }, 0);
+        var free = Math.max(0, canvas.clientHeight - used - 4);
+        if (events && events.style.display !== 'none' && free > 0) {
+            var current = parseFloat(events.style.marginTop || '0') || 0;
+            var bonus = Math.min(48, Math.max(14, Math.floor(free * 0.55)));
+            events.style.marginTop = (current + bonus) + 'px';
         }
     }
 
