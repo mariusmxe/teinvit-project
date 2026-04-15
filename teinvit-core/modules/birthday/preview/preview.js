@@ -55,21 +55,21 @@
 
     function themeCatalog() {
         return {
-            'editorial-luxury': { shared: 'theme-editorial-luxury' },
-            'romantic-floral': { shared: 'theme-romantic-floral' },
-            'modern-minimal': { shared: 'theme-modern-minimal' },
-            'classic-elegant': { shared: 'theme-classic-elegant' },
-            'playful-confetti': { shared: 'theme-editorial-luxury' },
-            'candy-pastel': { shared: 'theme-romantic-floral' },
-            'storybook-dream': { shared: 'theme-romantic-floral' },
-            'balloon-party': { shared: 'theme-modern-minimal' },
-            'golden-celebration': { shared: 'theme-classic-elegant' },
-            'chic-blush': { shared: 'theme-romantic-floral' },
-            'midnight-glam': { shared: 'theme-modern-minimal' },
-            'botanical-grace': { shared: 'theme-editorial-luxury' },
-            'royal-blue': { shared: 'theme-modern-minimal' },
-            'velvet-noir': { shared: 'theme-classic-elegant' },
-            'sunset-fiesta': { shared: 'theme-romantic-floral' }
+            'editorial-luxury': true,
+            'romantic-floral': true,
+            'modern-minimal': true,
+            'classic-elegant': true,
+            'playful-confetti': true,
+            'candy-pastel': true,
+            'storybook-dream': true,
+            'balloon-party': true,
+            'golden-celebration': true,
+            'chic-blush': true,
+            'midnight-glam': true,
+            'botanical-grace': true,
+            'royal-blue': true,
+            'velvet-noir': true,
+            'sunset-fiesta': true
         };
     }
 
@@ -120,7 +120,6 @@
     function applyTheme(canvas, themeKey) {
         if (!canvas) return;
         [
-            'theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant',
             'theme-birthday-editorial-luxury', 'theme-birthday-romantic-floral', 'theme-birthday-modern-minimal', 'theme-birthday-classic-elegant',
             'theme-birthday-playful-confetti', 'theme-birthday-candy-pastel', 'theme-birthday-storybook-dream', 'theme-birthday-balloon-party',
             'theme-birthday-golden-celebration', 'theme-birthday-chic-blush', 'theme-birthday-midnight-glam', 'theme-birthday-botanical-grace',
@@ -128,11 +127,8 @@
         ].forEach(function (c) { canvas.classList.remove(c); });
 
         var key = normalizeThemeKey(themeKey);
-        var catalog = themeCatalog();
-        var shared = (catalog[key] && catalog[key].shared) || 'theme-editorial-luxury';
         var vertical = 'theme-birthday-' + key;
 
-        canvas.classList.add(shared);
         canvas.classList.add(vertical);
     }
 

@@ -58,21 +58,21 @@
 
     function themeCatalog() {
         return {
-            'little-princess': { shared: 'theme-editorial-luxury' },
-            'blush-angel': { shared: 'theme-romantic-floral' },
-            'rosy-grace': { shared: 'theme-modern-minimal' },
-            'sweet-peony': { shared: 'theme-classic-elegant' },
-            'pink-cherub': { shared: 'theme-romantic-floral' },
-            'little-prince': { shared: 'theme-modern-minimal' },
-            'blue-angel': { shared: 'theme-modern-minimal' },
-            'gentle-sailor': { shared: 'theme-modern-minimal' },
-            'sky-blessing': { shared: 'theme-editorial-luxury' },
-            'royal-baptism': { shared: 'theme-classic-elegant' },
-            'twin-harmony': { shared: 'theme-editorial-luxury' },
-            'triple-blessing': { shared: 'theme-classic-elegant' },
-            'heavenly-stars': { shared: 'theme-editorial-luxury' },
-            'little-miracles': { shared: 'theme-romantic-floral' },
-            'angelic-trio': { shared: 'theme-classic-elegant' }
+            'little-princess': true,
+            'blush-angel': true,
+            'rosy-grace': true,
+            'sweet-peony': true,
+            'pink-cherub': true,
+            'little-prince': true,
+            'blue-angel': true,
+            'gentle-sailor': true,
+            'sky-blessing': true,
+            'royal-baptism': true,
+            'twin-harmony': true,
+            'triple-blessing': true,
+            'heavenly-stars': true,
+            'little-miracles': true,
+            'angelic-trio': true
         };
     }
 
@@ -123,7 +123,6 @@
     function applyTheme(canvas, themeKey) {
         if (!canvas) return;
         [
-            'theme-editorial-luxury', 'theme-romantic-floral', 'theme-modern-minimal', 'theme-classic-elegant',
             'theme-baptism-little-princess', 'theme-baptism-blush-angel', 'theme-baptism-rosy-grace', 'theme-baptism-sweet-peony',
             'theme-baptism-pink-cherub', 'theme-baptism-little-prince', 'theme-baptism-blue-angel', 'theme-baptism-gentle-sailor',
             'theme-baptism-sky-blessing', 'theme-baptism-royal-baptism', 'theme-baptism-twin-harmony', 'theme-baptism-triple-blessing',
@@ -131,11 +130,8 @@
         ].forEach(function (c) { canvas.classList.remove(c); });
 
         var key = normalizeThemeKey(themeKey);
-        var catalog = themeCatalog();
-        var shared = (catalog[key] && catalog[key].shared) || 'theme-editorial-luxury';
         var vertical = 'theme-baptism-' + key;
 
-        canvas.classList.add(shared);
         canvas.classList.add(vertical);
     }
 

@@ -62,12 +62,7 @@ function teinvit_birthday_theme_class( $theme_key ) {
     if ( ! isset( $catalog[ $theme_key ] ) ) {
         $theme_key = 'editorial-luxury';
     }
-    $entry = $catalog[ $theme_key ];
-    $shared_key = trim( (string) ( $entry['shared'] ?? 'editorial' ) );
-    $shared = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $shared_key ) : 'theme-editorial-luxury';
-    $vertical = 'theme-birthday-' . sanitize_html_class( $theme_key );
-
-    return trim( $vertical . ' ' . $shared );
+    return 'theme-birthday-' . sanitize_html_class( $theme_key );
 }
 
 function teinvit_birthday_theme_catalog() {
@@ -337,9 +332,13 @@ function teinvit_birthday_renderer( array $context = [] ) {
     static $assets_loaded = false;
     if ( ! $assets_loaded ) {
         $assets_loaded = true;
+        $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
+        $base_css = TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' );
+        $base_css = add_query_arg( 'ver', rawurlencode( $ver ), $base_css );
+        $theme_css = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BIRTHDAY_MODULE_URL . 'preview/themes.css' );
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Source+Serif+4:wght@400;600&family=Inter:wght@400;600;700&family=Parisienne&family=Lora:wght@400;600&family=Montserrat:wght@500;600;700&family=Poppins:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=EB+Garamond:wght@400;600;700&family=Libre+Baskerville:wght@400;700&family=Baloo+2:wght@400;600;700&family=Oswald:wght@400;500;600&family=Satisfy&family=Raleway:wght@500;600;700&family=Unna:wght@400;700&family=Nunito:wght@400;600;700&family=Bodoni+Moda:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@400;600;700&family=Spectral:wght@400;600&family=DM+Serif+Display&family=Prata&display=swap">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/themes.css' ) . '">' . $html;
+            . '<link rel="stylesheet" href="' . esc_url( $base_css ) . '">'
+            . '<link rel="stylesheet" href="' . esc_url( $theme_css ) . '">' . $html;
     }
 
     if ( ! $is_pdf ) {
@@ -348,8 +347,11 @@ function teinvit_birthday_renderer( array $context = [] ) {
         $html .= '<script>window.teinvitBirthdayPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
         $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
         if ( ! $is_product_page ) {
-            $html .= '<script src="' . esc_url( TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' ) . '"></script>';
-            $html .= '<script src="' . esc_url( TEINVIT_BIRTHDAY_MODULE_URL . 'preview/preview.js' ) . '"></script>';
+            $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
+            $engine_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' );
+            $preview_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BIRTHDAY_MODULE_URL . 'preview/preview.js' );
+            $html .= '<script src="' . esc_url( $engine_js ) . '"></script>';
+            $html .= '<script src="' . esc_url( $preview_js ) . '"></script>';
         }
     }
 
