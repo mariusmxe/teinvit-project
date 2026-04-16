@@ -101,9 +101,11 @@ app.post('/api/render', async (req, res) => {
 
         await page.pdf({
             path: pdfPath,
-            format: 'A5',
+            width: '148mm',
+            height: '210mm',
+            scale: 1,
             printBackground: true,
-            preferCSSPageSize: true,
+            displayHeaderFooter: false,
             margin: {
                 top: 0,
                 right: 0,

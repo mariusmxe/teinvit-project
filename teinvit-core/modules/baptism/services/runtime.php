@@ -45,6 +45,15 @@ function teinvit_baptism_theme_value_map() {
 function teinvit_baptism_resolve_theme_key( $raw_theme ) {
     $raw_theme = trim( (string) $raw_theme );
     $raw_theme_lower = strtolower( $raw_theme );
+    $shared_aliases = [
+        'editorial' => 'little-princess',
+        'romantic' => 'blush-angel',
+        'modern' => 'little-prince',
+        'classic' => 'royal-baptism',
+    ];
+    if ( isset( $shared_aliases[ $raw_theme_lower ] ) ) {
+        return $shared_aliases[ $raw_theme_lower ];
+    }
     $map = teinvit_baptism_theme_value_map();
     if ( $raw_theme !== '' && isset( $map[ $raw_theme ] ) ) {
         return $map[ $raw_theme ];

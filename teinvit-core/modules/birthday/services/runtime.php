@@ -38,6 +38,15 @@ function teinvit_birthday_theme_value_map() {
 function teinvit_birthday_resolve_theme_key( $raw_theme ) {
     $raw_theme = trim( (string) $raw_theme );
     $raw_theme_lower = strtolower( $raw_theme );
+    $shared_aliases = [
+        'editorial' => 'editorial-luxury',
+        'romantic' => 'romantic-floral',
+        'modern' => 'modern-minimal',
+        'classic' => 'classic-elegant',
+    ];
+    if ( isset( $shared_aliases[ $raw_theme_lower ] ) ) {
+        return $shared_aliases[ $raw_theme_lower ];
+    }
     $map = teinvit_birthday_theme_value_map();
     if ( $raw_theme !== '' && isset( $map[ $raw_theme ] ) ) {
         return $map[ $raw_theme ];

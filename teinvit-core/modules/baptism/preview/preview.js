@@ -200,6 +200,10 @@
             'little miracles': 'little-miracles',
             'angelic trio': 'angelic-trio'
         };
+        aliases.editorial = 'little-princess';
+        aliases.romantic = 'blush-angel';
+        aliases.modern = 'little-prince';
+        aliases.classic = 'royal-baptism';
         if (aliases[raw]) return aliases[raw];
 
         raw = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');

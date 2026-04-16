@@ -200,6 +200,10 @@
             'velvet noir': 'velvet-noir',
             'sunset fiesta': 'sunset-fiesta'
         };
+        aliases.editorial = 'editorial-luxury';
+        aliases.romantic = 'romantic-floral';
+        aliases.modern = 'modern-minimal';
+        aliases.classic = 'classic-elegant';
         if (aliases[raw]) return aliases[raw];
 
         raw = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
