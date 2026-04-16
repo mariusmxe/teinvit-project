@@ -235,9 +235,16 @@
 
         applyTheme(canvas, inv.theme || 'editorial-luxury');
 
+        if (window.__TEINVIT_PDF_MODE__) {
+            window.__TEINVIT_PDF_READY__ = false;
+        }
+
         var names = qs('.inv-names', canvas);
         if (names) {
-            var formattedHeadline = formatNamesWeddingRule(inv.name_units || [], inv.name_line_limit || 22, inv.headline || '');
+            var formattedHeadline = String(inv.headline_display || '').trim();
+            if (!formattedHeadline) {
+                formattedHeadline = formatNamesWeddingRule(inv.name_units || [], inv.name_line_limit || 22, inv.headline || '');
+            }
             names.textContent = formattedHeadline;
             names.style.whiteSpace = 'pre-line';
         }
@@ -284,14 +291,16 @@
             top.appendChild(node);
         }
 
-        if (isProductPreviewContext()) {
-            applyAutoFit(canvas);
-            distributeVerticalSpace(canvas);
-            scheduleFinalPass(canvas);
-        }
+        applyAutoFit(canvas);
+        distributeVerticalSpace(canvas);
+        scheduleFinalPass(canvas);
 
         if (window.__TEINVIT_PDF_MODE__) {
-            window.__TEINVIT_PDF_READY__ = true;
+            setTimeout(function () {
+                distributeVerticalSpace(canvas);
+                if (hasOverflow(canvas)) applyAutoFit(canvas);
+                window.__TEINVIT_PDF_READY__ = true;
+            }, 380);
         }
     }
 
@@ -317,24 +326,22 @@
         });
         if (!nodes.length) return;
 
-        nodes.forEach(function (node) {
-            node.style.marginTop = '';
-            node.style.marginBottom = '';
-        });
-
-        if (names) names.style.marginTop = age && age.style.display !== 'none' ? '4px' : '0px';
-        if (eventName && eventName.style.display !== 'none') eventName.style.marginTop = '4px';
-        if (msg && msg.style.display !== 'none') msg.style.marginTop = '6px';
-        if (events && events.style.display !== 'none') events.style.marginTop = '10px';
-
-        var used = nodes.reduce(function (acc, node) {
-            return acc + node.offsetHeight;
-        }, 0);
-        var free = Math.max(0, canvas.clientHeight - used - 4);
-        if (events && events.style.display !== 'none' && free > 0) {
-            var current = parseFloat(events.style.marginTop || '0') || 0;
-            var bonus = Math.min(48, Math.max(14, Math.floor(free * 0.55)));
-            events.style.marginTop = (current + bonus) + 'px';
+        if (engine() && typeof engine().distributeVerticalSpace === 'function') {
+            engine().distributeVerticalSpace(canvas, ['.inv-age', '.inv-names', '.inv-event-name', '.inv-message', '.inv-events'], { reserve: 12, minGap: 8, maxGap: 28 });
+            if (age && age.style.display !== 'none' && names && names.style.display !== 'none') {
+                names.style.marginTop = '8px';
+            }
+            if (eventName && eventName.style.display !== 'none' && names && names.style.display !== 'none') {
+                eventName.style.marginTop = '8px';
+            }
+            if (msg && msg.style.display !== 'none') {
+                msg.style.marginTop = '10px';
+            }
+            if (events && events.style.display !== 'none') {
+                var currentTop = parseFloat(events.style.marginTop || '0') || 0;
+                events.style.marginTop = Math.max(currentTop, 12) + 'px';
+            }
+            return;
         }
     }
 

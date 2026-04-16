@@ -92,6 +92,74 @@ function teinvit_baptism_theme_catalog() {
     ];
 }
 
+function teinvit_baptism_name_line_limit( array $names ) {
+    return count( $names ) >= 3 ? 30 : 22;
+}
+
+function teinvit_baptism_format_name_units( array $units, $fallback = '' ) {
+    $names = array_values( array_filter( array_map( static function( $value ) {
+        return trim( preg_replace( '/\s+/', ' ', (string) $value ) );
+    }, $units ) ) );
+
+    if ( empty( $names ) ) {
+        return trim( preg_replace( '/\s+/', ' ', (string) $fallback ) );
+    }
+
+    $limit = max( 12, teinvit_baptism_name_line_limit( $names ) );
+    $tokens = [];
+    foreach ( $names as $index => $name ) {
+        $chunks = preg_split( '/\s+/', $name );
+        $chunks = array_values( array_filter( array_map( 'trim', $chunks ) ) );
+        if ( empty( $chunks ) ) {
+            continue;
+        }
+
+        $lines = [];
+        $current = '';
+        foreach ( $chunks as $chunk ) {
+            $probe = $current === '' ? $chunk : ( $current . ' ' . $chunk );
+            if ( $current === '' || strlen( $probe ) <= $limit ) {
+                $current = $probe;
+                continue;
+            }
+            $lines[] = $current;
+            $current = $chunk;
+        }
+        if ( $current !== '' ) {
+            $lines[] = $current;
+        }
+
+        $connector = '';
+        if ( $index > 0 ) {
+            $connector = ( $index === count( $names ) - 1 ) ? 'și ' : '& ';
+        }
+        foreach ( $lines as $line_index => $line ) {
+            $tokens[] = ( $line_index === 0 ? $connector : '' ) . $line;
+        }
+    }
+
+    if ( empty( $tokens ) ) {
+        return trim( preg_replace( '/\s+/', ' ', (string) $fallback ) );
+    }
+
+    $final = [];
+    $current = '';
+    foreach ( $tokens as $token ) {
+        $probe = $current === '' ? $token : ( $current . ' ' . $token );
+        if ( $current === '' || strlen( $probe ) <= $limit ) {
+            $current = $probe;
+            continue;
+        }
+        $final[] = $current;
+        $current = $token;
+    }
+    if ( $current !== '' ) {
+        $final[] = $current;
+    }
+
+    return implode( "\n", $final );
+}
+
 function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = [] ) {
     $ids = teinvit_baptism_field_ids();
     $product_id = isset( $context['product_id'] ) ? (int) $context['product_id'] : 0;
@@ -127,6 +195,7 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
         'party_date' => [ 'data' ],
         'party_time' => [ 'ora' ],
         'party_waze' => [ 'link waze' ],
+        'theme' => [ 'alege stilul invitației', 'alege stilul invitatiei' ],
     ];
 
     $normalize_label = static function( $text ) {
@@ -284,7 +353,9 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
             'model_key' => 'invn01',
             'children' => $children,
             'name_units' => $children,
+            'name_line_limit' => teinvit_baptism_name_line_limit( $children ),
             'headline' => $headline,
+            'headline_display' => teinvit_baptism_format_name_units( $children, $headline ),
             'message' => $message,
             'parents' => [
                 'enabled' => $has( 'show_parents' ),
@@ -364,7 +435,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
         $html .= '<img src="' . esc_url( $background_url ) . '" alt="" class="teinvit-bg" draggable="false">';
     }
     $html .= '<div class="teinvit-canvas canvas--spread ' . esc_attr( $theme_class ) . '">';
-    $html .= '<div class="inv-names">' . esc_html( (string) ( $invitation['headline'] ?? '' ) ) . '</div>';
+    $html .= '<div class="inv-names">' . nl2br( esc_html( (string) ( $invitation['headline_display'] ?? ( $invitation['headline'] ?? '' ) ) ) ) . '</div>';
     $html .= '<div class="inv-divider" aria-hidden="true"></div>';
 
     if ( ! empty( $invitation['parents']['enabled'] ) ) {
@@ -417,10 +488,6 @@ function teinvit_baptism_renderer( array $context = [] ) {
     }
 
     $html .= '</div></div></div></div></div>';
-    if ( $is_pdf ) {
-        $html .= '<script>window.__TEINVIT_PDF_READY__ = true;</script>';
-    }
-
     static $assets_loaded = false;
     if ( ! $assets_loaded ) {
         $assets_loaded = true;
@@ -432,18 +499,16 @@ function teinvit_baptism_renderer( array $context = [] ) {
             . '<link rel="stylesheet" href="' . esc_url( $theme_css ) . '">' . $html;
     }
 
-    if ( ! $is_pdf ) {
-        $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
-        $html .= '<script>window.__TEINVIT_PDF_MODE__ = false;</script>';
-        $html .= '<script>window.teinvitBaptismPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
-        $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
-        if ( ! $is_product_page ) {
-            $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
-            $engine_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' );
-            $preview_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js' );
-            $html .= '<script src="' . esc_url( $engine_js ) . '"></script>';
-            $html .= '<script src="' . esc_url( $preview_js ) . '"></script>';
-        }
+    $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+    $html .= '<script>window.__TEINVIT_PDF_MODE__ = ' . ( $is_pdf ? 'true' : 'false' ) . ';</script>';
+    $html .= '<script>window.teinvitBaptismPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
+    $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
+    if ( $is_pdf || ! $is_product_page ) {
+        $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
+        $engine_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' );
+        $preview_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js' );
+        $html .= '<script src="' . esc_url( $engine_js ) . '"></script>';
+        $html .= '<script src="' . esc_url( $preview_js ) . '"></script>';
     }
 
     return $html;

@@ -369,13 +369,20 @@
   max-width: 100%;
 }
 
-.teinvit-birthday .inv-events .inv-event strong,
-.teinvit-birthday .inv-events .inv-event .inv-weekday {
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event strong {
   font-family: var(--b-caps-font);
   color: var(--b-color-accent);
   font-size: var(--b-size-caps);
   text-transform: uppercase;
   letter-spacing: .08em;
+}
+
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event .inv-weekday {
+  font-family: var(--b-body-font);
+  color: var(--b-color-secondary);
+  font-size: var(--b-size-date);
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
 .teinvit-birthday .inv-events .inv-event .inv-place {

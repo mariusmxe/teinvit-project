@@ -323,7 +323,7 @@
   line-height: 1.14;
 }
 
-.teinvit-baptism .section-title {
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
   font-family: var(--ba-caps-font);
   color: var(--ba-color-accent);
   font-size: var(--ba-size-caps);
@@ -331,7 +331,7 @@
   text-transform: uppercase;
 }
 
-.teinvit-baptism .inv-event strong {
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
   font-family: var(--ba-caps-font);
   color: var(--ba-color-accent);
   font-size: var(--ba-size-caps);

@@ -239,9 +239,16 @@
 
         applyTheme(canvas, inv.theme || 'little-princess');
 
+        if (window.__TEINVIT_PDF_MODE__) {
+            window.__TEINVIT_PDF_READY__ = false;
+        }
+
         var names = qs('.inv-names', canvas);
         if (names) {
-            var formattedHeadline = formatNamesWeddingRule(inv.name_units || [], inv.name_line_limit || 22, inv.headline || '');
+            var formattedHeadline = String(inv.headline_display || '').trim();
+            if (!formattedHeadline) {
+                formattedHeadline = formatNamesWeddingRule(inv.name_units || [], inv.name_line_limit || 22, inv.headline || '');
+            }
             names.textContent = formattedHeadline;
             names.style.whiteSpace = 'pre-line';
         }
@@ -301,14 +308,16 @@
             top.appendChild(node);
         });
 
-        if (isProductPreviewContext()) {
-            applyAutoFit(canvas);
-            distributeVerticalSpace(canvas);
-            scheduleFinalPass(canvas);
-        }
+        applyAutoFit(canvas);
+        distributeVerticalSpace(canvas);
+        scheduleFinalPass(canvas);
 
         if (window.__TEINVIT_PDF_MODE__) {
-            window.__TEINVIT_PDF_READY__ = true;
+            setTimeout(function () {
+                distributeVerticalSpace(canvas);
+                if (hasOverflow(canvas)) applyAutoFit(canvas);
+                window.__TEINVIT_PDF_READY__ = true;
+            }, 380);
         }
     }
 
