@@ -28,40 +28,68 @@ function teinvit_baptism_field_ids() {
 }
 
 function teinvit_baptism_theme_value_map() {
-    return [
-        '58a6u' => 'editorial',
-        'trs1l' => 'romantic',
-        'pu7cd' => 'modern',
-        'h1ww0' => 'classic',
-    ];
+    $map = [];
+    foreach ( teinvit_baptism_theme_catalog() as $key => $entry ) {
+        $slug = trim( (string) ( $entry['slug'] ?? '' ) );
+        $label = trim( (string) ( $entry['label'] ?? '' ) );
+        if ( $slug !== '' ) {
+            $map[ $slug ] = $key;
+        }
+        if ( $label !== '' ) {
+            $map[ strtolower( $label ) ] = $key;
+        }
+    }
+    return $map;
 }
 
 function teinvit_baptism_resolve_theme_key( $raw_theme ) {
     $raw_theme = trim( (string) $raw_theme );
+    $raw_theme_lower = strtolower( $raw_theme );
     $map = teinvit_baptism_theme_value_map();
     if ( $raw_theme !== '' && isset( $map[ $raw_theme ] ) ) {
         return $map[ $raw_theme ];
     }
+    if ( $raw_theme_lower !== '' && isset( $map[ $raw_theme_lower ] ) ) {
+        return $map[ $raw_theme_lower ];
+    }
+    if ( $raw_theme_lower !== '' ) {
+        $normalized = preg_replace( '/[^a-z0-9]+/i', '-', $raw_theme_lower );
+        $normalized = trim( (string) $normalized, '-' );
+        if ( $normalized !== '' && isset( teinvit_baptism_theme_catalog()[ $normalized ] ) ) {
+            return $normalized;
+        }
+    }
 
-    return function_exists( 'teinvit_resolve_theme_key_from_wapf_value' )
-        ? teinvit_resolve_theme_key_from_wapf_value( $raw_theme, $map )
-        : 'editorial';
+    return 'little-princess';
 }
 
 function teinvit_baptism_theme_class( $theme_key ) {
     $theme_key = strtolower( trim( (string) $theme_key ) );
-    $shared = function_exists( 'teinvit_theme_class_from_key' ) ? teinvit_theme_class_from_key( $theme_key ) : 'theme-editorial-luxury';
-
-    $vertical = 'theme-baptism-editorial';
-    if ( $theme_key === 'romantic' ) {
-        $vertical = 'theme-baptism-romantic';
-    } elseif ( $theme_key === 'modern' ) {
-        $vertical = 'theme-baptism-modern';
-    } elseif ( $theme_key === 'classic' ) {
-        $vertical = 'theme-baptism-classic';
+    $catalog = teinvit_baptism_theme_catalog();
+    if ( ! isset( $catalog[ $theme_key ] ) ) {
+        $theme_key = 'little-princess';
     }
+    return 'theme-baptism-' . sanitize_html_class( $theme_key );
+}
 
-    return trim( $vertical . ' ' . $shared );
+function teinvit_baptism_theme_catalog() {
+    return [
+        'little-princess' => [ 'slug' => '58a6u', 'label' => 'Little Princess', 'shared' => 'editorial' ],
+        'blush-angel' => [ 'slug' => 'trs1l', 'label' => 'Blush Angel', 'shared' => 'romantic' ],
+        'rosy-grace' => [ 'slug' => 'pu7cd', 'label' => 'Rosy Grace', 'shared' => 'modern' ],
+        'sweet-peony' => [ 'slug' => 'h1ww0', 'label' => 'Sweet Peony', 'shared' => 'classic' ],
+        'pink-cherub' => [ 'slug' => '0jzln', 'label' => 'Pink Cherub', 'shared' => 'romantic' ],
+        'little-prince' => [ 'slug' => '0487g', 'label' => 'Little Prince', 'shared' => 'modern' ],
+        'blue-angel' => [ 'slug' => 'aq8z0', 'label' => 'Blue Angel', 'shared' => 'modern' ],
+        'gentle-sailor' => [ 'slug' => 'yqsze', 'label' => 'Gentle Sailor', 'shared' => 'modern' ],
+        'sky-blessing' => [ 'slug' => '1irb5', 'label' => 'Sky Blessing', 'shared' => 'editorial' ],
+        'royal-baptism' => [ 'slug' => '5o9gi', 'label' => 'Royal Baptism', 'shared' => 'classic' ],
+        'twin-harmony' => [ 'slug' => 'w1a2c', 'label' => 'Twin Harmony', 'shared' => 'editorial' ],
+        'triple-blessing' => [ 'slug' => '5o9dm', 'label' => 'Triple Blessing', 'shared' => 'classic' ],
+        'heavenly-stars' => [ 'slug' => 't0bes', 'label' => 'Heavenly Stars', 'shared' => 'editorial' ],
+        'little-miracles' => [ 'slug' => 'mjibs', 'label' => 'Little Miracles', 'shared' => 'romantic' ],
+        'angelic-trio' => [ 'slug' => 'gks08', 'label' => 'Angelic Trio', 'shared' => 'classic' ],
+    ];
 }
 
 function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = [] ) {
@@ -101,7 +129,24 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
         'party_waze' => [ 'link waze' ],
     ];
 
-    $resolve_ids = static function( $key ) use ( $ids, $label_lookup, $fallback_labels ) {
+    $normalize_label = static function( $text ) {
+        $text = strtolower( trim( (string) $text ) );
+        $text = strtr(
+            $text,
+            [
+                'ă' => 'a',
+                'â' => 'a',
+                'î' => 'i',
+                'ș' => 's',
+                'ş' => 's',
+                'ț' => 't',
+                'ţ' => 't',
+            ]
+        );
+        return preg_replace( '/\s+/', ' ', $text );
+    };
+
+    $resolve_ids = static function( $key ) use ( $ids, $label_lookup, $fallback_labels, $normalize_label ) {
         $resolved = [];
         if ( isset( $ids[ $key ] ) && $ids[ $key ] !== '' ) {
             $resolved[] = (string) $ids[ $key ];
@@ -110,17 +155,26 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
             return $resolved;
         }
 
-        $needles = $fallback_labels[ $key ];
+        $needles = array_map( $normalize_label, $fallback_labels[ $key ] );
+        $exact = [];
+        $contains = [];
+        $strict_exact_keys = [ 'mother', 'father', 'godmother', 'godfather' ];
+        $allow_contains = ! in_array( $key, $strict_exact_keys, true );
         foreach ( $label_lookup as $id => $label ) {
+            $normalized_label = $normalize_label( $label );
             foreach ( $needles as $needle ) {
-                if ( strpos( $label, strtolower( $needle ) ) !== false ) {
-                    $resolved[] = (string) $id;
+                if ( $normalized_label === $needle ) {
+                    $exact[] = (string) $id;
+                    break;
+                }
+                if ( $allow_contains && strpos( $normalized_label, $needle ) !== false ) {
+                    $contains[] = (string) $id;
                     break;
                 }
             }
         }
 
-        return array_values( array_unique( array_filter( $resolved ) ) );
+        return array_values( array_unique( array_filter( array_merge( $resolved, $exact, $contains ) ) ) );
     };
 
     $collect_matches_for_ids = static function( array $candidate_ids ) use ( $wapf ) {
@@ -192,7 +246,7 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
     };
 
     $message_raw = $val( 'message' );
-    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 250 ) : substr( $message_raw, 0, 250 );
+    $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
 
     $headline = '';
     $count = count( $children );
@@ -204,23 +258,45 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
         $headline = implode( ' & ', array_slice( $children, 0, -1 ) ) . ' și ' . $children[ $count - 1 ];
     }
 
+    $mother = trim( (string) $val( 'mother' ) );
+    $father = trim( (string) $val( 'father' ) );
+    $godmother = trim( (string) $val( 'godmother' ) );
+    $godfather = trim( (string) $val( 'godfather' ) );
+
+    $parents_title = 'ÎMPREUNĂ CU PĂRINȚII';
+    if ( $mother !== '' && $father === '' ) {
+        $parents_title = 'ÎMPREUNĂ CU MAMA';
+    } elseif ( $father !== '' && $mother === '' ) {
+        $parents_title = 'ÎMPREUNĂ CU TATA';
+    }
+
+    $godparents_title = 'ȘI CU NAȘII';
+    if ( $godmother !== '' && $godfather === '' ) {
+        $godparents_title = 'ȘI CU NAȘA';
+    } elseif ( $godfather !== '' && $godmother === '' ) {
+        $godparents_title = 'ȘI CU NAȘUL';
+    }
+
     return [
         'invitation' => [
             'vertical' => 'baptism',
             'theme' => $theme,
             'model_key' => 'invn01',
             'children' => $children,
+            'name_units' => $children,
             'headline' => $headline,
             'message' => $message,
             'parents' => [
                 'enabled' => $has( 'show_parents' ),
-                'mother' => $val( 'mother' ),
-                'father' => $val( 'father' ),
+                'title' => $parents_title,
+                'mother' => $mother,
+                'father' => $father,
             ],
             'godparents' => [
                 'enabled' => $has( 'show_godparents' ),
-                'godmother' => $val( 'godmother' ),
-                'godfather' => $val( 'godfather' ),
+                'title' => $godparents_title,
+                'godmother' => $godmother,
+                'godfather' => $godfather,
             ],
             'events' => [
                 'religious' => [
@@ -271,7 +347,7 @@ function teinvit_baptism_renderer( array $context = [] ) {
     }
 
     $background_url = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $product_id ) : '';
-    $theme_class = teinvit_baptism_theme_class( $invitation['theme'] ?? 'editorial' );
+    $theme_class = teinvit_baptism_theme_class( $invitation['theme'] ?? 'little-princess' );
 
     $events = [];
     if ( ! empty( $invitation['events']['religious']['enabled'] ) ) {
@@ -294,16 +370,27 @@ function teinvit_baptism_renderer( array $context = [] ) {
     if ( ! empty( $invitation['parents']['enabled'] ) ) {
         $mother = trim( (string) ( $invitation['parents']['mother'] ?? '' ) );
         $father = trim( (string) ( $invitation['parents']['father'] ?? '' ) );
-        $father_display = ( $mother !== '' && $father !== '' ) ? ( '& ' . $father ) : $father;
-        $html .= '<div class="inv-parents-wrapper"><div class="section-title">Împreună cu părinții</div><div class="inv-parents inv-parents-grid">';
+        $show_sep = ( $mother !== '' && $father !== '' );
+        $title = trim( (string) ( $invitation['parents']['title'] ?? 'ÎMPREUNĂ CU PĂRINȚII' ) );
+        $single_parent = ( $mother !== '' xor $father !== '' );
+        $html .= '<div class="inv-parents-wrapper"><div class="section-title">' . esc_html( $title ) . '</div><div class="inv-parents inv-parents-grid' . ( $single_parent ? ' is-single' : '' ) . '">';
         $html .= '<div class="inv-parent-col inv-parent-mireasa">' . esc_html( $mother ) . '</div>';
-        $html .= '<div class="inv-parent-col inv-parent-mire">' . esc_html( $father_display ) . '</div>';
+        $html .= '<div class="inv-parent-sep" aria-hidden="true" style="visibility:' . ( $show_sep ? 'visible' : 'hidden' ) . ';">&</div>';
+        $html .= '<div class="inv-parent-col inv-parent-mire">' . esc_html( $father ) . '</div>';
         $html .= '</div></div>';
     }
 
     if ( ! empty( $invitation['godparents']['enabled'] ) ) {
-        $nasi = trim( implode( ' & ', array_filter( [ (string) ( $invitation['godparents']['godmother'] ?? '' ), (string) ( $invitation['godparents']['godfather'] ?? '' ) ] ) ) );
-        $html .= '<div class="inv-nasi"><div class="section-title">Și cu nașii</div><div class="nasi-row">' . esc_html( $nasi ) . '</div></div>';
+        $godmother = trim( (string) ( $invitation['godparents']['godmother'] ?? '' ) );
+        $godfather = trim( (string) ( $invitation['godparents']['godfather'] ?? '' ) );
+        $title = trim( (string) ( $invitation['godparents']['title'] ?? 'ȘI CU NAȘII' ) );
+        $single = ( $godmother !== '' xor $godfather !== '' );
+        $show_sep = ( $godmother !== '' && $godfather !== '' );
+        $html .= '<div class="inv-nasi"><div class="section-title">' . esc_html( $title ) . '</div><div class="nasi-row inv-parents-grid' . ( $single ? ' is-single' : '' ) . '">';
+        $html .= '<div class="inv-parent-col nasi-godmother">' . esc_html( $godmother ) . '</div>';
+        $html .= '<div class="inv-parent-sep" aria-hidden="true" style="visibility:' . ( $show_sep ? 'visible' : 'hidden' ) . ';">&</div>';
+        $html .= '<div class="inv-parent-col nasi-godfather">' . esc_html( $godfather ) . '</div>';
+        $html .= '</div></div>';
     }
 
     $html .= '<div class="inv-message">' . esc_html( (string) ( $invitation['message'] ?? '' ) ) . '</div>';
@@ -314,9 +401,9 @@ function teinvit_baptism_renderer( array $context = [] ) {
             $date = esc_html( (string) ( $event['date'] ?? '' ) );
             $waze = esc_url( (string) ( $event['waze'] ?? '' ) );
             $out = '<div class="inv-event"><strong>' . esc_html( (string) ( $event['title'] ?? '' ) ) . '</strong>';
-            $out .= '<div>' . $loc . '</div><div>' . $date . '</div>';
+            $out .= '<div class="inv-place">' . $loc . '</div><div class="inv-datetime">' . $date . '</div>';
             if ( $waze !== '' ) {
-                $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Waze</a>';
+                $out .= '<a href="' . $waze . '" target="_blank" rel="noopener">Deschide în Waze</a>';
             }
             $out .= '</div>';
             return $out;
@@ -337,9 +424,27 @@ function teinvit_baptism_renderer( array $context = [] ) {
     static $assets_loaded = false;
     if ( ! $assets_loaded ) {
         $assets_loaded = true;
-        $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Serif+4:wght@400&family=Raleway:wght@600&family=Parisienne&family=Crimson+Text:wght@400;600&family=DM+Sans:wght@600&family=Inter:wght@400;600&display=swap">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' ) ) . '">'
-            . '<link rel="stylesheet" href="' . esc_url( TEINVIT_WEDDING_MODULE_URL . 'preview/themes-verticals.css' ) . '">' . $html;
+        $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
+        $base_css = TEINVIT_WEDDING_MODULE_URL . ( $is_pdf ? 'preview/pdf.css' : 'preview/preview.css' );
+        $base_css = add_query_arg( 'ver', rawurlencode( $ver ), $base_css );
+        $theme_css = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BAPTISM_MODULE_URL . 'preview/themes.css' );
+        $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@500;600;700&family=Alex+Brush&family=Lora:wght@400;600&family=Prata&family=Cinzel:wght@400;600;700&family=Satisfy&family=Pacifico&family=DM+Sans:wght@400;600;700&family=Spectral:wght@400;600&family=Source+Serif+4:wght@400;600&family=Inter:wght@400;600;700&family=Oswald:wght@400;500;600&family=Bodoni+Moda:wght@400;600;700&family=Raleway:wght@500;600;700&family=DM+Serif+Display&family=Alice&family=Allura&display=swap">'
+            . '<link rel="stylesheet" href="' . esc_url( $base_css ) . '">'
+            . '<link rel="stylesheet" href="' . esc_url( $theme_css ) . '">' . $html;
+    }
+
+    if ( ! $is_pdf ) {
+        $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
+        $html .= '<script>window.__TEINVIT_PDF_MODE__ = false;</script>';
+        $html .= '<script>window.teinvitBaptismPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
+        $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;
+        if ( ! $is_product_page ) {
+            $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
+            $engine_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js' );
+            $preview_js = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js' );
+            $html .= '<script src="' . esc_url( $engine_js ) . '"></script>';
+            $html .= '<script src="' . esc_url( $preview_js ) . '"></script>';
+        }
     }
 
     return $html;

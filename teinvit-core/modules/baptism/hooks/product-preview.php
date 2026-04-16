@@ -4,12 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/**
- * TeInvit – Preview invitație în pagina de produs (Wedding only).
- */
-
 add_action( 'wp_enqueue_scripts', function () {
-
     if ( ! is_product() ) {
         return;
     }
@@ -24,27 +19,34 @@ add_action( 'wp_enqueue_scripts', function () {
         ? teinvit_find_catalog_vertical_for_product_id( (int) $product->get_id() )
         : 'wedding';
 
-    if ( ! is_string( $vertical ) || $vertical !== 'wedding' ) {
+    if ( $vertical !== 'baptism' ) {
         return;
     }
 
     wp_enqueue_script( 'jquery' );
     wp_enqueue_script(
-        'teinvit-preview',
-        TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js',
-        [ 'jquery' ],
-        '1.0',
+        'teinvit-preview-layout-engine',
+        TEINVIT_CORE_URL . 'infrastructure/preview-layout-engine.js',
+        [],
+        TEINVIT_CORE_VERSION,
+        true
+    );
+    wp_enqueue_script(
+        'teinvit-baptism-preview',
+        TEINVIT_BAPTISM_MODULE_URL . 'preview/preview.js',
+        [ 'jquery', 'teinvit-preview-layout-engine' ],
+        TEINVIT_CORE_VERSION,
         true
     );
 
-    wp_localize_script( 'teinvit-preview', 'teinvitPreviewConfig', [
+    wp_localize_script( 'teinvit-baptism-preview', 'teinvitBaptismPreviewConfig', [
         'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ),
+        'vertical' => 'baptism',
+        'maxChars' => 255,
     ] );
-
 }, 20 );
 
 add_action( 'woocommerce_after_add_to_cart_form', function () {
-
     $product_id = function_exists( 'get_queried_object_id' ) ? (int) get_queried_object_id() : 0;
     $product = $product_id > 0 ? wc_get_product( $product_id ) : null;
     if ( ! $product || ! $product instanceof WC_Product ) {
@@ -55,13 +57,21 @@ add_action( 'woocommerce_after_add_to_cart_form', function () {
         ? teinvit_find_catalog_vertical_for_product_id( (int) $product->get_id() )
         : 'wedding';
 
-    if ( ! is_string( $vertical ) || $vertical !== 'wedding' ) {
+    if ( $vertical !== 'baptism' ) {
         return;
     }
 
+    $runtime = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
+        ? teinvit_build_invitation_payload_from_wapf_map( 'baptism', [], (int) $product->get_id() )
+        : [ 'invitation' => [] ];
+
+    $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
+        ? teinvit_render_invitation_html_for_vertical( 'baptism', (array) ( $runtime['invitation'] ?? [] ), null, 'preview', (int) $product->get_id() )
+        : '';
+
     echo '<div id="teinvit-product-preview" class="teinvit-product-preview">';
     echo '<h3 class="teinvit-preview-title">Previzualizare invitație</h3>';
-    echo TeInvit_Wedding_Preview_Renderer::render_from_product( $product );
-    echo '</div>';
-
+    echo '<div id="teinvit-vertical-product-preview" data-vertical="baptism" data-product-id="' . (int) $product->get_id() . '">';
+    echo $preview_html;
+    echo '</div></div>';
 }, 25 );
