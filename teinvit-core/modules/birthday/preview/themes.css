@@ -28,8 +28,15 @@
   --b-size-message: 1.05em;
   --b-size-caps: 0.95em;
   --b-size-place: 0.96em;
+  --b-size-weekday: 0.88em;
   --b-size-date: 0.88em;
   --b-size-link: 0.86em;
+  --b-gap-base: 28px;
+  --b-gap-tight: 22px;
+  --b-name-size-3: var(--b-size-names);
+  --b-name-size-4: var(--b-size-names);
+  --b-message-size-3: var(--b-size-message);
+  --b-message-size-4: var(--b-size-message);
 }
 
 /* 1) Editorial Luxury / Champagne Noir */
@@ -380,7 +387,7 @@
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event .inv-weekday {
   font-family: var(--b-body-font);
   color: var(--b-color-secondary);
-  font-size: var(--b-size-date);
+  font-size: var(--b-size-weekday);
   text-transform: uppercase;
   letter-spacing: .04em;
 }
@@ -412,4 +419,51 @@
 .teinvit-birthday .inv-event .inv-weekday,
 .teinvit-birthday .inv-event .inv-place {
   white-space: nowrap;
+}
+
+/* Birthday approved sizing + spacing spec (override layer). */
+.teinvit-canvas.theme-birthday-editorial-luxury {
+  --b-size-age: 1.55em; --b-size-names: 2.35em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.20em; --b-name-size-4: 2.05em;
+}
+.teinvit-canvas.theme-birthday-romantic-floral {
+  --b-size-age: 1.52em; --b-size-names: 2.25em; --b-size-event: 1.10em; --b-size-message: 1em; --b-size-caps: 0.96em; --b-size-place: 0.98em; --b-size-weekday: 0.90em; --b-size-date: 0.90em; --b-size-link: 0.87em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-4: 2.05em; --b-message-size-3: 0.98em; --b-message-size-4: 0.96em;
+}
+.teinvit-canvas.theme-birthday-modern-minimal {
+  --b-size-age: 1.58em; --b-size-names: 2.45em; --b-size-event: 1.14em; --b-size-message: 1.02em; --b-size-caps: 1em; --b-size-place: 1.02em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.25em; --b-name-size-4: 2.10em; --b-message-size-4: 0.98em;
+}
+.teinvit-canvas.theme-birthday-classic-elegant {
+  --b-size-age: 1.56em; --b-size-names: 2.32em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.18em; --b-name-size-4: 2.04em;
+}
+.teinvit-canvas.theme-birthday-playful-confetti {
+  --b-size-age: 1.60em; --b-size-names: 2.42em; --b-size-event: 1.14em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-3: 2.22em; --b-name-size-4: 2.08em;
+}
+.teinvit-canvas.theme-birthday-candy-pastel {
+  --b-size-age: 1.52em; --b-size-names: 2.26em; --b-size-event: 1.10em; --b-size-message: 0.98em; --b-size-caps: 0.96em; --b-size-place: 0.98em; --b-size-weekday: 0.90em; --b-size-date: 0.90em; --b-size-link: 0.86em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-message-size-3: 0.96em; --b-message-size-4: 0.94em;
+}
+.teinvit-canvas.theme-birthday-storybook-dream {
+  --b-size-age: 1.54em; --b-size-names: 2.30em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.97em; --b-size-place: 0.99em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.16em; --b-name-size-4: 2.02em; --b-message-size-4: 0.97em;
+}
+.teinvit-canvas.theme-birthday-balloon-party {
+  --b-size-age: 1.60em; --b-size-names: 2.44em; --b-size-event: 1.15em; --b-size-message: 1em; --b-size-caps: 0.99em; --b-size-place: 1.01em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-4: 2.10em;
+}
+.teinvit-canvas.theme-birthday-golden-celebration {
+  --b-size-age: 1.58em; --b-size-names: 2.36em; --b-size-event: 1.13em; --b-size-message: 1em; --b-size-caps: 1em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-message-size-3: 0.98em; --b-message-size-4: 0.96em;
+}
+.teinvit-canvas.theme-birthday-chic-blush {
+  --b-size-age: 1.54em; --b-size-names: 2.30em; --b-size-event: 1.11em; --b-size-message: 0.99em; --b-size-caps: 0.97em; --b-size-place: 0.99em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 26px; --b-gap-tight: 22px;
+}
+.teinvit-canvas.theme-birthday-midnight-glam {
+  --b-size-age: 1.58em; --b-size-names: 2.38em; --b-size-event: 1.13em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-4: 2.08em; --b-message-size-4: 0.97em;
+}
+.teinvit-canvas.theme-birthday-botanical-grace {
+  --b-size-age: 1.56em; --b-size-names: 2.34em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-message-size-3: 0.98em; --b-message-size-4: 0.96em;
+}
+.teinvit-canvas.theme-birthday-royal-blue {
+  --b-size-age: 1.58em; --b-size-names: 2.40em; --b-size-event: 1.13em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-4: 2.12em;
+}
+.teinvit-canvas.theme-birthday-velvet-noir {
+  --b-size-age: 1.56em; --b-size-names: 2.34em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.18em; --b-name-size-4: 2.04em;
+}
+.teinvit-canvas.theme-birthday-sunset-fiesta {
+  --b-size-age: 1.60em; --b-size-names: 2.44em; --b-size-event: 1.14em; --b-size-message: 1em; --b-size-caps: 0.99em; --b-size-place: 1.01em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-3: 2.22em; --b-name-size-4: 2.08em;
 }

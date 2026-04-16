@@ -286,6 +286,15 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
     $message_raw = $val( 'message' );
     $message = function_exists( 'mb_substr' ) ? mb_substr( $message_raw, 0, 255 ) : substr( $message_raw, 0, 255 );
     $age = preg_replace( '/[^\d]/', '', (string) $val( 'age' ) );
+    $age_value = (int) $age;
+    $age_line = '';
+    if ( $age_value === 1 ) {
+        $age_line = 'Împlinesc 1 an!';
+    } elseif ( $age_value >= 2 && $age_value <= 19 ) {
+        $age_line = 'Împlinesc ' . $age_value . ' ani!';
+    } elseif ( $age_value >= 20 ) {
+        $age_line = 'Împlinesc ' . $age_value . ' de ani!';
+    }
     $event_name = trim( (string) $val( 'event_name' ) );
 
     $headline = '';
@@ -311,7 +320,7 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
             'age' => [
                 'enabled' => $has( 'show_age' ) && $age !== '',
                 'value' => $age,
-                'line' => ( $has( 'show_age' ) && $age !== '' ) ? ( 'Împlinesc ' . $age . ' de ani!' ) : '',
+                'line' => ( $has( 'show_age' ) && $age !== '' ) ? $age_line : '',
             ],
             'event_name' => [
                 'enabled' => $has( 'show_event_name' ) && $event_name !== '',

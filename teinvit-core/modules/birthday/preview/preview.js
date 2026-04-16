@@ -306,16 +306,84 @@
 
     function hasOverflow(el) { return engine() ? engine().hasOverflow(el) : (el && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)); }
 
+    function parseCssNumber(canvas, variableName, fallback) {
+        if (!canvas || !window.getComputedStyle) return fallback;
+        var raw = window.getComputedStyle(canvas).getPropertyValue(variableName);
+        var value = parseFloat(String(raw || '').replace(',', '.'));
+        return isFinite(value) ? value : fallback;
+    }
+
+    function countNameLines(canvas) {
+        var names = qs('.inv-names', canvas);
+        if (!names) return 1;
+        var raw = String(names.textContent || '').split('\n').filter(function (line) { return String(line || '').trim() !== ''; }).length;
+        return raw > 0 ? raw : 1;
+    }
+
+    function applyBirthdayTypography(canvas) {
+        if (!canvas) return { lines: 1, gap: 26 };
+        var lines = countNameLines(canvas);
+        var age = qs('.inv-age', canvas);
+        var names = qs('.inv-names', canvas);
+        var eventName = qs('.inv-event-name', canvas);
+        var message = qs('.inv-message', canvas);
+        var eventTitle = qs('.inv-events .inv-event strong', canvas);
+        var place = qs('.inv-events .inv-event .inv-place', canvas);
+        var weekday = qs('.inv-events .inv-event .inv-weekday', canvas);
+        var datetime = qs('.inv-events .inv-event .inv-datetime', canvas);
+        var waze = qs('.inv-events .inv-event a', canvas);
+
+        var nameSize = parseCssNumber(canvas, '--b-size-names', 2.2);
+        var messageSize = parseCssNumber(canvas, '--b-size-message', 1.0);
+        if (lines >= 4) {
+            nameSize = parseCssNumber(canvas, '--b-name-size-4', nameSize);
+            messageSize = parseCssNumber(canvas, '--b-message-size-4', messageSize);
+        } else if (lines >= 3) {
+            nameSize = parseCssNumber(canvas, '--b-name-size-3', nameSize);
+            messageSize = parseCssNumber(canvas, '--b-message-size-3', messageSize);
+        }
+
+        if (age) age.style.fontSize = parseCssNumber(canvas, '--b-size-age', 1.55) + 'em';
+        if (names) names.style.fontSize = nameSize + 'em';
+        if (eventName) eventName.style.fontSize = parseCssNumber(canvas, '--b-size-event', 1.12) + 'em';
+        if (message) message.style.fontSize = messageSize + 'em';
+        if (eventTitle) eventTitle.style.fontSize = parseCssNumber(canvas, '--b-size-caps', 0.98) + 'em';
+        if (place) place.style.fontSize = parseCssNumber(canvas, '--b-size-place', 1.0) + 'em';
+        if (weekday) weekday.style.fontSize = parseCssNumber(canvas, '--b-size-weekday', 0.92) + 'em';
+        if (datetime) datetime.style.fontSize = parseCssNumber(canvas, '--b-size-date', 0.92) + 'em';
+        if (waze) waze.style.fontSize = parseCssNumber(canvas, '--b-size-link', 0.88) + 'em';
+
+        var gap = lines >= 4 ? parseCssNumber(canvas, '--b-gap-tight', parseCssNumber(canvas, '--b-gap-base', 26)) : parseCssNumber(canvas, '--b-gap-base', 26);
+        return { lines: lines, gap: gap };
+    }
+
     function applyAutoFit(canvas) {
         if (!canvas) return;
-        if (engine() && typeof engine().autoFit === 'function') {
-            engine().autoFit(canvas, { min: 0.66, step: 0.02, maxLoops: 50 });
-            return;
+        var tuning = applyBirthdayTypography(canvas);
+        var gap = tuning.gap;
+        var minGap = Math.max(18, gap - 8);
+        while (hasOverflow(canvas) && gap > minGap) {
+            gap -= 2;
+            distributeVerticalSpace(canvas, gap);
+        }
+        if (!hasOverflow(canvas)) return;
+
+        var msg = qs('.inv-message', canvas);
+        var msgSize = msg ? parseFloat(msg.style.fontSize || '0') : 0;
+        while (hasOverflow(canvas) && msg && msgSize > 0.94) {
+            msgSize = Math.round((msgSize - 0.02) * 100) / 100;
+            msg.style.fontSize = msgSize + 'em';
+        }
+
+        if (hasOverflow(canvas) && engine() && typeof engine().autoFit === 'function') {
+            engine().autoFit(canvas, { min: 0.72, step: 0.01, maxLoops: 30 });
         }
     }
 
-    function distributeVerticalSpace(canvas) {
+    function distributeVerticalSpace(canvas, forcedGap) {
         if (!canvas) return;
+        var tuning = applyBirthdayTypography(canvas);
+        var gap = typeof forcedGap === 'number' ? forcedGap : tuning.gap;
         var age = qs('.inv-age', canvas);
         var names = qs('.inv-names', canvas);
         var eventName = qs('.inv-event-name', canvas);
@@ -326,23 +394,10 @@
         });
         if (!nodes.length) return;
 
-        if (engine() && typeof engine().distributeVerticalSpace === 'function') {
-            engine().distributeVerticalSpace(canvas, ['.inv-age', '.inv-names', '.inv-event-name', '.inv-message', '.inv-events'], { reserve: 12, minGap: 8, maxGap: 28 });
-            if (age && age.style.display !== 'none' && names && names.style.display !== 'none') {
-                names.style.marginTop = '8px';
-            }
-            if (eventName && eventName.style.display !== 'none' && names && names.style.display !== 'none') {
-                eventName.style.marginTop = '8px';
-            }
-            if (msg && msg.style.display !== 'none') {
-                msg.style.marginTop = '10px';
-            }
-            if (events && events.style.display !== 'none') {
-                var currentTop = parseFloat(events.style.marginTop || '0') || 0;
-                events.style.marginTop = Math.max(currentTop, 12) + 'px';
-            }
-            return;
-        }
+        nodes.forEach(function (node, index) {
+            node.style.marginTop = index === 0 ? '0px' : gap + 'px';
+            node.style.marginBottom = '0px';
+        });
     }
 
     var finalTimer = null;
