@@ -4,6 +4,9 @@
     var MESSAGE_MAX = 255;
     var BUILD_DEBOUNCE_MS = 140;
     var buildTimer = null;
+    var buildSeq = 0;
+    var lastAppliedSeq = 0;
+    var inFlightController = null;
 
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -394,8 +397,19 @@
         });
         if (!nodes.length) return;
 
+        var usedHeight = nodes.reduce(function (acc, node) { return acc + node.offsetHeight; }, 0);
+        var free = Math.max(0, canvas.clientHeight - usedHeight);
+        var dynamicGap = Math.max(12, Math.min(36, Math.floor(free / (nodes.length + 1))));
+        if (typeof forcedGap === 'number') {
+            dynamicGap = forcedGap;
+        } else if (tuning.lines >= 4) {
+            dynamicGap = Math.min(dynamicGap, gap);
+        } else {
+            dynamicGap = Math.max(gap, dynamicGap);
+        }
+
         nodes.forEach(function (node, index) {
-            node.style.marginTop = index === 0 ? '0px' : gap + 'px';
+            node.style.marginTop = dynamicGap + 'px';
             node.style.marginBottom = '0px';
         });
     }
@@ -504,17 +518,35 @@
         var url = window.teinvitBirthdayPreviewConfig && window.teinvitBirthdayPreviewConfig.previewBuildUrl;
         if (!productId || !url) return;
 
+        buildSeq += 1;
+        var requestSeq = buildSeq;
+        if (inFlightController) {
+            inFlightController.abort();
+        }
+        inFlightController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+
         fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_id: productId, wapf_map: collectWapfMapFromForm() })
+            body: JSON.stringify({ product_id: productId, wapf_map: collectWapfMapFromForm() }),
+            signal: inFlightController ? inFlightController.signal : undefined
         }).then(function (r) { return r.json(); }).then(function (json) {
+            if (requestSeq < lastAppliedSeq) return;
             if (json && json.ok && json.invitation) {
+                lastAppliedSeq = requestSeq;
                 window.TEINVIT_INVITATION_DATA = json.invitation;
                 renderInvitation(json.invitation);
+                setTimeout(function () {
+                    var canvas = getCanvas();
+                    if (!canvas) return;
+                    distributeVerticalSpace(canvas);
+                    if (hasOverflow(canvas)) applyAutoFit(canvas);
+                }, 120);
             }
-        }).catch(function () {});
+        }).catch(function (err) {
+            if (err && err.name === 'AbortError') return;
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function () {

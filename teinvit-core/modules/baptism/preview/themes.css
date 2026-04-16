@@ -325,7 +325,7 @@
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent);
+  color: var(--ba-color-accent) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -333,7 +333,7 @@
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent);
+  color: var(--ba-color-accent) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;

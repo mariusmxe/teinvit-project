@@ -378,7 +378,7 @@
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event strong {
   font-family: var(--b-caps-font);
-  color: var(--b-color-accent);
+  color: var(--b-color-accent) !important;
   font-size: var(--b-size-caps);
   text-transform: uppercase;
   letter-spacing: .08em;

@@ -90,6 +90,13 @@ app.post('/api/render', async (req, res) => {
             () => window.__TEINVIT_PDF_READY__ === true,
             { timeout: 30000 }
         );
+        await page.waitForFunction(() => {
+            const canvas = document.querySelector('.teinvit-canvas');
+            if (!canvas) return false;
+            const textOk = String(canvas.textContent || '').trim().length > 0;
+            const imagesOk = Array.from(document.images || []).every((img) => img.complete);
+            return textOk && imagesOk;
+        }, { timeout: 30000 });
         await page.waitForTimeout(250);
 
         await page.pdf({
