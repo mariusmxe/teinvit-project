@@ -316,13 +316,7 @@
         distributeVerticalSpace(canvas);
         scheduleFinalPass(canvas);
 
-        if (window.__TEINVIT_PDF_MODE__) {
-            setTimeout(function () {
-                distributeVerticalSpace(canvas);
-                if (hasOverflow(canvas)) applyAutoFit(canvas);
-                window.__TEINVIT_PDF_READY__ = true;
-            }, 380);
-        }
+        schedulePdfReadyCheck(canvas);
     }
 
     function hasOverflow(el) { return engine() ? engine().hasOverflow(el) : (el && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)); }
@@ -344,6 +338,8 @@
 
     var finalTimer = null;
     var lastSig = '';
+    var pdfReadyCheckTimer = null;
+    var pdfReadyCheckAttempts = 0;
     function layoutSignature(canvas) {
         return JSON.stringify({
             fs: canvas && canvas.style ? canvas.style.fontSize : '',
@@ -377,6 +373,26 @@
             }
             lastSig = sig;
         }, 280);
+    }
+
+    function schedulePdfReadyCheck(canvas) {
+        if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
+        if (pdfReadyCheckTimer) clearTimeout(pdfReadyCheckTimer);
+
+        pdfReadyCheckTimer = setTimeout(function () {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    distributeVerticalSpace(canvas);
+                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 4) {
+                        pdfReadyCheckAttempts += 1;
+                        applyAutoFit(canvas);
+                        schedulePdfReadyCheck(canvas);
+                        return;
+                    }
+                    window.__TEINVIT_PDF_READY__ = true;
+                });
+            });
+        }, 40);
     }
 
     function clearPrefilledCloneInputs(scope) {
@@ -462,6 +478,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        pdfReadyCheckAttempts = 0;
         clearPrefilledCloneInputs(document);
         setupMessageCounter();
         if (window.TEINVIT_INVITATION_DATA) {
@@ -469,6 +486,15 @@
         }
         if (qs('#teinvit-vertical-product-preview')) {
             buildFromApi();
+        }
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function () {
+                if (window.TEINVIT_INVITATION_DATA) {
+                    pdfReadyCheckAttempts = 0;
+                    renderInvitation(window.TEINVIT_INVITATION_DATA);
+                }
+            }).catch(function () {});
         }
     });
 
