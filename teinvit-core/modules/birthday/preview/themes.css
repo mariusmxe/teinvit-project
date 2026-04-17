@@ -37,6 +37,7 @@
   --b-name-size-4: var(--b-size-names);
   --b-message-size-3: var(--b-size-message);
   --b-message-size-4: var(--b-size-message);
+  --b-name-visual-boost: 1;
 }
 
 /* 1) Editorial Luxury / Champagne Noir */
@@ -77,6 +78,7 @@
   --b-size-place: 0.97em;
   --b-size-date: 0.89em;
   --b-size-link: 0.87em;
+  --b-name-visual-boost: 1.08;
 }
 
 /* 3) Modern Minimal / Graphite Olive */
@@ -157,6 +159,7 @@
   --b-size-place: 0.96em;
   --b-size-date: 0.88em;
   --b-size-link: 0.86em;
+  --b-name-visual-boost: 1.1;
 }
 
 /* 7) Storybook Dream / Lilac Tale */
@@ -378,7 +381,7 @@
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event strong {
   font-family: var(--b-caps-font);
-  color: var(--b-color-accent) !important;
+  color: var(--b-color-title, var(--b-color-accent, var(--b-color-primary))) !important;
   font-size: var(--b-size-caps);
   text-transform: uppercase;
   letter-spacing: .08em;

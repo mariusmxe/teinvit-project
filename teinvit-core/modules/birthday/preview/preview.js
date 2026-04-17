@@ -225,6 +225,16 @@
         canvas.classList.add(vertical);
     }
 
+    function applyAccentTitles(canvas) {
+        if (!canvas || !window.getComputedStyle) return;
+        var styles = window.getComputedStyle(canvas);
+        var accent = String(styles.getPropertyValue('--b-color-title') || styles.getPropertyValue('--b-color-accent') || '').trim();
+        if (!accent) return;
+        qsa('.inv-events .inv-event strong', canvas).forEach(function (node) {
+            node.style.color = accent;
+        });
+    }
+
     function ensureNode(sel, html, root) {
         var node = qs(sel, root);
         if (node) return node;
@@ -298,6 +308,8 @@
             top.appendChild(node);
         }
 
+        applyAccentTitles(canvas);
+
         applyAutoFit(canvas);
         distributeVerticalSpace(canvas);
         scheduleFinalPass(canvas);
@@ -323,7 +335,10 @@
     function countNameLines(canvas) {
         var names = qs('.inv-names', canvas);
         if (!names) return 1;
-        var raw = String(names.textContent || '').split('\n').filter(function (line) { return String(line || '').trim() !== ''; }).length;
+        var explicit = String(names.textContent || '').split('\n').filter(function (line) { return String(line || '').trim() !== ''; }).length;
+        var lineHeight = parseFloat(window.getComputedStyle(names).lineHeight || '0');
+        var measured = lineHeight > 0 ? Math.round(names.getBoundingClientRect().height / lineHeight) : 0;
+        var raw = Math.max(explicit, measured);
         return raw > 0 ? raw : 1;
     }
 
@@ -349,6 +364,7 @@
             nameSize = parseCssNumber(canvas, '--b-name-size-3', nameSize);
             messageSize = parseCssNumber(canvas, '--b-message-size-3', messageSize);
         }
+        nameSize = nameSize * parseCssNumber(canvas, '--b-name-visual-boost', 1);
 
         if (age) age.style.fontSize = parseCssNumber(canvas, '--b-size-age', 1.55) + 'em';
         if (names) names.style.fontSize = nameSize + 'em';
