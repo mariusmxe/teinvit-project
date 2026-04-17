@@ -21,6 +21,7 @@
   --ba-color-primary: #3a2f2f;
   --ba-color-secondary: #6a5e5a;
   --ba-color-accent: #c8a96a;
+  --ba-color-caps: var(--ba-color-primary);
   --ba-color-link: #2b5a78;
   --ba-size-names: 2.22em;
   --ba-size-caps: 0.96em;
@@ -325,18 +326,28 @@
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent) !important;
+  color: var(--ba-color-caps, var(--ba-color-primary)) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent) !important;
+  color: var(--ba-color-caps, var(--ba-color-primary)) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
+  font-weight: 600;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider {
+  width: 96px;
+  height: 1px;
+  margin: 0.28em auto 0.34em;
+  background: var(--ba-color-accent);
+  opacity: .55;
 }
 
 .teinvit-baptism .inv-parent-col,

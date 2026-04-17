@@ -7,6 +7,8 @@
     var buildSeq = 0;
     var lastAppliedSeq = 0;
     var inFlightController = null;
+    var pdfReadyCheckTimer = null;
+    var pdfReadyCheckAttempts = 0;
 
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -225,6 +227,18 @@
         canvas.classList.add(vertical);
     }
 
+    function invitationLayoutSignature(inv) {
+        if (!inv || typeof inv !== 'object') return '';
+        return JSON.stringify({
+            theme: inv.theme || '',
+            headline: inv.headline_display || inv.headline || '',
+            age: inv.age || {},
+            event_name: inv.event_name || {},
+            message: inv.message || '',
+            events: inv.events || {}
+        });
+    }
+
     function ensureNode(sel, html, root) {
         var node = qs(sel, root);
         if (node) return node;
@@ -241,8 +255,10 @@
         if (!canvas) return;
 
         applyTheme(canvas, inv.theme || 'editorial-luxury');
+        window.__TEINVIT_LAYOUT_SIG__ = invitationLayoutSignature(inv);
 
         if (window.__TEINVIT_PDF_MODE__) {
+            window.TEINVIT_RENDER_READY = false;
             window.__TEINVIT_PDF_READY__ = false;
         }
 
@@ -303,15 +319,33 @@
         scheduleFinalPass(canvas);
 
         if (window.__TEINVIT_PDF_MODE__) {
-            setTimeout(function () {
-                distributeVerticalSpace(canvas);
-                if (hasOverflow(canvas)) applyAutoFit(canvas);
-                window.__TEINVIT_PDF_READY__ = true;
-            }, 380);
+            schedulePdfReadyCheck(canvas);
+        } else {
+            window.TEINVIT_RENDER_READY = true;
         }
     }
 
     function hasOverflow(el) { return engine() ? engine().hasOverflow(el) : (el && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)); }
+
+    function schedulePdfReadyCheck(canvas) {
+        if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
+        if (pdfReadyCheckTimer) clearTimeout(pdfReadyCheckTimer);
+        pdfReadyCheckTimer = setTimeout(function () {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 4) {
+                        pdfReadyCheckAttempts++;
+                        window.__TEINVIT_AUTOFIT_DONE__ = false;
+                        applyAutoFit(canvas);
+                        schedulePdfReadyCheck(canvas);
+                        return;
+                    }
+                    window.TEINVIT_RENDER_READY = true;
+                    window.__TEINVIT_PDF_READY__ = true;
+                });
+            });
+        }, 40);
+    }
 
     function parseCssNumber(canvas, variableName, fallback) {
         if (!canvas || !window.getComputedStyle) return fallback;
@@ -366,6 +400,16 @@
 
     function applyAutoFit(canvas) {
         if (!canvas) return;
+        var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
+        var lastSig = window.__TEINVIT_LAST_AUTOFIT_SIG__ || '';
+        if (
+            (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) &&
+            window.__TEINVIT_AUTOFIT_DONE__ &&
+            currentSig !== '' &&
+            currentSig === lastSig
+        ) {
+            return;
+        }
         var tuning = applyBirthdayTypography(canvas);
         var gap = tuning.gap;
         var minGap = Math.max(18, gap - 8);
@@ -384,6 +428,10 @@
 
         if (hasOverflow(canvas) && engine() && typeof engine().autoFit === 'function') {
             engine().autoFit(canvas, { min: 0.72, step: 0.01, maxLoops: 30 });
+        }
+        if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
+            window.__TEINVIT_AUTOFIT_DONE__ = true;
+            window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
         }
     }
 
@@ -554,6 +602,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        window.__TEINVIT_AUTOFIT_DONE__ = false;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
         clearPrefilledCloneInputs(document);
         setupMessageCounter();
         if (window.TEINVIT_INVITATION_DATA) {
@@ -590,4 +640,19 @@
             scheduleBuildFromApi();
         }, 40);
     });
+
+    document.addEventListener('teinvit:variant-applied', function () {
+        window.__TEINVIT_AUTOFIT_DONE__ = false;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+        pdfReadyCheckAttempts = 0;
+    });
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () {
+            window.__TEINVIT_AUTOFIT_DONE__ = false;
+            window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+            var data = window.TEINVIT_INVITATION_DATA;
+            if (data) renderInvitation(data);
+        }).catch(function () {});
+    }
 })();

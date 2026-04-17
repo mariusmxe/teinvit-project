@@ -21,6 +21,7 @@
   --b-color-primary: #252525;
   --b-color-secondary: #7c7c7c;
   --b-color-accent: #c9a968;
+  --b-color-caps: var(--b-color-primary);
   --b-color-link: #1f4e5f;
   --b-size-age: 1.54em;
   --b-size-names: 2.16em;
@@ -378,10 +379,18 @@
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event strong {
   font-family: var(--b-caps-font);
-  color: var(--b-color-accent) !important;
+  color: var(--b-color-caps, var(--b-color-primary)) !important;
   font-size: var(--b-size-caps);
   text-transform: uppercase;
   letter-spacing: .08em;
+}
+
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-divider {
+  width: 96px;
+  height: 1px;
+  margin: 0.28em auto 0.34em;
+  background: var(--b-color-accent);
+  opacity: .55;
 }
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event .inv-weekday {
