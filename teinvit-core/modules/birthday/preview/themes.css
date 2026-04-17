@@ -359,6 +359,14 @@
   line-height: 1.12;
 }
 
+.teinvit-birthday .inv-divider::before {
+  content: '';
+  display: block;
+  width: min(68%, 220px);
+  margin: 0 auto;
+  border-top: 1px solid var(--b-color-accent);
+}
+
 .teinvit-birthday .inv-event-name {
   font-size: var(--b-size-event);
   font-weight: 600;
@@ -366,7 +374,7 @@
 
 .teinvit-birthday .inv-message {
   font-family: var(--b-body-font);
-  color: var(--b-color-secondary);
+  color: var(--b-color-primary);
   font-size: var(--b-size-message);
   line-height: 1.35;
 }
@@ -376,9 +384,9 @@
   max-width: 100%;
 }
 
-.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event strong {
+.teinvit-birthday .teinvit-canvas .inv-events .inv-event strong {
   font-family: var(--b-caps-font);
-  color: var(--b-color-accent) !important;
+  color: var(--b-color-secondary) !important;
   font-size: var(--b-size-caps);
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -386,7 +394,7 @@
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event .inv-weekday {
   font-family: var(--b-body-font);
-  color: var(--b-color-secondary);
+  color: var(--b-color-primary);
   font-size: var(--b-size-weekday);
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -400,7 +408,7 @@
 
 .teinvit-birthday .inv-events .inv-event .inv-datetime {
   font-family: var(--b-body-font);
-  color: var(--b-color-secondary);
+  color: var(--b-color-primary);
   font-size: var(--b-size-date);
 }
 

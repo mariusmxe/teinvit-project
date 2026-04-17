@@ -22,6 +22,45 @@
   font-size: 17.25px;
 }
 
+.teinvit-pdf,
+.teinvit-pdf body {
+  margin: 0;
+  padding: 0;
+}
+
+.teinvit-pdf .teinvit-baptism {
+  padding: 0;
+}
+
+.teinvit-pdf .teinvit-baptism .teinvit-page,
+.teinvit-pdf .teinvit-baptism .teinvit-container {
+  margin: 0;
+  padding: 0;
+}
+
+.teinvit-pdf .teinvit-baptism .teinvit-preview {
+  width: 559px;
+  max-width: 559px;
+  height: 794px;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+}
+
+@media print {
+  .teinvit-pdf .teinvit-baptism,
+  .teinvit-pdf .teinvit-baptism .teinvit-page,
+  .teinvit-pdf .teinvit-baptism .teinvit-container,
+  .teinvit-pdf .teinvit-baptism .teinvit-preview {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 .teinvit-baptism .teinvit-bg {
   position: absolute;
   inset: 0;

@@ -323,17 +323,25 @@
   line-height: 1.14;
 }
 
-.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
+.teinvit-baptism .inv-divider::before {
+  content: '';
+  display: block;
+  width: min(68%, 220px);
+  margin: 0 auto;
+  border-top: 1px solid var(--ba-color-accent);
+}
+
+.teinvit-baptism .teinvit-canvas .section-title {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent) !important;
+  color: var(--ba-color-secondary) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
-.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
+.teinvit-baptism .teinvit-canvas .inv-event strong {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent) !important;
+  color: var(--ba-color-secondary) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -349,7 +357,7 @@
 
 .teinvit-baptism .inv-message {
   font-family: var(--ba-body-font);
-  color: var(--ba-color-secondary);
+  color: var(--ba-color-primary);
   font-size: var(--ba-size-message);
   line-height: 1.35;
 }
@@ -360,7 +368,7 @@
 }
 
 .teinvit-baptism .inv-event .inv-datetime {
-  color: var(--ba-color-secondary);
+  color: var(--ba-color-primary);
   font-size: var(--ba-size-date);
   white-space: nowrap;
 }
