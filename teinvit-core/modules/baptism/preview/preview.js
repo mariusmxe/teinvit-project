@@ -225,16 +225,6 @@
         canvas.classList.add(vertical);
     }
 
-    function applyAccentTitles(canvas) {
-        if (!canvas || !window.getComputedStyle) return;
-        var styles = window.getComputedStyle(canvas);
-        var accent = String(styles.getPropertyValue('--ba-color-title') || styles.getPropertyValue('--ba-color-accent') || '').trim();
-        if (!accent) return;
-        qsa('.section-title, .inv-event strong', canvas).forEach(function (node) {
-            node.style.color = accent;
-        });
-    }
-
     function ensureBefore(selector, html, anchor, root) {
         var node = qs(selector, root);
         if (node) return node;
@@ -321,8 +311,6 @@
             node.innerHTML = html;
             top.appendChild(node);
         });
-
-        applyAccentTitles(canvas);
 
         applyAutoFit(canvas);
         distributeVerticalSpace(canvas);

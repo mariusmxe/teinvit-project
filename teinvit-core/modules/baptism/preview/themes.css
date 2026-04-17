@@ -323,17 +323,17 @@
   line-height: 1.14;
 }
 
-.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
+.teinvit-baptism .teinvit-canvas .section-title {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-title, var(--ba-color-accent, var(--ba-color-primary))) !important;
+  color: var(--ba-color-accent, var(--ba-color-primary)) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
-.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
+.teinvit-baptism .teinvit-canvas .inv-event strong {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-title, var(--ba-color-accent, var(--ba-color-primary))) !important;
+  color: var(--ba-color-accent, var(--ba-color-primary)) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
