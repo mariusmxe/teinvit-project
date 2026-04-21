@@ -9,6 +9,11 @@
     var inFlightController = null;
     var pdfReadyCheckTimer = null;
     var pdfReadyCheckAttempts = 0;
+    var FINAL_PRODUCT_PASS_DEBOUNCE_MS = 320;
+    var finalProductPassTimer = null;
+    var lastStableProductSignature = '';
+    var finalizedProductSignature = '';
+    var previewResizeObserver = null;
 
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -227,6 +232,33 @@
         canvas.classList.add(vertical);
     }
 
+    var DIVIDER_SVG = {
+        'editorial-luxury': '<line stroke="#C9A968" stroke-dasharray="6 5" stroke-linecap="round" stroke-width="1.8" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#C9A968" stroke-dasharray="6 5" stroke-linecap="round" stroke-width="1.8" x1="202" x2="308" y1="35" y2="35"></line><circle cx="160" cy="35" fill="white" opacity="0.55" r="16" stroke="#1F4E5F" stroke-width="1.4"></circle><text fill="#7C7C7C" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">◆</text><text fill="#7C7C7C" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">◆</text><text fill="#202020" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">♡</text>',
+        'romantic-floral': '<line stroke="#BFA76F" stroke-linecap="round" stroke-width="2.4" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#BFA76F" stroke-linecap="round" stroke-width="2.4" x1="202" x2="308" y1="35" y2="35"></line><text fill="#6E635E" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#6E635E" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#B86B7A" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✶</text>',
+        'modern-minimal': '<line stroke="#A69A67" stroke-dasharray="10 6" stroke-linecap="round" stroke-width="1.6" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#A69A67" stroke-dasharray="10 6" stroke-linecap="round" stroke-width="1.6" x1="202" x2="308" y1="35" y2="35"></line><text fill="#667063" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#667063" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#202420" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✦ ✦</text>',
+        'classic-elegant': '<line stroke="#B99B5B" stroke-dasharray="2 5" stroke-linecap="round" stroke-width="2.0" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#B99B5B" stroke-dasharray="2 5" stroke-linecap="round" stroke-width="2.0" x1="202" x2="308" y1="35" y2="35"></line><text fill="#6A635C" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#6A635C" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#2E2A27" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">♥</text>',
+        'playful-confetti': '<line stroke="#F7A541" stroke-linecap="round" stroke-width="1.8" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#F7A541" stroke-linecap="round" stroke-width="1.8" x1="202" x2="308" y1="35" y2="35"></line><circle cx="160" cy="35" fill="white" opacity="0.55" r="16" stroke="#2D5B8C" stroke-width="1.4"></circle><text fill="#5D7A79" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">◆</text><text fill="#5D7A79" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">◆</text><text fill="#14B8A6" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✧</text>',
+        'candy-pastel': '<line stroke="#F9A8D4" stroke-linecap="round" stroke-width="2.0" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#F9A8D4" stroke-linecap="round" stroke-width="2.0" x1="202" x2="308" y1="35" y2="35"></line><text fill="#6C8A82" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#6C8A82" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#34D399" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✦♡✦</text>',
+        'storybook-dream': '<line stroke="#DDBB7A" stroke-dasharray="12 4" stroke-linecap="round" stroke-width="1.8" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#DDBB7A" stroke-dasharray="12 4" stroke-linecap="round" stroke-width="1.8" x1="202" x2="308" y1="35" y2="35"></line><text fill="#826E90" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#826E90" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#9D4EDD" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">★</text>',
+        'balloon-party': '<line stroke="#F6C453" stroke-dasharray="1 6" stroke-linecap="round" stroke-width="2.2" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#F6C453" stroke-dasharray="1 6" stroke-linecap="round" stroke-width="2.2" x1="202" x2="308" y1="35" y2="35"></line><text fill="#6B7593" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#6B7593" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#FF4EC9" font-size="18" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">• ✦ •</text>',
+        'golden-celebration': '<line stroke="#E3B23C" stroke-dasharray="6 4" stroke-linecap="round" stroke-width="1.5" x1="12" x2="118" y1="31" y2="31"></line><line stroke="#E3B23C" stroke-dasharray="6 4" stroke-linecap="round" stroke-width="1.5" x1="202" x2="308" y1="31" y2="31"></line><line stroke="#7C6E53" stroke-dasharray="6 4" stroke-linecap="round" stroke-width="1.2" x1="12" x2="118" y1="39" y2="39"></line><line stroke="#7C6E53" stroke-dasharray="6 4" stroke-linecap="round" stroke-width="1.2" x1="202" x2="308" y1="39" y2="39"></line><text fill="#7C6E53" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">✧</text><text fill="#7C6E53" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">✧</text><text fill="#9C6B00" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">⟡</text>',
+        'chic-blush': '<line stroke="#D3A46A" stroke-linecap="round" stroke-width="1.8" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#D3A46A" stroke-linecap="round" stroke-width="1.8" x1="202" x2="308" y1="35" y2="35"></line><text fill="#766571" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#766571" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#E879A6" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">♡ ♡</text>',
+        'midnight-glam': '<line stroke="#E6B85C" stroke-linecap="round" stroke-width="1.6" x1="12" x2="118" y1="31" y2="31"></line><line stroke="#E6B85C" stroke-linecap="round" stroke-width="1.6" x1="202" x2="308" y1="31" y2="31"></line><line stroke="#675A78" stroke-linecap="round" stroke-width="1.3" x1="12" x2="118" y1="39" y2="39"></line><line stroke="#675A78" stroke-linecap="round" stroke-width="1.3" x1="202" x2="308" y1="39" y2="39"></line><text fill="#675A78" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#675A78" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#E879F9" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">◆ ◆</text>',
+        'botanical-grace': '<line stroke="#C2A14A" stroke-dasharray="2 4" stroke-linecap="round" stroke-width="2.0" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#C2A14A" stroke-dasharray="2 4" stroke-linecap="round" stroke-width="2.0" x1="202" x2="308" y1="35" y2="35"></line><text fill="#708172" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#708172" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#506B52" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✧</text>',
+        'royal-blue': '<line stroke="#E5C46A" stroke-linecap="round" stroke-width="2.2" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#E5C46A" stroke-linecap="round" stroke-width="2.2" x1="202" x2="308" y1="35" y2="35"></line><text fill="#66769F" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">◆</text><text fill="#66769F" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">◆</text><text fill="#1E3A8A" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✦</text>',
+        'velvet-noir': '<line stroke="#D7A56A" stroke-dasharray="8 6" stroke-linecap="round" stroke-width="1.8" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#D7A56A" stroke-dasharray="8 6" stroke-linecap="round" stroke-width="1.8" x1="202" x2="308" y1="35" y2="35"></line><text fill="#665864" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">◆</text><text fill="#665864" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">◆</text><text fill="#C24163" font-size="22" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">♥</text>',
+        'sunset-fiesta': '<line stroke="#FBBF24" stroke-dasharray="3 4" stroke-linecap="round" stroke-width="2.1" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#FBBF24" stroke-dasharray="3 4" stroke-linecap="round" stroke-width="2.1" x1="202" x2="308" y1="35" y2="35"></line><text fill="#8B6A5C" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">•</text><text fill="#8B6A5C" font-size="12" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">•</text><text fill="#F97316" font-size="18" style="font-family: Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✦ • ✦</text>'
+    };
+
+    function renderApprovedDivider(canvas, themeKey) {
+        if (!canvas) return null;
+        var divider = qs('.inv-divider', canvas) || ensureNode('.inv-divider', '<div class="inv-divider" aria-hidden="true"></div>', canvas);
+        var key = normalizeThemeKey(themeKey);
+        divider.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 320 70" preserveAspectRatio="xMidYMid meet">' + (DIVIDER_SVG[key] || DIVIDER_SVG['editorial-luxury']) + '</svg>';
+        divider.style.display = '';
+        return divider;
+    }
+
     function invitationLayoutSignature(inv) {
         if (!inv || typeof inv !== 'object') return '';
         return JSON.stringify({
@@ -274,6 +306,7 @@
 
         var age = qs('.inv-age', canvas) || ensureNode('.inv-age', '<div class="inv-age"></div>', canvas);
         var eventName = qs('.inv-event-name', canvas) || ensureNode('.inv-event-name', '<div class="inv-event-name"></div>', canvas);
+        var divider = renderApprovedDivider(canvas, inv.theme || 'editorial-luxury');
         var msg = qs('.inv-message', canvas) || ensureNode('.inv-message', '<div class="inv-message"></div>', canvas);
         var hasAge = !!(inv.age && inv.age.enabled && (inv.age.line || inv.age.value));
         var hasEventName = !!(inv.event_name && inv.event_name.enabled && (inv.event_name.line || inv.event_name.value));
@@ -291,8 +324,11 @@
             if (afterNames) canvas.insertBefore(eventName, afterNames);
             else canvas.appendChild(eventName);
         }
-        if (eventName && msg && eventName.parentNode === canvas) {
-            canvas.insertBefore(msg, eventName.nextSibling);
+        if (divider && eventName && divider.parentNode === canvas) {
+            canvas.insertBefore(divider, eventName.nextSibling);
+        }
+        if (divider && msg && divider.parentNode === canvas) {
+            canvas.insertBefore(msg, divider.nextSibling);
         }
 
         var eventsWrap = qs('.inv-events', canvas) || ensureNode('.inv-events', '<div class="inv-events"><div class="events-row top"></div><div class="events-row bottom"></div></div>', canvas);
@@ -317,6 +353,7 @@
         applyAutoFit(canvas);
         distributeVerticalSpace(canvas);
         scheduleFinalPass(canvas);
+        scheduleFinalProductPass();
 
         if (window.__TEINVIT_PDF_MODE__) {
             schedulePdfReadyCheck(canvas);
@@ -444,7 +481,8 @@
         var eventName = qs('.inv-event-name', canvas);
         var msg = qs('.inv-message', canvas);
         var events = qs('.inv-events', canvas);
-        var nodes = [age, names, eventName, msg, events].filter(function (node) {
+        var divider = qs('.inv-divider', canvas);
+        var nodes = [age, names, eventName, divider, msg, events].filter(function (node) {
             return node && node.style.display !== 'none';
         });
         if (!nodes.length) return;
@@ -555,6 +593,50 @@
         }, BUILD_DEBOUNCE_MS);
     }
 
+    function getProductSnapshotSignature() {
+        var mount = qs('#teinvit-vertical-product-preview');
+        if (!mount || !isProductPreviewContext() || window.__TEINVIT_PDF_MODE__) return '';
+        return JSON.stringify({
+            productId: mount.getAttribute('data-product-id') || '',
+            wapf: collectWapfMapFromForm()
+        });
+    }
+
+    function scheduleFinalProductPass() {
+        if (!isProductPreviewContext() || window.__TEINVIT_PDF_MODE__) return;
+        if (finalProductPassTimer) clearTimeout(finalProductPassTimer);
+        finalProductPassTimer = setTimeout(function () {
+            var signature = getProductSnapshotSignature();
+            if (!signature || signature === finalizedProductSignature) return;
+            if (signature !== lastStableProductSignature) {
+                lastStableProductSignature = signature;
+                scheduleFinalProductPass();
+                return;
+            }
+            finalizedProductSignature = signature;
+            buildFromApi();
+            window.requestAnimationFrame(function () {
+                var canvas = getCanvas();
+                if (!canvas || !isProductPreviewContext()) return;
+                canvas.style.fontSize = '1em';
+                distributeVerticalSpace(canvas);
+                if (hasOverflow(canvas)) applyAutoFit(canvas);
+            });
+        }, FINAL_PRODUCT_PASS_DEBOUNCE_MS);
+    }
+
+    function setupPreviewResizeObserver() {
+        var previewRoot = qs('.teinvit-preview');
+        if (!previewRoot || typeof ResizeObserver === 'undefined' || previewResizeObserver) return;
+        previewResizeObserver = new ResizeObserver(function () {
+            window.__TEINVIT_AUTOFIT_DONE__ = false;
+            var data = window.TEINVIT_INVITATION_DATA;
+            if (data) renderInvitation(data);
+            scheduleFinalProductPass();
+        });
+        previewResizeObserver.observe(previewRoot);
+    }
+
     function isRepeatControl(node) {
         if (!node || node.nodeType !== 1) return false;
         var control = node.closest('button, a, [role="button"], .wapf-repeatable-add, .wapf-repeatable-remove, .wapf-clone-add, .wapf-clone-remove');
@@ -595,6 +677,7 @@
                     distributeVerticalSpace(canvas);
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
                 }, 120);
+                scheduleFinalProductPass();
             }
         }).catch(function (err) {
             if (err && err.name === 'AbortError') return;
@@ -611,7 +694,9 @@
         }
         if (qs('#teinvit-vertical-product-preview')) {
             buildFromApi();
+            scheduleFinalProductPass();
         }
+        setupPreviewResizeObserver();
     });
 
     document.addEventListener('input', function (e) {
@@ -645,6 +730,9 @@
         window.__TEINVIT_AUTOFIT_DONE__ = false;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
         pdfReadyCheckAttempts = 0;
+        finalizedProductSignature = '';
+        lastStableProductSignature = '';
+        lastAppliedSeq = 0;
     });
 
     if (document.fonts && document.fonts.ready) {
@@ -653,6 +741,8 @@
             window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
             var data = window.TEINVIT_INVITATION_DATA;
             if (data) renderInvitation(data);
+            scheduleFinalProductPass();
         }).catch(function () {});
     }
+
 })();

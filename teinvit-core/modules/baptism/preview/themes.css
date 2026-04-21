@@ -343,11 +343,18 @@
 }
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider {
-  width: 96px;
-  height: 1px;
-  margin: 0.28em auto 0.34em;
-  background: var(--ba-color-accent);
-  opacity: .55;
+  width: min(82%, 320px);
+  height: 40px;
+  margin: 0.36em auto 0.42em;
+  background: transparent;
+  opacity: 1;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .teinvit-baptism .inv-parent-col,
