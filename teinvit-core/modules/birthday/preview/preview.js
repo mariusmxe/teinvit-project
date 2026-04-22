@@ -255,9 +255,45 @@
         if (!canvas) return null;
         var divider = qs('.inv-divider', canvas) || ensureNode('.inv-divider', '<div class="inv-divider" aria-hidden="true"></div>', canvas);
         var key = normalizeThemeKey(themeKey);
-        divider.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 320 70" preserveAspectRatio="xMidYMid meet">' + (DIVIDER_SVG[key] || DIVIDER_SVG['editorial-luxury']) + '</svg>';
+        divider.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 320 70" preserveAspectRatio="xMidYMid meet">' + vectorizeDividerSvg(DIVIDER_SVG[key] || DIVIDER_SVG['editorial-luxury']) + '</svg>';
         divider.style.display = '';
         return divider;
+    }
+
+    function attrValue(attrs, name, fallback) {
+        var re = new RegExp(name + '="([^"]*)"', 'i');
+        var match = String(attrs || '').match(re);
+        return match ? match[1] : fallback;
+    }
+
+    function vectorSymbol(symbol, x, y, fill, size) {
+        var s = Math.max(8, parseFloat(size || '14') || 14);
+        var cx = parseFloat(x || '0') || 0;
+        var cy = (parseFloat(y || '0') || 0) - s * 0.25;
+        var color = fill || 'currentColor';
+        if (symbol === '•') return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (s * 0.22).toFixed(2) + '" fill="' + color + '"></circle>';
+        if (symbol === '◆') return '<polygon points="' + cx + ',' + (cy - s * 0.34).toFixed(2) + ' ' + (cx + s * 0.34).toFixed(2) + ',' + cy + ' ' + cx + ',' + (cy + s * 0.34).toFixed(2) + ' ' + (cx - s * 0.34).toFixed(2) + ',' + cy + '" fill="' + color + '"></polygon>';
+        if (symbol === '♥' || symbol === '♡') return '<path d="M ' + cx + ' ' + (cy + s * 0.34).toFixed(2) + ' C ' + (cx - s * 0.62).toFixed(2) + ' ' + (cy - s * 0.08).toFixed(2) + ' ' + (cx - s * 0.34).toFixed(2) + ' ' + (cy - s * 0.54).toFixed(2) + ' ' + cx + ' ' + (cy - s * 0.24).toFixed(2) + ' C ' + (cx + s * 0.34).toFixed(2) + ' ' + (cy - s * 0.54).toFixed(2) + ' ' + (cx + s * 0.62).toFixed(2) + ' ' + (cy - s * 0.08).toFixed(2) + ' ' + cx + ' ' + (cy + s * 0.34).toFixed(2) + ' Z" ' + (symbol === '♡' ? 'fill="none" stroke="' + color + '" stroke-width="' + Math.max(1.4, s * 0.08).toFixed(2) + '"' : 'fill="' + color + '"') + '></path>';
+        if (symbol === '★') return '<path d="M ' + cx + ' ' + (cy - s * 0.48).toFixed(2) + ' L ' + (cx + s * 0.14).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' L ' + (cx + s * 0.52).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' L ' + (cx + s * 0.21).toFixed(2) + ' ' + (cy + s * 0.09).toFixed(2) + ' L ' + (cx + s * 0.32).toFixed(2) + ' ' + (cy + s * 0.45).toFixed(2) + ' L ' + cx + ' ' + (cy + s * 0.23).toFixed(2) + ' L ' + (cx - s * 0.32).toFixed(2) + ' ' + (cy + s * 0.45).toFixed(2) + ' L ' + (cx - s * 0.21).toFixed(2) + ' ' + (cy + s * 0.09).toFixed(2) + ' L ' + (cx - s * 0.52).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' L ' + (cx - s * 0.14).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' Z" fill="' + color + '"></path>';
+        if (symbol === '∞') return '<g fill="none" stroke="' + color + '" stroke-width="' + Math.max(1.5, s * 0.1).toFixed(2) + '"><ellipse cx="' + (cx - s * 0.23).toFixed(2) + '" cy="' + cy + '" rx="' + (s * 0.24).toFixed(2) + '" ry="' + (s * 0.16).toFixed(2) + '"></ellipse><ellipse cx="' + (cx + s * 0.23).toFixed(2) + '" cy="' + cy + '" rx="' + (s * 0.24).toFixed(2) + '" ry="' + (s * 0.16).toFixed(2) + '"></ellipse></g>';
+        if (symbol === '✝') return '<g stroke="' + color + '" stroke-width="' + Math.max(1.8, s * 0.12).toFixed(2) + '" stroke-linecap="round"><line x1="' + cx + '" x2="' + cx + '" y1="' + (cy - s * 0.48).toFixed(2) + '" y2="' + (cy + s * 0.48).toFixed(2) + '"></line><line x1="' + (cx - s * 0.27).toFixed(2) + '" x2="' + (cx + s * 0.27).toFixed(2) + '" y1="' + (cy - s * 0.12).toFixed(2) + '" y2="' + (cy - s * 0.12).toFixed(2) + '"></line></g>';
+        if (symbol === '❀' || symbol === '❦') return '<g fill="' + color + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + cx + '" cy="' + (cy - s * 0.28).toFixed(2) + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + (cx + s * 0.27).toFixed(2) + '" cy="' + cy + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + cx + '" cy="' + (cy + s * 0.28).toFixed(2) + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + (cx - s * 0.27).toFixed(2) + '" cy="' + cy + '" r="' + (s * 0.15).toFixed(2) + '"></circle></g>';
+        return '<g fill="' + color + '"><polygon points="' + cx + ',' + (cy - s * 0.48).toFixed(2) + ' ' + (cx + s * 0.12).toFixed(2) + ',' + (cy - s * 0.12).toFixed(2) + ' ' + (cx + s * 0.48).toFixed(2) + ',' + cy + ' ' + (cx + s * 0.12).toFixed(2) + ',' + (cy + s * 0.12).toFixed(2) + ' ' + cx + ',' + (cy + s * 0.48).toFixed(2) + ' ' + (cx - s * 0.12).toFixed(2) + ',' + (cy + s * 0.12).toFixed(2) + ' ' + (cx - s * 0.48).toFixed(2) + ',' + cy + ' ' + (cx - s * 0.12).toFixed(2) + ',' + (cy - s * 0.12).toFixed(2) + '"></polygon></g>';
+    }
+
+    function vectorizeDividerSvg(svg) {
+        return String(svg || '').replace(/<text\b([^>]*)>([\s\S]*?)<\/text>/gi, function (_, attrs, content) {
+            var fill = attrValue(attrs, 'fill', '#000');
+            var x = parseFloat(attrValue(attrs, 'x', '0')) || 0;
+            var y = parseFloat(attrValue(attrs, 'y', '0')) || 0;
+            var size = parseFloat(attrValue(attrs, 'font-size', '14')) || 14;
+            var symbols = String(content || '').trim().split(/\s+/).filter(Boolean);
+            if (!symbols.length) return '';
+            var start = x - ((symbols.length - 1) * size * 0.42);
+            return symbols.map(function (symbol, index) {
+                return vectorSymbol(symbol, start + index * size * 0.84, y, fill, size);
+            }).join('');
+        });
     }
 
     function invitationLayoutSignature(inv) {
@@ -371,6 +407,10 @@
         pdfReadyCheckTimer = setTimeout(function () {
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () {
+                    if (!window.__TEINVIT_FINAL_PASS_DONE__) {
+                        schedulePdfReadyCheck(canvas);
+                        return;
+                    }
                     if (!pdfFontsReady && document.fonts && document.fonts.ready) {
                         document.fonts.ready.then(function () {
                             pdfFontsReady = true;
@@ -449,6 +489,24 @@
         return { lines: lines, gap: gap };
     }
 
+    function protectNameSection(canvas) {
+        var names = qs('.inv-names', canvas);
+        if (!names) return;
+        var lines = countNameLines(canvas);
+        var band = lines <= 1 ? 118 : (lines === 2 ? 104 : (lines === 3 ? 90 : 78));
+        names.style.minHeight = band + 'px';
+        names.style.display = 'flex';
+        names.style.alignItems = 'center';
+        names.style.justifyContent = 'center';
+        names.style.width = '100%';
+        var minSize = lines <= 1 ? 1.95 : (lines === 2 ? 1.78 : (lines === 3 ? 1.58 : 1.42));
+        var size = parseFloat(names.style.fontSize || '0') || parseCssNumber(canvas, '--b-size-names', 2.2);
+        while ((names.scrollWidth > names.clientWidth + 1 || names.scrollHeight > band + 1) && size > minSize) {
+            size = Math.round((size - 0.03) * 100) / 100;
+            names.style.fontSize = size + 'em';
+        }
+    }
+
     function applyAutoFit(canvas) {
         if (!canvas) return;
         var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
@@ -462,8 +520,9 @@
             return;
         }
         var tuning = applyBirthdayTypography(canvas);
+        protectNameSection(canvas);
         var gap = tuning.gap;
-        var minGap = Math.max(18, gap - 8);
+        var minGap = 10;
         while (hasOverflow(canvas) && gap > minGap) {
             gap -= 2;
             distributeVerticalSpace(canvas, gap);
@@ -477,8 +536,20 @@
             msg.style.fontSize = msgSize + 'em';
         }
 
+        qsa('.inv-events .inv-event, .inv-event-name, .inv-age', canvas).forEach(function (node) {
+            var size = parseFloat(node.style.fontSize || window.getComputedStyle(node).fontSize) || 16;
+            var unit = node.style.fontSize && node.style.fontSize.indexOf('em') !== -1 ? 'em' : 'px';
+            var min = unit === 'em' ? 0.82 : 13;
+            while (hasOverflow(canvas) && size > min) {
+                size = Math.round((size - (unit === 'em' ? 0.02 : 0.5)) * 100) / 100;
+                node.style.fontSize = size + unit;
+            }
+        });
+
         if (hasOverflow(canvas) && engine() && typeof engine().autoFit === 'function') {
             engine().autoFit(canvas, { min: 0.72, step: 0.01, maxLoops: 30 });
+            applyBirthdayTypography(canvas);
+            protectNameSection(canvas);
         }
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
@@ -500,10 +571,11 @@
             return node && node.style.display !== 'none';
         });
         if (!nodes.length) return;
+        protectNameSection(canvas);
 
         var usedHeight = nodes.reduce(function (acc, node) { return acc + node.offsetHeight; }, 0);
         var free = Math.max(0, canvas.clientHeight - usedHeight);
-        var dynamicGap = Math.max(12, Math.min(36, Math.floor(free / (nodes.length + 1))));
+        var dynamicGap = Math.max(8, Math.min(36, Math.floor(free / (nodes.length + 1))));
         if (typeof forcedGap === 'number') {
             dynamicGap = forcedGap;
         } else if (tuning.lines >= 4) {
@@ -531,13 +603,34 @@
 
     function scheduleFinalPass(canvas) {
         if (!canvas) return;
+        window.__TEINVIT_FINAL_PASS_DONE__ = false;
         var sig = layoutSignature(canvas);
-        if (engine() && typeof engine().scheduleFinalPass === 'function') {
-            engine().scheduleFinalPass(canvas, 'birthday', sig, function () {
+        if (window.__TEINVIT_PDF_MODE__) {
+            if (finalTimer) clearTimeout(finalTimer);
+            finalTimer = setTimeout(function () {
                 canvas.style.fontSize = '1em';
+                applyBirthdayTypography(canvas);
+                protectNameSection(canvas);
                 distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
+                    requestAnimationFrame(function () {
+                        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+                        schedulePdfReadyCheck(canvas);
+                    });
+                });
+            }, 280);
+            return;
+        }
+        if (engine() && typeof engine().scheduleFinalPass === 'function') {
+            engine().scheduleFinalPass(canvas, 'birthday', sig, function () {
+                canvas.style.fontSize = '1em';
+                applyBirthdayTypography(canvas);
+                protectNameSection(canvas);
+                distributeVerticalSpace(canvas);
+                requestAnimationFrame(function () {
+                    if (hasOverflow(canvas)) applyAutoFit(canvas);
+                    window.__TEINVIT_FINAL_PASS_DONE__ = true;
                 });
             }, 280);
             return;

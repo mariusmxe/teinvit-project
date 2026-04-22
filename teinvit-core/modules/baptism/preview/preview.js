@@ -258,9 +258,45 @@
         if (!canvas) return null;
         var divider = qs('.inv-divider', canvas) || ensureBefore('.inv-divider', '<div class="inv-divider" aria-hidden="true"></div>', qs('.inv-parents-wrapper', canvas), canvas);
         var key = normalizeThemeKey(themeKey);
-        divider.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 320 70" preserveAspectRatio="xMidYMid meet">' + (DIVIDER_SVG[key] || DIVIDER_SVG['little-princess']) + '</svg>';
+        divider.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 320 70" preserveAspectRatio="xMidYMid meet">' + vectorizeDividerSvg(DIVIDER_SVG[key] || DIVIDER_SVG['little-princess']) + '</svg>';
         divider.style.display = '';
         return divider;
+    }
+
+    function attrValue(attrs, name, fallback) {
+        var re = new RegExp(name + '="([^"]*)"', 'i');
+        var match = String(attrs || '').match(re);
+        return match ? match[1] : fallback;
+    }
+
+    function vectorSymbol(symbol, x, y, fill, size) {
+        var s = Math.max(8, parseFloat(size || '14') || 14);
+        var cx = parseFloat(x || '0') || 0;
+        var cy = (parseFloat(y || '0') || 0) - s * 0.25;
+        var color = fill || 'currentColor';
+        if (symbol === '•') return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (s * 0.22).toFixed(2) + '" fill="' + color + '"></circle>';
+        if (symbol === '◆') return '<polygon points="' + cx + ',' + (cy - s * 0.34).toFixed(2) + ' ' + (cx + s * 0.34).toFixed(2) + ',' + cy + ' ' + cx + ',' + (cy + s * 0.34).toFixed(2) + ' ' + (cx - s * 0.34).toFixed(2) + ',' + cy + '" fill="' + color + '"></polygon>';
+        if (symbol === '♥' || symbol === '♡') return '<path d="M ' + cx + ' ' + (cy + s * 0.34).toFixed(2) + ' C ' + (cx - s * 0.62).toFixed(2) + ' ' + (cy - s * 0.08).toFixed(2) + ' ' + (cx - s * 0.34).toFixed(2) + ' ' + (cy - s * 0.54).toFixed(2) + ' ' + cx + ' ' + (cy - s * 0.24).toFixed(2) + ' C ' + (cx + s * 0.34).toFixed(2) + ' ' + (cy - s * 0.54).toFixed(2) + ' ' + (cx + s * 0.62).toFixed(2) + ' ' + (cy - s * 0.08).toFixed(2) + ' ' + cx + ' ' + (cy + s * 0.34).toFixed(2) + ' Z" ' + (symbol === '♡' ? 'fill="none" stroke="' + color + '" stroke-width="' + Math.max(1.4, s * 0.08).toFixed(2) + '"' : 'fill="' + color + '"') + '></path>';
+        if (symbol === '★') return '<path d="M ' + cx + ' ' + (cy - s * 0.48).toFixed(2) + ' L ' + (cx + s * 0.14).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' L ' + (cx + s * 0.52).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' L ' + (cx + s * 0.21).toFixed(2) + ' ' + (cy + s * 0.09).toFixed(2) + ' L ' + (cx + s * 0.32).toFixed(2) + ' ' + (cy + s * 0.45).toFixed(2) + ' L ' + cx + ' ' + (cy + s * 0.23).toFixed(2) + ' L ' + (cx - s * 0.32).toFixed(2) + ' ' + (cy + s * 0.45).toFixed(2) + ' L ' + (cx - s * 0.21).toFixed(2) + ' ' + (cy + s * 0.09).toFixed(2) + ' L ' + (cx - s * 0.52).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' L ' + (cx - s * 0.14).toFixed(2) + ' ' + (cy - s * 0.12).toFixed(2) + ' Z" fill="' + color + '"></path>';
+        if (symbol === '∞') return '<g fill="none" stroke="' + color + '" stroke-width="' + Math.max(1.5, s * 0.1).toFixed(2) + '"><ellipse cx="' + (cx - s * 0.23).toFixed(2) + '" cy="' + cy + '" rx="' + (s * 0.24).toFixed(2) + '" ry="' + (s * 0.16).toFixed(2) + '"></ellipse><ellipse cx="' + (cx + s * 0.23).toFixed(2) + '" cy="' + cy + '" rx="' + (s * 0.24).toFixed(2) + '" ry="' + (s * 0.16).toFixed(2) + '"></ellipse></g>';
+        if (symbol === '✝') return '<g stroke="' + color + '" stroke-width="' + Math.max(1.8, s * 0.12).toFixed(2) + '" stroke-linecap="round"><line x1="' + cx + '" x2="' + cx + '" y1="' + (cy - s * 0.48).toFixed(2) + '" y2="' + (cy + s * 0.48).toFixed(2) + '"></line><line x1="' + (cx - s * 0.27).toFixed(2) + '" x2="' + (cx + s * 0.27).toFixed(2) + '" y1="' + (cy - s * 0.12).toFixed(2) + '" y2="' + (cy - s * 0.12).toFixed(2) + '"></line></g>';
+        if (symbol === '❀' || symbol === '❦') return '<g fill="' + color + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + cx + '" cy="' + (cy - s * 0.28).toFixed(2) + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + (cx + s * 0.27).toFixed(2) + '" cy="' + cy + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + cx + '" cy="' + (cy + s * 0.28).toFixed(2) + '" r="' + (s * 0.15).toFixed(2) + '"></circle><circle cx="' + (cx - s * 0.27).toFixed(2) + '" cy="' + cy + '" r="' + (s * 0.15).toFixed(2) + '"></circle></g>';
+        return '<g fill="' + color + '"><polygon points="' + cx + ',' + (cy - s * 0.48).toFixed(2) + ' ' + (cx + s * 0.12).toFixed(2) + ',' + (cy - s * 0.12).toFixed(2) + ' ' + (cx + s * 0.48).toFixed(2) + ',' + cy + ' ' + (cx + s * 0.12).toFixed(2) + ',' + (cy + s * 0.12).toFixed(2) + ' ' + cx + ',' + (cy + s * 0.48).toFixed(2) + ' ' + (cx - s * 0.12).toFixed(2) + ',' + (cy + s * 0.12).toFixed(2) + ' ' + (cx - s * 0.48).toFixed(2) + ',' + cy + ' ' + (cx - s * 0.12).toFixed(2) + ',' + (cy - s * 0.12).toFixed(2) + '"></polygon></g>';
+    }
+
+    function vectorizeDividerSvg(svg) {
+        return String(svg || '').replace(/<text\b([^>]*)>([\s\S]*?)<\/text>/gi, function (_, attrs, content) {
+            var fill = attrValue(attrs, 'fill', '#000');
+            var x = parseFloat(attrValue(attrs, 'x', '0')) || 0;
+            var y = parseFloat(attrValue(attrs, 'y', '0')) || 0;
+            var size = parseFloat(attrValue(attrs, 'font-size', '14')) || 14;
+            var symbols = String(content || '').trim().split(/\s+/).filter(Boolean);
+            if (!symbols.length) return '';
+            var start = x - ((symbols.length - 1) * size * 0.42);
+            return symbols.map(function (symbol, index) {
+                return vectorSymbol(symbol, start + index * size * 0.84, y, fill, size);
+            }).join('');
+        });
     }
 
     function invitationLayoutSignature(inv) {
@@ -388,6 +424,10 @@
         pdfReadyCheckTimer = setTimeout(function () {
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () {
+                    if (!window.__TEINVIT_FINAL_PASS_DONE__) {
+                        schedulePdfReadyCheck(canvas);
+                        return;
+                    }
                     if (!pdfFontsReady && document.fonts && document.fonts.ready) {
                         document.fonts.ready.then(function () {
                             pdfFontsReady = true;
@@ -415,6 +455,39 @@
         }, 40);
     }
 
+    function parseCssNumber(canvas, variableName, fallback) {
+        if (!canvas || !window.getComputedStyle) return fallback;
+        var raw = window.getComputedStyle(canvas).getPropertyValue(variableName);
+        var value = parseFloat(String(raw || '').replace(',', '.'));
+        return isFinite(value) ? value : fallback;
+    }
+
+    function countNameLines(canvas) {
+        var names = qs('.inv-names', canvas);
+        if (!names) return 1;
+        var raw = String(names.textContent || '').split('\n').filter(function (line) { return String(line || '').trim() !== ''; }).length;
+        return raw > 0 ? raw : 1;
+    }
+
+    function protectNameSection(canvas) {
+        var names = qs('.inv-names', canvas);
+        if (!names) return;
+        var lines = countNameLines(canvas);
+        var band = lines <= 1 ? 112 : (lines === 2 ? 98 : (lines === 3 ? 86 : 74));
+        names.style.minHeight = band + 'px';
+        names.style.display = 'flex';
+        names.style.alignItems = 'center';
+        names.style.justifyContent = 'center';
+        names.style.width = '100%';
+        names.style.fontSize = parseCssNumber(canvas, '--ba-size-names', 2.14) + 'em';
+        var minSize = lines <= 1 ? 1.9 : (lines === 2 ? 1.72 : (lines === 3 ? 1.52 : 1.36));
+        var size = parseFloat(names.style.fontSize || '0') || parseCssNumber(canvas, '--ba-size-names', 2.14);
+        while ((names.scrollWidth > names.clientWidth + 1 || names.scrollHeight > band + 1) && size > minSize) {
+            size = Math.round((size - 0.03) * 100) / 100;
+            names.style.fontSize = size + 'em';
+        }
+    }
+
     function applyAutoFit(canvas) {
         if (!canvas) return;
         var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
@@ -427,8 +500,26 @@
         ) {
             return;
         }
+        protectNameSection(canvas);
+        distributeVerticalSpace(canvas);
+        var msg = qs('.inv-message', canvas);
+        var msgSize = msg ? parseCssNumber(canvas, '--ba-size-message', 1.06) : 0;
+        while (hasOverflow(canvas) && msg && msgSize > 0.88) {
+            msgSize = Math.round((msgSize - 0.02) * 100) / 100;
+            msg.style.fontSize = msgSize + 'em';
+            distributeVerticalSpace(canvas);
+        }
+        qsa('.inv-parents-wrapper, .inv-nasi, .inv-events .inv-event', canvas).forEach(function (node) {
+            var size = parseFloat(node.style.fontSize || '1') || 1;
+            while (hasOverflow(canvas) && size > 0.82) {
+                size = Math.round((size - 0.02) * 100) / 100;
+                node.style.fontSize = size + 'em';
+                distributeVerticalSpace(canvas);
+            }
+        });
         if (engine() && typeof engine().autoFit === 'function') {
             engine().autoFit(canvas, { min: 0.58, step: 0.02, maxLoops: 60 });
+            protectNameSection(canvas);
         }
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
@@ -438,8 +529,9 @@
 
     function distributeVerticalSpace(canvas) {
         if (!canvas) return;
+        protectNameSection(canvas);
         if (engine() && typeof engine().distributeVerticalSpace === 'function') {
-            engine().distributeVerticalSpace(canvas, ['.inv-names', '.inv-divider', '.inv-parents-wrapper', '.inv-nasi', '.inv-message', '.inv-events'], { reserve: 10, minGap: 6, maxGap: 26 });
+            engine().distributeVerticalSpace(canvas, ['.inv-names', '.inv-divider', '.inv-parents-wrapper', '.inv-nasi', '.inv-message', '.inv-events'], { reserve: 8, minGap: 4, maxGap: 26 });
         }
     }
 
@@ -456,13 +548,32 @@
 
     function scheduleFinalPass(canvas) {
         if (!canvas) return;
+        window.__TEINVIT_FINAL_PASS_DONE__ = false;
         var sig = layoutSignature(canvas);
-        if (engine() && typeof engine().scheduleFinalPass === 'function') {
-            engine().scheduleFinalPass(canvas, 'baptism', sig, function () {
+        if (window.__TEINVIT_PDF_MODE__) {
+            if (finalTimer) clearTimeout(finalTimer);
+            finalTimer = setTimeout(function () {
                 canvas.style.fontSize = '1em';
+                protectNameSection(canvas);
                 distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
+                    requestAnimationFrame(function () {
+                        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+                        schedulePdfReadyCheck(canvas);
+                    });
+                });
+            }, 280);
+            return;
+        }
+        if (engine() && typeof engine().scheduleFinalPass === 'function') {
+            engine().scheduleFinalPass(canvas, 'baptism', sig, function () {
+                canvas.style.fontSize = '1em';
+                protectNameSection(canvas);
+                distributeVerticalSpace(canvas);
+                requestAnimationFrame(function () {
+                    if (hasOverflow(canvas)) applyAutoFit(canvas);
+                    window.__TEINVIT_FINAL_PASS_DONE__ = true;
                 });
             }, 280);
             return;

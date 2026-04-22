@@ -109,19 +109,24 @@
 @media print {
   html,
   body {
-    width: 100%;
-    height: 100%;
+    width: 148mm;
+    height: 210mm;
     margin: 0;
     padding: 0;
     overflow: hidden;
     background: #ffffff;
   }
 
+  body {
+    display: block !important;
+    justify-content: initial !important;
+  }
+
   .teinvit-birthday,
   .teinvit-birthday .teinvit-page,
   .teinvit-birthday .teinvit-container {
-    width: 100%;
-    height: 100%;
+    width: 148mm;
+    height: 210mm;
     max-width: none;
     margin: 0;
     padding: 0;
@@ -133,8 +138,8 @@
   }
 
   .teinvit-birthday .teinvit-preview {
-    width: 100%;
-    height: 100%;
+    width: 148mm;
+    height: 210mm;
     max-width: none;
     overflow: hidden;
     font-size: 17.25px;
