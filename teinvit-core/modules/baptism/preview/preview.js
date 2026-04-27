@@ -463,11 +463,21 @@
         return raw > 0 ? raw : 1;
     }
 
-    function getBaptismNameBand(lines) {
-        if (lines <= 1) return { height: 116, min: 1.92, grow: 1.42, step: 0.03 };
-        if (lines === 2) return { height: 101, min: 1.74, grow: 1.28, step: 0.03 };
-        if (lines === 3) return { height: 88, min: 1.54, grow: 1.16, step: 0.02 };
-        return { height: 76, min: 1.38, grow: 1.08, step: 0.02 };
+    function getBaptismNameBand(canvas, lines) {
+        var safeLines = Math.max(1, parseInt(lines, 10) || 1);
+        var preview = canvas ? canvas.parentElement : null;
+        var previewStyle = preview && window.getComputedStyle ? window.getComputedStyle(preview) : null;
+        var previewFontPx = previewStyle ? parseFloat(previewStyle.fontSize || '0') : 0;
+        var baseFontPx = previewFontPx > 0 ? previewFontPx : 17.25;
+        var baseNameSize = parseCssNumber(canvas, '--ba-size-names', 2.14);
+        var lineBox = baseFontPx * baseNameSize * 1.14;
+        var growthStep = Math.max(12, Math.round(lineBox * 0.4));
+        var height = 116 + (Math.max(0, safeLines - 1) * growthStep);
+
+        if (safeLines <= 1) return { height: height, min: 1.92, grow: 1.42, step: 0.03 };
+        if (safeLines === 2) return { height: height, min: 1.74, grow: 1.28, step: 0.03 };
+        if (safeLines === 3) return { height: height, min: 1.54, grow: 1.16, step: 0.02 };
+        return { height: height, min: 1.38, grow: 1.08, step: 0.02 };
     }
 
     function nameOverflows(names, bandHeight) {
@@ -477,9 +487,9 @@
 
     function protectNameSection(canvas) {
         var names = qs('.inv-names', canvas);
-        if (!names) return getBaptismNameBand(1);
+        if (!names) return getBaptismNameBand(canvas, 1);
         var lines = countNameLines(canvas);
-        var band = getBaptismNameBand(lines);
+        var band = getBaptismNameBand(canvas, lines);
         names.style.minHeight = band.height + 'px';
         names.style.display = 'flex';
         names.style.alignItems = 'center';
