@@ -1,0 +1,156 @@
+@import url('./themes.css');
+
+.teinvit-birthday,
+.teinvit-birthday * {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+@page {
+  size: 148mm 210mm;
+  margin: 0;
+}
+
+@media screen {
+  .teinvit-birthday {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 2.5em 0;
+  }
+
+  .teinvit-birthday .teinvit-page {
+    display: flex;
+    justify-content: center;
+  }
+
+  .teinvit-birthday .teinvit-container {
+    width: 100%;
+    max-width: 1200px;
+    padding: 40px 24px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    width: 559px;
+    height: 794px;
+    overflow: hidden;
+  }
+
+  body {
+    display: block !important;
+  }
+
+  .teinvit-birthday,
+  .teinvit-birthday .teinvit-page,
+  .teinvit-birthday .teinvit-container {
+    width: 559px;
+    height: 794px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    max-width: none;
+  }
+
+  .teinvit-birthday .teinvit-page {
+    display: block;
+  }
+}
+
+.teinvit-birthday .teinvit-preview {
+  position: relative;
+  width: 559px;
+  height: 794px;
+  overflow: hidden;
+  font-size: 17.25px;
+}
+
+.teinvit-birthday .teinvit-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.teinvit-birthday .teinvit-canvas {
+  position: absolute;
+  top: 14%;
+  left: 8%;
+  right: 8%;
+  bottom: 4%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-size: 1em;
+  line-height: 1.35;
+}
+
+.teinvit-birthday .inv-names {
+  margin-bottom: 0.55em;
+  line-height: 1.2;
+}
+
+.teinvit-birthday .inv-divider {
+  position: relative;
+  height: 0;
+  margin: 0.28em auto 0.34em;
+  pointer-events: none;
+}
+
+.teinvit-birthday .inv-message {
+  width: 100%;
+  max-width: 94%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.55em;
+  line-height: 1.5;
+}
+
+.teinvit-birthday .events-row {
+  display: flex;
+  justify-content: center;
+  gap: 1.2em;
+  margin-top: 0.8em;
+}
+
+.teinvit-birthday .inv-event {
+  max-width: 48%;
+  line-height: 1.4;
+}
+
+.teinvit-birthday .events-row.top .inv-event:only-child {
+  max-width: 100%;
+}
+
+.teinvit-birthday .inv-event strong {
+  display: block;
+  margin-bottom: 0.2em;
+  text-transform: uppercase;
+}
+
+.teinvit-birthday .inv-event > div:nth-of-type(2) {
+  margin-top: 0.18em;
+}
+
+.teinvit-birthday .inv-event a {
+  display: inline-block;
+  margin-top: 0.2em;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+}

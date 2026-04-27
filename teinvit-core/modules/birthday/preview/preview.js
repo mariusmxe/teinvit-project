@@ -387,14 +387,13 @@
             top.appendChild(node);
         }
 
-        applyAutoFit(canvas);
-        distributeVerticalSpace(canvas);
-        scheduleFinalPass(canvas);
-        scheduleFinalProductPass();
-
         if (window.__TEINVIT_PDF_MODE__) {
             schedulePdfReadyCheck(canvas);
         } else {
+            applyAutoFit(canvas);
+            distributeVerticalSpace(canvas);
+            scheduleFinalPass(canvas);
+            scheduleFinalProductPass();
             window.TEINVIT_RENDER_READY = true;
         }
     }
@@ -407,16 +406,11 @@
         pdfReadyCheckTimer = setTimeout(function () {
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () {
-                    if (!window.__TEINVIT_FINAL_PASS_DONE__) {
-                        schedulePdfReadyCheck(canvas);
-                        return;
-                    }
                     if (!pdfFontsReady && document.fonts && document.fonts.ready) {
                         document.fonts.ready.then(function () {
                             pdfFontsReady = true;
                             window.__TEINVIT_AUTOFIT_DONE__ = false;
-                            applyAutoFit(canvas);
-                            distributeVerticalSpace(canvas);
+                            window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
                             schedulePdfReadyCheck(canvas);
                         }).catch(function () {
                             pdfFontsReady = true;
@@ -424,10 +418,10 @@
                         });
                         return;
                     }
-                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 4) {
+                    finalizeBirthdayPdfLayout(canvas);
+                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 2) {
                         pdfReadyCheckAttempts++;
-                        window.__TEINVIT_AUTOFIT_DONE__ = false;
-                        applyAutoFit(canvas);
+                        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
                         schedulePdfReadyCheck(canvas);
                         return;
                     }
@@ -452,8 +446,31 @@
         return raw > 0 ? raw : 1;
     }
 
-    function applyBirthdayTypography(canvas) {
-        if (!canvas) return { lines: 1, gap: 26 };
+    function resolveBirthdayNameBaseSize(canvas, lines) {
+        var nameSize = parseCssNumber(canvas, '--b-size-names', 2.2);
+        if (lines >= 4) {
+            nameSize = parseCssNumber(canvas, '--b-name-size-4', nameSize);
+        } else if (lines >= 3) {
+            nameSize = parseCssNumber(canvas, '--b-name-size-3', nameSize);
+        }
+        return nameSize;
+    }
+
+    function getBirthdayNameBand(lines) {
+        if (lines <= 1) return { height: 122, min: 1.98, grow: 1.42, step: 0.03 };
+        if (lines === 2) return { height: 106, min: 1.80, grow: 1.28, step: 0.03 };
+        if (lines === 3) return { height: 92, min: 1.60, grow: 1.16, step: 0.02 };
+        return { height: 80, min: 1.44, grow: 1.08, step: 0.02 };
+    }
+
+    function nameOverflows(names, bandHeight) {
+        if (!names) return false;
+        return names.scrollWidth > names.clientWidth + 1 || names.scrollHeight > bandHeight + 1;
+    }
+
+    function applyBirthdayTypography(canvas, options) {
+        if (!canvas) return { lines: 1, gap: 26, nameSize: 2.2 };
+        var cfg = options || {};
         var lines = countNameLines(canvas);
         var age = qs('.inv-age', canvas);
         var names = qs('.inv-names', canvas);
@@ -465,18 +482,16 @@
         var datetime = qs('.inv-events .inv-event .inv-datetime', canvas);
         var waze = qs('.inv-events .inv-event a', canvas);
 
-        var nameSize = parseCssNumber(canvas, '--b-size-names', 2.2);
+        var nameSize = resolveBirthdayNameBaseSize(canvas, lines);
         var messageSize = parseCssNumber(canvas, '--b-size-message', 1.0);
         if (lines >= 4) {
-            nameSize = parseCssNumber(canvas, '--b-name-size-4', nameSize);
             messageSize = parseCssNumber(canvas, '--b-message-size-4', messageSize);
         } else if (lines >= 3) {
-            nameSize = parseCssNumber(canvas, '--b-name-size-3', nameSize);
             messageSize = parseCssNumber(canvas, '--b-message-size-3', messageSize);
         }
 
         if (age) age.style.fontSize = parseCssNumber(canvas, '--b-size-age', 1.55) + 'em';
-        if (names) names.style.fontSize = nameSize + 'em';
+        if (names && !cfg.preserveNameSize) names.style.fontSize = nameSize + 'em';
         if (eventName) eventName.style.fontSize = parseCssNumber(canvas, '--b-size-event', 1.12) + 'em';
         if (message) message.style.fontSize = messageSize + 'em';
         if (eventTitle) eventTitle.style.fontSize = parseCssNumber(canvas, '--b-size-caps', 0.98) + 'em';
@@ -486,25 +501,93 @@
         if (waze) waze.style.fontSize = parseCssNumber(canvas, '--b-size-link', 0.88) + 'em';
 
         var gap = lines >= 4 ? parseCssNumber(canvas, '--b-gap-tight', parseCssNumber(canvas, '--b-gap-base', 26)) : parseCssNumber(canvas, '--b-gap-base', 26);
-        return { lines: lines, gap: gap };
+        return { lines: lines, gap: gap, nameSize: nameSize };
     }
 
     function protectNameSection(canvas) {
         var names = qs('.inv-names', canvas);
-        if (!names) return;
+        if (!names) return getBirthdayNameBand(1);
         var lines = countNameLines(canvas);
-        var band = lines <= 1 ? 118 : (lines === 2 ? 104 : (lines === 3 ? 90 : 78));
-        names.style.minHeight = band + 'px';
+        var band = getBirthdayNameBand(lines);
+        names.style.minHeight = band.height + 'px';
         names.style.display = 'flex';
         names.style.alignItems = 'center';
         names.style.justifyContent = 'center';
         names.style.width = '100%';
-        var minSize = lines <= 1 ? 1.95 : (lines === 2 ? 1.78 : (lines === 3 ? 1.58 : 1.42));
-        var size = parseFloat(names.style.fontSize || '0') || parseCssNumber(canvas, '--b-size-names', 2.2);
-        while ((names.scrollWidth > names.clientWidth + 1 || names.scrollHeight > band + 1) && size > minSize) {
-            size = Math.round((size - 0.03) * 100) / 100;
+        return band;
+    }
+
+    function fitBirthdayNameText(canvas, shrinkOnly) {
+        var names = qs('.inv-names', canvas);
+        if (!names) return;
+        var lines = countNameLines(canvas);
+        var band = protectNameSection(canvas);
+        var baseSize = resolveBirthdayNameBaseSize(canvas, lines);
+        var step = band.step;
+        var size = shrinkOnly ? (parseFloat(names.style.fontSize || '0') || baseSize) : baseSize;
+        var maxSize = baseSize * band.grow;
+
+        names.style.fontSize = size + 'em';
+        if (!shrinkOnly) {
+            while (!nameOverflows(names, band.height) && size + step <= maxSize) {
+                size = Math.round((size + step) * 100) / 100;
+                names.style.fontSize = size + 'em';
+            }
+            if (nameOverflows(names, band.height)) {
+                size = Math.round((size - step) * 100) / 100;
+                names.style.fontSize = size + 'em';
+            }
+        }
+
+        while (nameOverflows(names, band.height) && size > band.min) {
+            size = Math.round((size - step) * 100) / 100;
             names.style.fontSize = size + 'em';
         }
+    }
+
+    function compactBirthdaySecondary(canvas) {
+        var msg = qs('.inv-message', canvas);
+        var msgSize = msg ? parseFloat(msg.style.fontSize || '0') : 0;
+        while (hasOverflow(canvas) && msg && msgSize > 0.92) {
+            msgSize = Math.round((msgSize - 0.02) * 100) / 100;
+            msg.style.fontSize = msgSize + 'em';
+            distributeVerticalSpace(canvas);
+        }
+
+        qsa('.inv-events .inv-event, .inv-event-name, .inv-age', canvas).forEach(function (node) {
+            var size = parseFloat(node.style.fontSize || '0') || 1;
+            while (hasOverflow(canvas) && size > 0.82) {
+                size = Math.round((size - 0.02) * 100) / 100;
+                node.style.fontSize = size + 'em';
+                distributeVerticalSpace(canvas);
+            }
+        });
+    }
+
+    function finalizeBirthdayPdfLayout(canvas) {
+        if (!canvas) return;
+        window.__TEINVIT_FINAL_PASS_DONE__ = false;
+        canvas.style.fontSize = '1em';
+        applyBirthdayTypography(canvas);
+        fitBirthdayNameText(canvas, false);
+        distributeVerticalSpace(canvas);
+        compactBirthdaySecondary(canvas);
+        if (hasOverflow(canvas)) {
+            fitBirthdayNameText(canvas, true);
+            distributeVerticalSpace(canvas);
+        }
+        if (hasOverflow(canvas) && engine() && typeof engine().autoFit === 'function') {
+            engine().autoFit(canvas, { min: 0.72, step: 0.01, maxLoops: 30 });
+            applyBirthdayTypography(canvas, { preserveNameSize: true });
+            fitBirthdayNameText(canvas, false);
+            distributeVerticalSpace(canvas);
+        }
+        if (hasOverflow(canvas)) {
+            compactBirthdaySecondary(canvas);
+            fitBirthdayNameText(canvas, true);
+            distributeVerticalSpace(canvas);
+        }
+        window.__TEINVIT_FINAL_PASS_DONE__ = true;
     }
 
     function applyAutoFit(canvas) {
@@ -520,36 +603,23 @@
             return;
         }
         var tuning = applyBirthdayTypography(canvas);
-        protectNameSection(canvas);
+        fitBirthdayNameText(canvas, false);
         var gap = tuning.gap;
         var minGap = 10;
         while (hasOverflow(canvas) && gap > minGap) {
             gap -= 2;
             distributeVerticalSpace(canvas, gap);
         }
-        if (!hasOverflow(canvas)) return;
-
-        var msg = qs('.inv-message', canvas);
-        var msgSize = msg ? parseFloat(msg.style.fontSize || '0') : 0;
-        while (hasOverflow(canvas) && msg && msgSize > 0.94) {
-            msgSize = Math.round((msgSize - 0.02) * 100) / 100;
-            msg.style.fontSize = msgSize + 'em';
+        compactBirthdaySecondary(canvas);
+        if (hasOverflow(canvas)) {
+            fitBirthdayNameText(canvas, true);
         }
-
-        qsa('.inv-events .inv-event, .inv-event-name, .inv-age', canvas).forEach(function (node) {
-            var size = parseFloat(node.style.fontSize || window.getComputedStyle(node).fontSize) || 16;
-            var unit = node.style.fontSize && node.style.fontSize.indexOf('em') !== -1 ? 'em' : 'px';
-            var min = unit === 'em' ? 0.82 : 13;
-            while (hasOverflow(canvas) && size > min) {
-                size = Math.round((size - (unit === 'em' ? 0.02 : 0.5)) * 100) / 100;
-                node.style.fontSize = size + unit;
-            }
-        });
 
         if (hasOverflow(canvas) && engine() && typeof engine().autoFit === 'function') {
             engine().autoFit(canvas, { min: 0.72, step: 0.01, maxLoops: 30 });
             applyBirthdayTypography(canvas);
-            protectNameSection(canvas);
+            fitBirthdayNameText(canvas, false);
+            if (hasOverflow(canvas)) fitBirthdayNameText(canvas, true);
         }
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
@@ -559,7 +629,7 @@
 
     function distributeVerticalSpace(canvas, forcedGap) {
         if (!canvas) return;
-        var tuning = applyBirthdayTypography(canvas);
+        var tuning = applyBirthdayTypography(canvas, { preserveNameSize: true });
         var gap = typeof forcedGap === 'number' ? forcedGap : tuning.gap;
         var age = qs('.inv-age', canvas);
         var names = qs('.inv-names', canvas);
@@ -606,27 +676,13 @@
         window.__TEINVIT_FINAL_PASS_DONE__ = false;
         var sig = layoutSignature(canvas);
         if (window.__TEINVIT_PDF_MODE__) {
-            if (finalTimer) clearTimeout(finalTimer);
-            finalTimer = setTimeout(function () {
-                canvas.style.fontSize = '1em';
-                applyBirthdayTypography(canvas);
-                protectNameSection(canvas);
-                distributeVerticalSpace(canvas);
-                requestAnimationFrame(function () {
-                    if (hasOverflow(canvas)) applyAutoFit(canvas);
-                    requestAnimationFrame(function () {
-                        window.__TEINVIT_FINAL_PASS_DONE__ = true;
-                        schedulePdfReadyCheck(canvas);
-                    });
-                });
-            }, 280);
             return;
         }
         if (engine() && typeof engine().scheduleFinalPass === 'function') {
             engine().scheduleFinalPass(canvas, 'birthday', sig, function () {
                 canvas.style.fontSize = '1em';
                 applyBirthdayTypography(canvas);
-                protectNameSection(canvas);
+                fitBirthdayNameText(canvas, false);
                 distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
@@ -639,6 +695,8 @@
         finalTimer = setTimeout(function () {
             if (sig === lastSig) {
                 canvas.style.fontSize = '1em';
+                applyBirthdayTypography(canvas);
+                fitBirthdayNameText(canvas, false);
                 distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);

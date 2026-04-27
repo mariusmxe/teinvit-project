@@ -404,14 +404,13 @@
             top.appendChild(node);
         });
 
-        applyAutoFit(canvas);
-        distributeVerticalSpace(canvas);
-        scheduleFinalPass(canvas);
-        scheduleFinalProductPass();
-
         if (window.__TEINVIT_PDF_MODE__) {
             schedulePdfReadyCheck(canvas);
         } else {
+            applyAutoFit(canvas);
+            distributeVerticalSpace(canvas);
+            scheduleFinalPass(canvas);
+            scheduleFinalProductPass();
             window.TEINVIT_RENDER_READY = true;
         }
     }
@@ -424,16 +423,11 @@
         pdfReadyCheckTimer = setTimeout(function () {
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () {
-                    if (!window.__TEINVIT_FINAL_PASS_DONE__) {
-                        schedulePdfReadyCheck(canvas);
-                        return;
-                    }
                     if (!pdfFontsReady && document.fonts && document.fonts.ready) {
                         document.fonts.ready.then(function () {
                             pdfFontsReady = true;
                             window.__TEINVIT_AUTOFIT_DONE__ = false;
-                            applyAutoFit(canvas);
-                            distributeVerticalSpace(canvas);
+                            window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
                             schedulePdfReadyCheck(canvas);
                         }).catch(function () {
                             pdfFontsReady = true;
@@ -441,10 +435,10 @@
                         });
                         return;
                     }
-                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 4) {
+                    finalizeBaptismPdfLayout(canvas);
+                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 2) {
                         pdfReadyCheckAttempts++;
-                        window.__TEINVIT_AUTOFIT_DONE__ = false;
-                        applyAutoFit(canvas);
+                        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
                         schedulePdfReadyCheck(canvas);
                         return;
                     }
@@ -469,39 +463,60 @@
         return raw > 0 ? raw : 1;
     }
 
+    function getBaptismNameBand(lines) {
+        if (lines <= 1) return { height: 116, min: 1.92, grow: 1.42, step: 0.03 };
+        if (lines === 2) return { height: 101, min: 1.74, grow: 1.28, step: 0.03 };
+        if (lines === 3) return { height: 88, min: 1.54, grow: 1.16, step: 0.02 };
+        return { height: 76, min: 1.38, grow: 1.08, step: 0.02 };
+    }
+
+    function nameOverflows(names, bandHeight) {
+        if (!names) return false;
+        return names.scrollWidth > names.clientWidth + 1 || names.scrollHeight > bandHeight + 1;
+    }
+
     function protectNameSection(canvas) {
         var names = qs('.inv-names', canvas);
-        if (!names) return;
+        if (!names) return getBaptismNameBand(1);
         var lines = countNameLines(canvas);
-        var band = lines <= 1 ? 112 : (lines === 2 ? 98 : (lines === 3 ? 86 : 74));
-        names.style.minHeight = band + 'px';
+        var band = getBaptismNameBand(lines);
+        names.style.minHeight = band.height + 'px';
         names.style.display = 'flex';
         names.style.alignItems = 'center';
         names.style.justifyContent = 'center';
         names.style.width = '100%';
-        names.style.fontSize = parseCssNumber(canvas, '--ba-size-names', 2.14) + 'em';
-        var minSize = lines <= 1 ? 1.9 : (lines === 2 ? 1.72 : (lines === 3 ? 1.52 : 1.36));
-        var size = parseFloat(names.style.fontSize || '0') || parseCssNumber(canvas, '--ba-size-names', 2.14);
-        while ((names.scrollWidth > names.clientWidth + 1 || names.scrollHeight > band + 1) && size > minSize) {
-            size = Math.round((size - 0.03) * 100) / 100;
+        return band;
+    }
+
+    function fitBaptismNameText(canvas, shrinkOnly) {
+        var names = qs('.inv-names', canvas);
+        if (!names) return;
+        var lines = countNameLines(canvas);
+        var band = protectNameSection(canvas);
+        var baseSize = parseCssNumber(canvas, '--ba-size-names', 2.14);
+        var step = band.step;
+        var size = shrinkOnly ? (parseFloat(names.style.fontSize || '0') || baseSize) : baseSize;
+        var maxSize = baseSize * band.grow;
+
+        names.style.fontSize = size + 'em';
+        if (!shrinkOnly) {
+            while (!nameOverflows(names, band.height) && size + step <= maxSize) {
+                size = Math.round((size + step) * 100) / 100;
+                names.style.fontSize = size + 'em';
+            }
+            if (nameOverflows(names, band.height)) {
+                size = Math.round((size - step) * 100) / 100;
+                names.style.fontSize = size + 'em';
+            }
+        }
+
+        while (nameOverflows(names, band.height) && size > band.min) {
+            size = Math.round((size - step) * 100) / 100;
             names.style.fontSize = size + 'em';
         }
     }
 
-    function applyAutoFit(canvas) {
-        if (!canvas) return;
-        var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
-        var lastSig = window.__TEINVIT_LAST_AUTOFIT_SIG__ || '';
-        if (
-            (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) &&
-            window.__TEINVIT_AUTOFIT_DONE__ &&
-            currentSig !== '' &&
-            currentSig === lastSig
-        ) {
-            return;
-        }
-        protectNameSection(canvas);
-        distributeVerticalSpace(canvas);
+    function compactBaptismSecondary(canvas) {
         var msg = qs('.inv-message', canvas);
         var msgSize = msg ? parseCssNumber(canvas, '--ba-size-message', 1.06) : 0;
         while (hasOverflow(canvas) && msg && msgSize > 0.88) {
@@ -517,9 +532,54 @@
                 distributeVerticalSpace(canvas);
             }
         });
-        if (engine() && typeof engine().autoFit === 'function') {
+    }
+
+    function finalizeBaptismPdfLayout(canvas) {
+        if (!canvas) return;
+        window.__TEINVIT_FINAL_PASS_DONE__ = false;
+        canvas.style.fontSize = '1em';
+        fitBaptismNameText(canvas, false);
+        distributeVerticalSpace(canvas);
+        compactBaptismSecondary(canvas);
+        if (hasOverflow(canvas)) {
+            fitBaptismNameText(canvas, true);
+            distributeVerticalSpace(canvas);
+        }
+        if (hasOverflow(canvas) && engine() && typeof engine().autoFit === 'function') {
             engine().autoFit(canvas, { min: 0.58, step: 0.02, maxLoops: 60 });
-            protectNameSection(canvas);
+            fitBaptismNameText(canvas, false);
+            distributeVerticalSpace(canvas);
+        }
+        if (hasOverflow(canvas)) {
+            compactBaptismSecondary(canvas);
+            fitBaptismNameText(canvas, true);
+            distributeVerticalSpace(canvas);
+        }
+        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+    }
+
+    function applyAutoFit(canvas) {
+        if (!canvas) return;
+        var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
+        var lastSig = window.__TEINVIT_LAST_AUTOFIT_SIG__ || '';
+        if (
+            (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) &&
+            window.__TEINVIT_AUTOFIT_DONE__ &&
+            currentSig !== '' &&
+            currentSig === lastSig
+        ) {
+            return;
+        }
+        fitBaptismNameText(canvas, false);
+        distributeVerticalSpace(canvas);
+        compactBaptismSecondary(canvas);
+        if (hasOverflow(canvas)) {
+            fitBaptismNameText(canvas, true);
+        }
+        if (engine() && typeof engine().autoFit === 'function') {
+            if (hasOverflow(canvas)) engine().autoFit(canvas, { min: 0.58, step: 0.02, maxLoops: 60 });
+            fitBaptismNameText(canvas, false);
+            if (hasOverflow(canvas)) fitBaptismNameText(canvas, true);
         }
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
@@ -551,25 +611,12 @@
         window.__TEINVIT_FINAL_PASS_DONE__ = false;
         var sig = layoutSignature(canvas);
         if (window.__TEINVIT_PDF_MODE__) {
-            if (finalTimer) clearTimeout(finalTimer);
-            finalTimer = setTimeout(function () {
-                canvas.style.fontSize = '1em';
-                protectNameSection(canvas);
-                distributeVerticalSpace(canvas);
-                requestAnimationFrame(function () {
-                    if (hasOverflow(canvas)) applyAutoFit(canvas);
-                    requestAnimationFrame(function () {
-                        window.__TEINVIT_FINAL_PASS_DONE__ = true;
-                        schedulePdfReadyCheck(canvas);
-                    });
-                });
-            }, 280);
             return;
         }
         if (engine() && typeof engine().scheduleFinalPass === 'function') {
             engine().scheduleFinalPass(canvas, 'baptism', sig, function () {
                 canvas.style.fontSize = '1em';
-                protectNameSection(canvas);
+                fitBaptismNameText(canvas, false);
                 distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
@@ -582,6 +629,7 @@
         finalTimer = setTimeout(function () {
             if (sig === lastSig) {
                 canvas.style.fontSize = '1em';
+                fitBaptismNameText(canvas, false);
                 distributeVerticalSpace(canvas);
                 requestAnimationFrame(function () {
                     if (hasOverflow(canvas)) applyAutoFit(canvas);
