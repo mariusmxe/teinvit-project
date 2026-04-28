@@ -1827,6 +1827,10 @@ add_action(
         $token   = sanitize_text_field( (string) $token );
         $rsvp_id = (int) $rsvp_id;
         $payload = is_array( $payload ) ? $payload : [];
+        $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+        if ( $vertical !== 'wedding' ) {
+            return;
+        }
 
         $phone = teinvit_email_normalize_phone( (string) ( $payload['guest_phone'] ?? '' ) );
         $prev  = $phone !== '' ? teinvit_email_get_previous_rsvp_for_phone( $token, $phone, $rsvp_id ) : null;
@@ -1873,6 +1877,10 @@ add_action(
         $token   = sanitize_text_field( (string) $token );
         $rsvp_id = (int) $rsvp_id;
         $payload = is_array( $payload ) ? $payload : [];
+        $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+        if ( $vertical !== 'wedding' ) {
+            return;
+        }
 
         $email = sanitize_email( (string) ( $payload['guest_email'] ?? '' ) );
         if ( $email === '' || ! is_email( $email ) ) {

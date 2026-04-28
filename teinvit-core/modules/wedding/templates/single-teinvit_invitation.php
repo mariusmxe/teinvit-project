@@ -229,6 +229,8 @@ teinvit_render_layout_header();
       <?php
       if ( $vertical_key === 'wedding' ) {
           include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php';
+      } elseif ( $vertical_key === 'birthday' && defined( 'TEINVIT_BIRTHDAY_MODULE_PATH' ) && file_exists( TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-admin-client.php' ) ) {
+          include TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-admin-client.php';
       } elseif ( function_exists( 'teinvit_render_vertical_admin_client_foundation' ) ) {
           $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
           $order = $order_id ? wc_get_order( $order_id ) : null;
@@ -248,6 +250,16 @@ teinvit_render_layout_header();
       </div>
       <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
         <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-invitati.php'; ?>
+      </div>
+    <?php elseif ( $vertical_key === 'birthday' && defined( 'TEINVIT_BIRTHDAY_MODULE_PATH' ) && file_exists( TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-invitati.php' ) ) : ?>
+      <?php if ( ! empty( $preview_invitation_data ) ) : ?>
+        <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
+      <?php endif; ?>
+      <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
+        <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
+      <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
+        <?php include TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-invitati.php'; ?>
       </div>
     <?php elseif ( function_exists( 'teinvit_render_vertical_invitati_foundation' ) ) : ?>
       <?php if ( ! empty( $preview_invitation_data ) ) : ?>

@@ -1993,6 +1993,9 @@ add_action( 'rest_api_init', function() {
             global $wpdb;
             $token = sanitize_text_field( $request['token'] );
             $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+            if ( $vertical_key === 'birthday' && function_exists( 'teinvit_birthday_handle_rsvp_rest' ) ) {
+                return teinvit_birthday_handle_rsvp_rest( $request );
+            }
             if ( $vertical_key !== 'wedding' ) {
                 return new WP_Error( 'vertical_rsvp_pending', 'RSVP pentru această verticală va fi activat într-un pas ulterior.', [ 'status' => 501 ] );
             }

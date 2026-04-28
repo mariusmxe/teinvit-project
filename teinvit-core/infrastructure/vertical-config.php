@@ -89,12 +89,12 @@ function teinvit_vertical_semantics_registry() {
             ],
             'free_text_fields' => [
                 'birthday_party_theme_text' => [
-                    'enabled_key' => 'birthday_show_party_theme',
+                    'enabled_key' => 'show_birthday_party_theme',
                     'label' => 'Afișează tematica petrecerii',
                     'public_label' => 'Tematica petrecerii',
                 ],
                 'birthday_dress_code_text' => [
-                    'enabled_key' => 'birthday_show_dress_code',
+                    'enabled_key' => 'show_birthday_dress_code',
                     'label' => 'Afișează dress code / ținută recomandată',
                     'public_label' => 'Dress code',
                 ],
@@ -103,11 +103,12 @@ function teinvit_vertical_semantics_registry() {
                 'show_rsvp_deadline' => 0,
                 'rsvp_deadline_text' => '',
                 'rsvp_deadline_date' => '',
-                'birthday_show_party_theme' => 0,
+                'show_birthday_party_theme' => 0,
                 'birthday_party_theme_text' => '',
-                'birthday_show_dress_code' => 0,
+                'show_birthday_dress_code' => 0,
                 'birthday_dress_code_text' => '',
                 'show_attending_party' => 1,
+                'show_guest_count' => 1,
                 'show_attending_people_count' => 1,
                 'show_kids' => 0,
                 'show_child_menu' => 0,
@@ -121,7 +122,7 @@ function teinvit_vertical_semantics_registry() {
             ],
             'rsvp_fields' => [
                 'show_attending_party' => [ 'label' => 'Permite confirmarea participării la petrecere', 'question' => 'Veți participa la petrecere?', 'storage' => 'attending_party', 'type' => 'boolean' ],
-                'show_attending_people_count' => [ 'label' => 'Permite completarea numărului de persoane participante', 'question' => 'Pentru câte persoane confirmați participarea?', 'storage' => 'attending_people_count', 'type' => 'count' ],
+                'show_guest_count' => [ 'label' => 'Permite completarea numărului de persoane participante', 'question' => 'Pentru câte persoane confirmați participarea?', 'storage' => 'attending_people_count', 'type' => 'count' ],
                 'show_kids' => [ 'label' => 'Permite confirmarea copiilor însoțitori', 'question' => 'Veți veni însoțiți de copii?', 'storage' => 'kids_count', 'type' => 'count' ],
                 'show_child_menu' => [ 'label' => 'Permite solicitarea meniului pentru copii', 'question' => 'Aveți nevoie de meniu pentru copil/copii?', 'storage' => 'child_menu_count', 'type' => 'extra_count' ],
                 'show_accommodation' => [ 'label' => 'Permite solicitarea de cazare', 'question' => 'Aveți nevoie de cazare?', 'storage' => 'accommodation_people_count', 'type' => 'count' ],
