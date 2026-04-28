@@ -214,6 +214,7 @@ function teinvit_email_trigger_options() {
         'rsvp_saved' => 'RSVP received',
         'guest_consent_1' => 'Guest consent #1',
         'product_purchased' => 'Product purchased (global)',
+        'invitation_version_saved' => 'Invitation version saved',
     ];
 }
 
@@ -477,6 +478,10 @@ function teinvit_email_merge_tags_catalog() {
         'admin_client_url' => [ 'tag' => '{admin_client_url}', 'description' => 'Link administrare invitație', 'context' => 'Customer', 'category' => 'Link-uri', 'example' => 'https://.../admin-client/{token}' ],
         'invitati_url' => [ 'tag' => '{invitati_url}', 'description' => 'Link pagină invitați', 'context' => 'Customer', 'category' => 'Link-uri', 'example' => 'https://.../invitati/{token}' ],
         'report_url' => [ 'tag' => '{report_url}', 'description' => 'Link raport invitați', 'context' => 'Customer', 'category' => 'Link-uri', 'example' => 'https://.../admin-client/{token}#teinvit-report' ],
+        'invitation_version_id' => [ 'tag' => '{invitation_version_id}', 'description' => 'ID versiune invitație', 'context' => 'Customer', 'category' => 'Versiuni', 'example' => '123' ],
+        'invitation_version_index' => [ 'tag' => '{invitation_version_index}', 'description' => 'Număr variantă invitație', 'context' => 'Customer', 'category' => 'Versiuni', 'example' => '1' ],
+        'invitation_pdf_url' => [ 'tag' => '{invitation_pdf_url}', 'description' => 'Link PDF variantă', 'context' => 'Customer', 'category' => 'Versiuni', 'example' => 'https://...' ],
+        'invitation_pdf_status' => [ 'tag' => '{invitation_pdf_status}', 'description' => 'Status PDF variantă', 'context' => 'Customer', 'category' => 'Versiuni', 'example' => 'ready' ],
         'customer_first_name' => [ 'tag' => '{customer_first_name}', 'description' => 'Prenume client', 'context' => 'Customer', 'category' => 'Client', 'example' => 'Alex' ],
         'customer_last_name' => [ 'tag' => '{customer_last_name}', 'description' => 'Nume client', 'context' => 'Customer', 'category' => 'Client', 'example' => 'Popescu' ],
         'guest_name' => [ 'tag' => '{guest_name}', 'description' => 'Nume invitat (complet)', 'context' => 'RSVP', 'category' => 'Invitat', 'example' => 'Maria Ionescu' ],
@@ -532,6 +537,10 @@ function teinvit_email_context_values( array $args ) {
         'admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
         'invitati_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
         'report_url' => home_url( '/admin-client/' . rawurlencode( $token ) . '#teinvit-report' ),
+        'invitation_version_id' => (string) ( $payload['version_id'] ?? '' ),
+        'invitation_version_index' => (string) ( $payload['version_index'] ?? '' ),
+        'invitation_pdf_url' => (string) ( $payload['pdf_url'] ?? '' ),
+        'invitation_pdf_status' => (string) ( $payload['pdf_status'] ?? '' ),
         'customer_first_name' => $first_name,
         'customer_last_name' => $last_name,
         'guest_name' => $guest_name,
@@ -1765,6 +1774,51 @@ add_action(
     },
     10,
     2
+);
+
+add_action(
+    'teinvit_invitation_version_saved',
+    function( $token, $version_id, $payload ) {
+        $token = sanitize_text_field( (string) $token );
+        $version_id = (int) $version_id;
+        $payload = is_array( $payload ) ? $payload : [];
+        $order_id = (int) ( $payload['order_id'] ?? 0 );
+        if ( $token === '' || $version_id <= 0 || $order_id <= 0 ) {
+            return;
+        }
+
+        $recipient = teinvit_email_customer_for_order( $order_id );
+        if ( empty( $recipient['email'] ) ) {
+            return;
+        }
+
+        $template_ids = teinvit_email_active_templates_for_event( 'invitation_version_saved', 'customer' );
+        if ( empty( $template_ids ) ) {
+            return;
+        }
+
+        $snapshot_hash = sanitize_text_field( (string) ( $payload['snapshot_hash'] ?? '' ) );
+        $semantic_hash = 'version_saved|' . $token . '|' . $version_id . '|' . $snapshot_hash;
+
+        foreach ( $template_ids as $template_id ) {
+            teinvit_email_queue_template(
+                $template_id,
+                [
+                    'recipient_email' => $recipient['email'],
+                    'token'           => $token,
+                    'order_id'        => $order_id,
+                    'payload'         => array_merge( $payload, [
+                        'version_id' => $version_id,
+                    ] ),
+                    'semantic_hash'  => $semantic_hash,
+                    'trigger'        => 'invitation_version_saved',
+                    'audience'       => 'customer',
+                ]
+            );
+        }
+    },
+    10,
+    3
 );
 
 add_action(

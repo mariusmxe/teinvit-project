@@ -93,6 +93,10 @@ if ( ! function_exists( 'teinvit_render_layout_footer' ) ) {
 $mode = isset( $GLOBALS['teinvit_tokenized_mode'] ) ? (string) $GLOBALS['teinvit_tokenized_mode'] : '';
 $token = isset( $GLOBALS['teinvit_tokenized_token'] ) ? (string) $GLOBALS['teinvit_tokenized_token'] : '';
 $post_id = isset( $GLOBALS['teinvit_tokenized_post_id'] ) ? (int) $GLOBALS['teinvit_tokenized_post_id'] : 0;
+$vertical_key = isset( $GLOBALS['teinvit_tokenized_vertical'] ) ? (string) $GLOBALS['teinvit_tokenized_vertical'] : '';
+$vertical_key = $vertical_key !== '' && function_exists( 'teinvit_normalize_vertical_key' )
+    ? teinvit_normalize_vertical_key( $vertical_key )
+    : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
 
 $post = $post_id ? get_post( $post_id ) : null;
 if ( ! $post || $post->post_type !== 'teinvit_invitation' ) {
@@ -118,7 +122,14 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
 
         if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
             $preview_invitation_data = $payload['invitation'];
-            $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+            if ( $vertical_key === 'wedding' ) {
+                $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
+            } else {
+                $product_id = function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0;
+                $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
+                    ? teinvit_render_invitation_html_for_vertical( $vertical_key, $payload['invitation'], $order, 'preview', $product_id )
+                    : '';
+            }
             $preview_html = preg_replace( '/<script>\s*window\.TEINVIT_INVITATION_DATA\s*=.*?<\/script>/s', '', (string) $preview_html );
             $preview_html = preg_replace( '/window\.TEINVIT_INVITATION_DATA\s*=\s*.*?;\s*/s', '', (string) $preview_html );
         }
@@ -133,6 +144,11 @@ if ( $mode === 'invitati' ) {
 
     $meta_title = $names !== '' ? ( 'Invitație ' . $names ) : 'Invitație | Te Invit';
     $meta_desc  = $message !== '' ? $message : ( $names !== '' ? ( 'Te invităm cu drag la evenimentul nostru, ' . $names . '.' ) : 'Te invităm cu drag la evenimentul nostru.' );
+    if ( $vertical_key !== 'wedding' && function_exists( 'teinvit_vertical_share_payload' ) ) {
+        $share_payload = teinvit_vertical_share_payload( $vertical_key, $preview_invitation_data, home_url( '/invitati/' . rawurlencode( $token ) ) );
+        $meta_title = (string) ( $share_payload['title'] ?? $meta_title );
+        $meta_desc = (string) ( $share_payload['text'] ?? $meta_desc );
+    }
     $meta_desc  = function_exists( 'wp_trim_words' ) ? wp_trim_words( $meta_desc, 30, '…' ) : $meta_desc;
     $meta_url   = home_url( '/invitati/' . rawurlencode( $token ) );
     $logo_id = (int) get_theme_mod( 'custom_logo' );
@@ -210,22 +226,46 @@ teinvit_render_layout_header();
 
   <?php if ( $mode === 'admin-client' ) : ?>
     <div class="teinvit-slot teinvit-slot-admin" data-teinvit-slot="admin">
-      <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php'; ?>
+      <?php
+      if ( $vertical_key === 'wedding' ) {
+          include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php';
+      } elseif ( function_exists( 'teinvit_render_vertical_admin_client_foundation' ) ) {
+          $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+          $order = $order_id ? wc_get_order( $order_id ) : null;
+          teinvit_render_vertical_admin_client_foundation( $token, $vertical_key, $order );
+      } else {
+          echo '<p>Administrarea invitației nu este disponibilă.</p>';
+      }
+      ?>
     </div>
   <?php elseif ( $mode === 'invitati' ) : ?>
-    <?php if ( ! empty( $preview_invitation_data ) ) : ?>
-      <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
+    <?php if ( $vertical_key === 'wedding' ) : ?>
+      <?php if ( ! empty( $preview_invitation_data ) ) : ?>
+        <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
+      <?php endif; ?>
+      <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
+        <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
+      <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
+        <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-invitati.php'; ?>
+      </div>
+    <?php elseif ( function_exists( 'teinvit_render_vertical_invitati_foundation' ) ) : ?>
+      <?php if ( ! empty( $preview_invitation_data ) ) : ?>
+        <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
+      <?php endif; ?>
+      <?php
+      $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+      $order = $order_id ? wc_get_order( $order_id ) : null;
+      teinvit_render_vertical_invitati_foundation( $token, $vertical_key, $order, $preview_invitation_data, $preview_html );
+      ?>
+    <?php else : ?>
+      <p>Pagina invitaților nu este disponibilă.</p>
     <?php endif; ?>
-    <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
-      <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-    </div>
-    <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
-      <?php include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-invitati.php'; ?>
-    </div>
   <?php endif; ?>
 </div>
 <?php
 teinvit_render_layout_footer();
 wp_reset_postdata();
 unset( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
+unset( $GLOBALS['teinvit_tokenized_vertical'] );
 unset( $GLOBALS['teinvit_fse_header_html'], $GLOBALS['teinvit_fse_footer_html'] );
