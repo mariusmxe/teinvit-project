@@ -149,11 +149,11 @@ $admin_toggle_fields = [
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-form-row label{display:block}.teinvit-form-row input[type=text]{width:100%}
-.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-birthday .teinvit-birthday-main-grid{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr)!important;grid-template-areas:"preview wapf" "config wapf";gap:20px;align-items:start}.teinvit-admin-page-birthday .teinvit-birthday-main-left{min-width:0}.teinvit-admin-page-birthday .teinvit-birthday-preview-col{grid-area:preview!important}.teinvit-admin-page-birthday .teinvit-birthday-config-col{grid-area:config!important}.teinvit-admin-page-birthday .teinvit-apf-col{grid-area:wapf!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-gifts{display:block!important;width:100%!important;max-width:100%!important;clear:both;grid-column:1/-1}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
+.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-birthday .teinvit-birthday-editor-grid{display:flex!important;flex-wrap:nowrap!important;gap:20px;align-items:flex-start;width:100%;box-sizing:border-box}.teinvit-admin-page-birthday .teinvit-birthday-editor-grid>.teinvit-birthday-editor-left{display:block!important;float:none!important;clear:none!important;grid-column:auto!important;order:1;flex:1 1 calc(60% - 10px)!important;width:auto!important;max-width:calc(60% - 10px)!important;min-width:0;box-sizing:border-box}.teinvit-admin-page-birthday .teinvit-birthday-editor-grid>.teinvit-birthday-editor-right{display:block!important;float:none!important;clear:none!important;grid-column:auto!important;order:2;flex:0 0 calc(40% - 10px)!important;width:auto!important;max-width:calc(40% - 10px)!important;min-width:280px;box-sizing:border-box}.teinvit-admin-page-birthday .teinvit-birthday-editor-right #teinvit-save-form{display:block!important;width:100%!important;max-width:100%!important;margin:0!important}.teinvit-admin-page-birthday .teinvit-admin-gifts{display:block!important;width:100%!important;max-width:100%!important;clear:both}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 .teinvit-share-card h3{margin-top:0}.teinvit-share-actions,.teinvit-share-quick{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{flex-direction:column;max-width:320px;margin-top:8px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px}
 .teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
-@media (max-width: 640px){.teinvit-two-col,.teinvit-admin-page-birthday .teinvit-birthday-main-grid,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page-birthday .teinvit-birthday-main-grid{grid-template-areas:"preview" "wapf" "config"}.teinvit-admin-page{padding:10px}}
+@media (max-width: 640px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page-birthday .teinvit-birthday-editor-grid{flex-direction:column!important}.teinvit-admin-page-birthday .teinvit-birthday-editor-grid>.teinvit-birthday-editor-left,.teinvit-admin-page-birthday .teinvit-birthday-editor-grid>.teinvit-birthday-editor-right{flex:1 1 auto!important;max-width:100%!important;width:100%!important}.teinvit-admin-page{padding:10px}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-birthday">
   <div class="teinvit-admin-title-card">
@@ -206,16 +206,108 @@ $admin_toggle_fields = [
     </form>
   </div>
 
-  <div class="teinvit-zone teinvit-two-col teinvit-birthday-main-grid">
-    <div class="teinvit-birthday-main-left teinvit-birthday-preview-col">
+  <div class="teinvit-zone teinvit-birthday-editor-grid">
+    <div class="teinvit-birthday-editor-left">
+      <div class="teinvit-birthday-preview-col">
       <div id="teinvit-vertical-product-preview" class="teinvit-admin-preview-block" data-product-id="<?php echo (int) $product_id; ?>">
         <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </div>
 
+      </div>
+
+      <div class="teinvit-birthday-config-col">
+      <h3>Alege varianta afiÈ™atÄƒ invitaÈ›ilor:</h3>
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-publish-form">
+        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+        <input type="hidden" name="action" value="teinvit_birthday_set_active_version">
+        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <?php foreach ( $variants as $variant ) : ?>
+          <label style="display:block;margin-bottom:6px;">
+            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
+            <?php echo esc_html( $variant['label'] ); ?>
+            <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
+              <?php $download_pdf_url = add_query_arg( [ 'action' => 'teinvit_download_variant_pdf', 'token' => $token, 'version_id' => (int) $variant['id'], '_wpnonce' => $download_pdf_nonce ], admin_url( 'admin-post.php' ) ); ?>
+              <span style="display:inline-flex;gap:8px;align-items:center;margin-left:8px;">
+                <a href="<?php echo esc_url( $download_pdf_url ); ?>" class="button">DescarcÄƒ PDF</a>
+                <button type="button" class="button teinvit-share-pdf-btn" data-pdf-url="<?php echo esc_attr( $variant['pdf_url'] ); ?>">Distribuie PDF</button>
+              </span>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
+              â€” <em>PDF Ã®n curs...</em>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
+              â€” <em>PDF eÈ™uat</em>
+            <?php endif; ?>
+          </label>
+        <?php endforeach; ?>
+        <?php if ( ! empty( $capabilities['can_set_active_version'] ) ) : ?>
+          <button type="submit" class="button button-primary">PublicÄƒ</button>
+        <?php else : ?>
+          <p><em><?php echo esc_html( (string) ( $basic_copy['publish_locked'] ?? 'Publicarea de versiuni este disponibilÄƒ dupÄƒ upgrade la Premium.' ) ); ?></em></p>
+        <?php endif; ?>
+      </form>
+      <p id="teinvit-pdf-share-status" class="teinvit-pdf-share-status" aria-live="polite"></p>
+
+      <div class="teinvit-zone teinvit-admin-rsvp-settings">
+        <h3 style="text-align:center;margin-top:0;">SetÄƒrile formularului de confirmare</h3>
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-rsvp-config-form">
+          <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+          <input type="hidden" name="action" value="teinvit_birthday_save_rsvp_config">
+          <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+          <div class="teinvit-rsvp-toggle-grid">
+            <?php foreach ( $admin_toggle_fields as $config_key => $label ) : ?>
+              <label>
+                <input type="checkbox" name="<?php echo esc_attr( $config_key ); ?>" value="1" <?php checked( ! empty( $config[ $config_key ] ) ); ?>>
+                <?php echo esc_html( $label ); ?>
+              </label>
+            <?php endforeach; ?>
+          </div>
+          <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
+            <p><button type="submit" class="button">PublicÄƒ selecÈ›iile</button></p>
+          <?php else : ?>
+            <p><em><?php echo esc_html( (string) ( $basic_copy['rsvp_locked'] ?? 'ConfigurÄƒrile RSVP avansate sunt disponibile dupÄƒ upgrade la Premium.' ) ); ?></em></p>
+          <?php endif; ?>
+        </form>
+      </div>
+
+      <p style="margin-top:8px;">
+        <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
+          <a href="<?php echo esc_url( $guest_page_url ); ?>" target="_blank" rel="noopener">Vezi pagina invitaÈ›ilor</a>
+        <?php else : ?>
+          <em><?php echo esc_html( (string) ( $basic_copy['guest_page_locked'] ?? 'Pagina personalizatÄƒ a invitaÈ›ilor tÄƒi este disponibilÄƒ dupÄƒ upgrade la Premium.' ) ); ?></em>
+        <?php endif; ?>
+      </p>
+
+      <?php if ( ! empty( $capabilities['can_share_invitation'] ) ) : ?>
+      <div class="teinvit-zone teinvit-share-card" id="teinvit-share-card">
+        <h3>Distribuie invitaÈ›ia</h3>
+        <div class="teinvit-share-actions">
+          <button type="button" class="button button-primary" id="teinvit-share-native">Distribuie</button>
+          <button type="button" class="button" id="teinvit-share-copy-main">CopiazÄƒ link</button>
+        </div>
+        <div class="teinvit-share-quick">
+          <?php if ( $share_icon_base !== '' ) : ?>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a>
+          </div>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( (string) ( $share_payload['message'] ?? '' ) ) ); ?>" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+          <div class="teinvit-share-row">
+            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"></span>
+            <button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram">Instagram</button>
+          </div>
+          <?php endif; ?>
+        </div>
+        <p class="teinvit-share-status" id="teinvit-share-status" aria-live="polite"></p>
+      </div>
+      <?php endif; ?>
+
+      </div>
     </div>
 
-    <div class="teinvit-apf-col teinvit-birthday-wapf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
-      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+    <div class="teinvit-birthday-editor-right teinvit-apf-col teinvit-birthday-wapf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart">
         <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
         <input type="hidden" name="action" value="teinvit_birthday_save_version_snapshot">
         <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
@@ -243,96 +335,6 @@ $admin_toggle_fields = [
           <?php endif; ?>
         <?php endif; ?>
       </form>
-    </div>
-
-    <div class="teinvit-birthday-main-left teinvit-birthday-config-col">
-      <h3>Alege varianta afișată invitaților:</h3>
-      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-publish-form">
-        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
-        <input type="hidden" name="action" value="teinvit_birthday_set_active_version">
-        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
-        <?php foreach ( $variants as $variant ) : ?>
-          <label style="display:block;margin-bottom:6px;">
-            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
-            <?php echo esc_html( $variant['label'] ); ?>
-            <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
-              <?php $download_pdf_url = add_query_arg( [ 'action' => 'teinvit_download_variant_pdf', 'token' => $token, 'version_id' => (int) $variant['id'], '_wpnonce' => $download_pdf_nonce ], admin_url( 'admin-post.php' ) ); ?>
-              <span style="display:inline-flex;gap:8px;align-items:center;margin-left:8px;">
-                <a href="<?php echo esc_url( $download_pdf_url ); ?>" class="button">Descarcă PDF</a>
-                <button type="button" class="button teinvit-share-pdf-btn" data-pdf-url="<?php echo esc_attr( $variant['pdf_url'] ); ?>">Distribuie PDF</button>
-              </span>
-            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
-              — <em>PDF în curs...</em>
-            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
-              — <em>PDF eșuat</em>
-            <?php endif; ?>
-          </label>
-        <?php endforeach; ?>
-        <?php if ( ! empty( $capabilities['can_set_active_version'] ) ) : ?>
-          <button type="submit" class="button button-primary">Publică</button>
-        <?php else : ?>
-          <p><em><?php echo esc_html( (string) ( $basic_copy['publish_locked'] ?? 'Publicarea de versiuni este disponibilă după upgrade la Premium.' ) ); ?></em></p>
-        <?php endif; ?>
-      </form>
-      <p id="teinvit-pdf-share-status" class="teinvit-pdf-share-status" aria-live="polite"></p>
-
-      <div class="teinvit-zone teinvit-admin-rsvp-settings">
-        <h3 style="text-align:center;margin-top:0;">Setările formularului de confirmare</h3>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-rsvp-config-form">
-          <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
-          <input type="hidden" name="action" value="teinvit_birthday_save_rsvp_config">
-          <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
-          <div class="teinvit-rsvp-toggle-grid">
-            <?php foreach ( $admin_toggle_fields as $config_key => $label ) : ?>
-              <label>
-                <input type="checkbox" name="<?php echo esc_attr( $config_key ); ?>" value="1" <?php checked( ! empty( $config[ $config_key ] ) ); ?>>
-                <?php echo esc_html( $label ); ?>
-              </label>
-            <?php endforeach; ?>
-          </div>
-          <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
-            <p><button type="submit" class="button">Publică selecțiile</button></p>
-          <?php else : ?>
-            <p><em><?php echo esc_html( (string) ( $basic_copy['rsvp_locked'] ?? 'Configurările RSVP avansate sunt disponibile după upgrade la Premium.' ) ); ?></em></p>
-          <?php endif; ?>
-        </form>
-      </div>
-
-      <p style="margin-top:8px;">
-        <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
-          <a href="<?php echo esc_url( $guest_page_url ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
-        <?php else : ?>
-          <em><?php echo esc_html( (string) ( $basic_copy['guest_page_locked'] ?? 'Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.' ) ); ?></em>
-        <?php endif; ?>
-      </p>
-
-      <?php if ( ! empty( $capabilities['can_share_invitation'] ) ) : ?>
-      <div class="teinvit-zone teinvit-share-card" id="teinvit-share-card">
-        <h3>Distribuie invitația</h3>
-        <div class="teinvit-share-actions">
-          <button type="button" class="button button-primary" id="teinvit-share-native">Distribuie</button>
-          <button type="button" class="button" id="teinvit-share-copy-main">Copiază link</button>
-        </div>
-        <div class="teinvit-share-quick">
-          <?php if ( $share_icon_base !== '' ) : ?>
-          <div class="teinvit-share-row">
-            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"></span>
-            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a>
-          </div>
-          <div class="teinvit-share-row">
-            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span>
-            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( (string) ( $share_payload['message'] ?? '' ) ) ); ?>" target="_blank" rel="noopener">WhatsApp</a>
-          </div>
-          <div class="teinvit-share-row">
-            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"></span>
-            <button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram">Instagram</button>
-          </div>
-          <?php endif; ?>
-        </div>
-        <p class="teinvit-share-status" id="teinvit-share-status" aria-live="polite"></p>
-      </div>
-      <?php endif; ?>
-
     </div>
   </div>
 
