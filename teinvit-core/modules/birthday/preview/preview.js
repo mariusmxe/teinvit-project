@@ -439,6 +439,13 @@
         }, 0);
     }
 
+    function schedulePreviewFinalLayoutPasses(canvas) {
+        if (!canvas || window.__TEINVIT_PDF_MODE__) return;
+        schedulePreviewFinalLayout(canvas);
+        setTimeout(function () { schedulePreviewFinalLayout(getCanvas() || canvas); }, 260);
+        setTimeout(function () { schedulePreviewFinalLayout(getCanvas() || canvas); }, 650);
+    }
+
     function parseCssNumber(canvas, variableName, fallback) {
         if (!canvas || !window.getComputedStyle) return fallback;
         var raw = window.getComputedStyle(canvas).getPropertyValue(variableName);
@@ -840,7 +847,7 @@
                 lastAppliedSeq = requestSeq;
                 window.TEINVIT_INVITATION_DATA = json.invitation;
                 var canvas = renderInvitation(json.invitation);
-                schedulePreviewFinalLayout(canvas);
+                schedulePreviewFinalLayoutPasses(canvas);
                 scheduleFinalProductPass();
             }
         }).catch(function (err) {
@@ -862,7 +869,7 @@
         if (isProductContext) {
             if (isDeferredAdminPreviewContext() && window.TEINVIT_INVITATION_DATA) {
                 var adminCanvas = renderInvitation(window.TEINVIT_INVITATION_DATA);
-                schedulePreviewFinalLayout(adminCanvas);
+                schedulePreviewFinalLayoutPasses(adminCanvas);
             } else {
                 buildFromApi();
                 scheduleFinalProductPass();
@@ -898,6 +905,7 @@
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
         setupMessageCounter();
         scheduleBuildFromApi();
+        schedulePreviewFinalLayoutPasses(getCanvas());
         scheduleFinalProductPass();
     });
     document.addEventListener('click', function (e) {

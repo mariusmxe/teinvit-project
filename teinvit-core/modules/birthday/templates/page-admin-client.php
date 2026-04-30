@@ -149,11 +149,11 @@ $admin_toggle_fields = [
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-form-row label{display:block}.teinvit-form-row input[type=text]{width:100%}
-.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
+.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-birthday .teinvit-birthday-main-grid{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr)!important;gap:20px;align-items:start}.teinvit-admin-page-birthday .teinvit-birthday-main-left{grid-column:1!important;grid-row:1!important;min-width:0;order:1}.teinvit-admin-page-birthday .teinvit-apf-col{grid-column:2!important;grid-row:1!important;min-width:0;order:2}.teinvit-admin-page-birthday .teinvit-admin-gifts{display:block!important;width:100%!important;max-width:100%!important;clear:both;grid-column:1/-1}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 .teinvit-share-card h3{margin-top:0}.teinvit-share-actions,.teinvit-share-quick{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{flex-direction:column;max-width:320px;margin-top:8px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px}
 .teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
-@media (max-width: 900px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr}.teinvit-admin-page{padding:10px}}
+@media (max-width: 900px){.teinvit-two-col,.teinvit-admin-page-birthday .teinvit-birthday-main-grid,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page-birthday .teinvit-birthday-main-left,.teinvit-admin-page-birthday .teinvit-apf-col{grid-column:1!important;grid-row:auto!important}.teinvit-admin-page{padding:10px}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-birthday">
   <div class="teinvit-admin-title-card">
@@ -206,8 +206,8 @@ $admin_toggle_fields = [
     </form>
   </div>
 
-  <div class="teinvit-zone teinvit-two-col">
-    <div>
+  <div class="teinvit-zone teinvit-two-col teinvit-birthday-main-grid">
+    <div class="teinvit-birthday-main-left">
       <div id="teinvit-vertical-product-preview" class="teinvit-admin-preview-block" data-product-id="<?php echo (int) $product_id; ?>">
         <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </div>
@@ -360,8 +360,10 @@ $admin_toggle_fields = [
   const shareText = <?php echo wp_json_encode( (string) ( $share_payload['text'] ?? 'Te invităm cu drag la petrecerea aniversară' ) ); ?>;
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
   const saveForm = document.getElementById('teinvit-save-form');
-  const parentBooleanIds = ['fc5b530'];
+  const parentBooleanIds = ['fc5b530','2cac251','1aa14a1'];
   const repeatableFieldIds = ['d1fe0da'];
+  let isHydratingWapf = true;
+  let saveSubmitGuardInstalled = false;
 
   window.teinvitBirthdayPreviewConfig.adminClient = true;
   window.teinvitBirthdayPreviewConfig.deferInitialBuild = true;
@@ -369,6 +371,15 @@ $admin_toggle_fields = [
 
   function qsa(selector, root){
     return Array.prototype.slice.call((root || document).querySelectorAll(selector));
+  }
+
+  function markCloneButtonsAsNonSubmit(){
+    if (!saveForm) return;
+    qsa('.wapf-add-clone, .wapf-del-clone', saveForm).forEach(function(btn){
+      if (btn && btn.tagName === 'BUTTON') {
+        btn.setAttribute('type', 'button');
+      }
+    });
   }
 
   function normalizeFieldId(id){
@@ -409,7 +420,6 @@ $admin_toggle_fields = [
 
   function rawValueForField(map, id){
     if (!map || typeof map !== 'object') return '';
-    if (Object.prototype.hasOwnProperty.call(map, id)) return map[id];
     const matches = [];
     Object.keys(map).forEach(function(key){
       const normalized = normalizeFieldId(key);
@@ -481,7 +491,8 @@ $admin_toggle_fields = [
     return groups;
   }
 
-  function triggerFieldEvents(elements){
+  function triggerFieldEvents(elements, options){
+    if (options && options.silent) return;
     elements.forEach(function(el){
       if (!el) return;
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -521,21 +532,97 @@ $admin_toggle_fields = [
     }) || null;
   }
 
+  function repeatableQtyInput(id){
+    return saveForm ? saveForm.querySelector('#field_' + id + '_qty, [name="wapf[field_' + id + '_qty]"]') : null;
+  }
+
+  function syncRepeatableQty(id){
+    const qty = repeatableQtyInput(id);
+    if (qty) {
+      qty.value = String(Math.max(0, repeatableInputs(id).length - 1));
+    }
+  }
+
+  function wapfWrapper(){
+    if (!window.jQuery || !saveForm) return null;
+    const wrapper = saveForm.closest('[data-product-page-preselected-id]') || saveForm;
+    return window.jQuery(wrapper);
+  }
+
+  function repeatableFieldElement(id){
+    if (!window.jQuery || !saveForm) return null;
+    return window.jQuery(saveForm).find('.field-' + id).first();
+  }
+
+  function createRepeatableClone(id){
+    markCloneButtonsAsNonSubmit();
+    const $wrapper = wapfWrapper();
+    const $field = repeatableFieldElement(id);
+    if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.repeat === 'function' && $wrapper && $field && $field.length) {
+      const $clone = window.WAPF.Util.repeat($wrapper, $field);
+      const $cloner = window.jQuery(saveForm).find('.cloner-' + id).first();
+      if ($clone && $clone.length && $cloner && $cloner.length) {
+        $cloner.appendTo($clone);
+      }
+      if (window.WAPF.Pricing && typeof window.WAPF.Pricing.calculateAll === 'function') {
+        try { window.WAPF.Pricing.calculateAll($wrapper); } catch (e) {}
+      }
+      markCloneButtonsAsNonSubmit();
+      syncRepeatableQty(id);
+      return true;
+    }
+
+    return false;
+  }
+
+  function removeRepeatableClone(id){
+    const $wrapper = wapfWrapper();
+    const $field = repeatableFieldElement(id);
+    if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.unrepeat === 'function' && $wrapper && $field && $field.length) {
+      try {
+        const $cloner = window.jQuery(saveForm).find('.cloner-' + id).first();
+        const cache = $field.data('dupe') || [];
+        const $target = cache.length > 1 ? cache[cache.length - 2] : $field;
+        if ($cloner && $cloner.length && $target && $target.length) {
+          $cloner.appendTo($target);
+        }
+        window.WAPF.Util.unrepeat($wrapper, $field, 1);
+        syncRepeatableQty(id);
+        return true;
+      } catch (e) {}
+    }
+    const inputs = repeatableInputs(id);
+    const last = inputs[inputs.length - 1];
+    const row = last && last.closest('.field-' + id + ', .wapf-field-container, .wapf-field');
+    if (row && inputs.length > 1) {
+      row.parentNode.removeChild(row);
+      syncRepeatableQty(id);
+      return true;
+    }
+    return false;
+  }
+
   function ensureRepeatableInputs(id, values){
     let inputs = repeatableInputs(id);
     let guard = 0;
-    while (inputs.length < values.length && guard < values.length + 3) {
-      const addButton = findRepeatableAddButton(id, inputs);
-      if (!addButton) break;
-      addButton.click();
+    const targetCount = Math.max(1, values.length || 1);
+    while (inputs.length < targetCount && guard < targetCount + 3) {
+      if (!createRepeatableClone(id)) break;
       inputs = repeatableInputs(id);
       guard += 1;
     }
+    guard = 0;
+    while (inputs.length > targetCount && guard < 6) {
+      if (!removeRepeatableClone(id)) break;
+      inputs = repeatableInputs(id);
+      guard += 1;
+    }
+    syncRepeatableQty(id);
     return inputs;
   }
 
   function applyRepeatableField(id, raw){
-    const values = splitSelected(raw);
+    const values = splitSelected(raw).slice(0, 3);
     let inputs = ensureRepeatableInputs(id, values.length ? values : ['']);
     if (!inputs.length) return [];
     if (values.length > 1 && inputs.length < values.length) {
@@ -589,14 +676,29 @@ $admin_toggle_fields = [
     return changed;
   }
 
-  function dispatchWapfInit(){
+  function runWapfDependencies(){
+    if (!saveForm) return;
+    markCloneButtonsAsNonSubmit();
     if (window.jQuery) {
-      const $form = window.jQuery(saveForm || document);
-      window.jQuery(document).trigger('wapf/init', [$form]);
-      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+      const $wrapper = wapfWrapper() || window.jQuery(saveForm);
+      if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.doDependencies === 'function') {
+        try { window.WAPF.Util.doDependencies($wrapper); } catch (e) {}
+      }
+      if (window.WAPF && window.WAPF.Pricing && typeof window.WAPF.Pricing.calculateAll === 'function') {
+        try { window.WAPF.Pricing.calculateAll($wrapper); } catch (e) {}
+      }
+      window.jQuery(document).trigger('wapf/init_datepickers', [$wrapper]);
     }
-    document.dispatchEvent(new CustomEvent('wapf/init', { detail: { form: saveForm } }));
-    document.dispatchEvent(new CustomEvent('wapf/init_datepickers', { detail: { form: saveForm } }));
+  }
+
+  function flushWapfDependencies(){
+    if (!saveForm) return;
+    parentBooleanIds.forEach(function(id){
+      qsa('[name="wapf[field_' + id + '][]"], [name="wapf[field_' + id + ']"]', saveForm).forEach(function(el){
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+    runWapfDependencies();
   }
 
   function serializeParentCheckedState(){
@@ -611,6 +713,7 @@ $admin_toggle_fields = [
 
   function setWapfValues(map, options){
     const opts = options || {};
+    const shouldTrigger = opts.triggerEvents !== false;
     const phases = opts.phase ? [opts.phase] : ['parents', 'children'];
     let changed = [];
 
@@ -627,35 +730,78 @@ $admin_toggle_fields = [
       });
 
       if (phase === 'parents') {
-        triggerFieldEvents(changed);
-        dispatchWapfInit();
+        triggerFieldEvents(changed, { silent: !shouldTrigger });
+        runWapfDependencies();
       }
     });
 
     serializeParentCheckedState();
-    triggerFieldEvents(changed);
-    dispatchWapfInit();
+    triggerFieldEvents(changed, { silent: !shouldTrigger });
+    runWapfDependencies();
     return changed;
   }
 
   function hydrateWapf(map, options){
     const opts = options || {};
     const shouldAnnounce = opts.announce !== false;
+    isHydratingWapf = true;
+    markCloneButtonsAsNonSubmit();
+    window.__TEINVIT_BIRTHDAY_WAPF_READY__ = false;
     if (opts.invitation) {
       window.TEINVIT_INVITATION_DATA = opts.invitation;
     }
-    setWapfValues(map || {}, opts);
+    setWapfValues(map || {}, { phase: 'parents', triggerEvents: false });
+    flushWapfDependencies();
+    setWapfValues(map || {}, { phase: 'children', triggerEvents: false });
     document.dispatchEvent(new CustomEvent('teinvit:variant-applied'));
     window.setTimeout(function(){
-      setWapfValues(map || {}, { phase: 'children' });
+      markCloneButtonsAsNonSubmit();
+      setWapfValues(map || {}, { phase: 'children', triggerEvents: false });
+      flushWapfDependencies();
+      serializeParentCheckedState();
+      isHydratingWapf = false;
       if (shouldAnnounce) {
         window.__TEINVIT_BIRTHDAY_WAPF_READY__ = true;
         document.dispatchEvent(new CustomEvent('teinvit:birthday-wapf-hydrated', { detail: { initial: !!opts.initial } }));
       }
-    }, 60);
+    }, 90);
   }
 
-  hydrateWapf(initialWapf || {}, { invitation: initialInvitation, initial: true, announce: false });
+  function saveConfirmationMessage(){
+    return editsRemaining === 1
+      ? 'Aceasta este ultima modificare disponibil\u0103. Po\u021bi achizi\u021biona altele oric\u00e2nd. Salvezi modific\u0103rile?'
+      : 'Aceast\u0103 ac\u021biune consum\u0103 o modificare disponibil\u0103 din ' + editsRemaining + '. Salvezi modific\u0103rile?';
+  }
+
+  function installSaveSubmitGuard(){
+    if (!saveForm || saveSubmitGuardInstalled) return;
+    saveSubmitGuardInstalled = true;
+    markCloneButtonsAsNonSubmit();
+    saveForm.addEventListener('submit', function(e){
+      const submitter = e.submitter || document.activeElement;
+      const isSaveButton = !!(submitter && submitter.id === 'teinvit-save-btn');
+      if (isHydratingWapf || !isSaveButton) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+      }
+
+      serializeParentCheckedState();
+      if (editsRemaining <= 0) {
+        e.preventDefault();
+        return false;
+      }
+      if (!window.confirm(saveConfirmationMessage())) {
+        e.preventDefault();
+        return false;
+      }
+      e.stopImmediatePropagation();
+      return true;
+    }, true);
+  }
+
+  markCloneButtonsAsNonSubmit();
+  installSaveSubmitGuard();
 
   document.addEventListener('DOMContentLoaded', function(){
 
@@ -672,7 +818,9 @@ $admin_toggle_fields = [
       window.jQuery('#selecteaza_data').datepicker({ dateFormat: 'dd/mm/yy' });
     }
 
-    hydrateWapf(initialWapf || {}, { invitation: initialInvitation, initial: true });
+    window.setTimeout(function(){
+      hydrateWapf(initialWapf || {}, { invitation: initialInvitation, initial: true });
+    }, 30);
 
     document.querySelectorAll('.teinvit-variant-radio').forEach(function(radio){
       radio.addEventListener('change', function(){
@@ -689,7 +837,8 @@ $admin_toggle_fields = [
       serializeParentCheckedState();
       saveForm.addEventListener('input', serializeParentCheckedState);
       saveForm.addEventListener('change', serializeParentCheckedState);
-      saveForm.addEventListener('submit', function(e){
+      /*
+      Legacy submit listener intentionally disabled here; guarded handler is installed once above.
         serializeParentCheckedState();
         if (editsRemaining <= 0) {
           e.preventDefault();
@@ -702,6 +851,8 @@ $admin_toggle_fields = [
           e.preventDefault();
         }
       });
+      */
+      installSaveSubmitGuard();
     }
   });
 
