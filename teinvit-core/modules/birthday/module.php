@@ -9,6 +9,9 @@ define( 'TEINVIT_BIRTHDAY_MODULE_URL', TEINVIT_CORE_URL . 'modules/birthday/' );
 require_once TEINVIT_BIRTHDAY_MODULE_PATH . 'services/placeholders.php';
 require_once TEINVIT_BIRTHDAY_MODULE_PATH . 'services/runtime.php';
 require_once TEINVIT_BIRTHDAY_MODULE_PATH . 'contracts/boundaries.php';
+require_once TEINVIT_BIRTHDAY_MODULE_PATH . 'hooks/product-preview.php';
+require_once TEINVIT_BIRTHDAY_MODULE_PATH . 'admin/client-admin.php';
+require_once TEINVIT_BIRTHDAY_MODULE_PATH . 'rsvp/rsvp.php';
 
 function teinvit_birthday_module_bootstrap_contract() {
     return [

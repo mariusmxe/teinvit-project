@@ -1,0 +1,485 @@
+.teinvit-canvas.theme-birthday-editorial-luxury,
+.teinvit-canvas.theme-birthday-romantic-floral,
+.teinvit-canvas.theme-birthday-modern-minimal,
+.teinvit-canvas.theme-birthday-classic-elegant,
+.teinvit-canvas.theme-birthday-playful-confetti,
+.teinvit-canvas.theme-birthday-candy-pastel,
+.teinvit-canvas.theme-birthday-storybook-dream,
+.teinvit-canvas.theme-birthday-balloon-party,
+.teinvit-canvas.theme-birthday-golden-celebration,
+.teinvit-canvas.theme-birthday-chic-blush,
+.teinvit-canvas.theme-birthday-midnight-glam,
+.teinvit-canvas.theme-birthday-botanical-grace,
+.teinvit-canvas.theme-birthday-royal-blue,
+.teinvit-canvas.theme-birthday-velvet-noir,
+.teinvit-canvas.theme-birthday-sunset-fiesta {
+  text-shadow: none;
+  --b-names-font: 'Poppins', sans-serif;
+  --b-body-font: 'DM Sans', sans-serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #202020;
+  --b-color-primary: #252525;
+  --b-color-secondary: #7c7c7c;
+  --b-color-accent: #c9a968;
+  --b-color-caps: var(--b-color-primary);
+  --b-color-link: #1f4e5f;
+  --b-size-age: 1.54em;
+  --b-size-names: 2.16em;
+  --b-size-event: 1.14em;
+  --b-size-message: 1.05em;
+  --b-size-caps: 0.95em;
+  --b-size-place: 0.96em;
+  --b-size-weekday: 0.88em;
+  --b-size-date: 0.88em;
+  --b-size-link: 0.86em;
+  --b-gap-base: 28px;
+  --b-gap-tight: 22px;
+  --b-name-size-3: var(--b-size-names);
+  --b-name-size-4: var(--b-size-names);
+  --b-message-size-3: var(--b-size-message);
+  --b-message-size-4: var(--b-size-message);
+}
+
+/* 1) Editorial Luxury / Champagne Noir */
+.teinvit-canvas.theme-birthday-editorial-luxury {
+  --b-names-font: 'Cinzel', serif;
+  --b-body-font: 'Source Serif 4', serif;
+  --b-caps-font: 'Inter', sans-serif;
+  --b-color-names: #202020;
+  --b-color-primary: #252525;
+  --b-color-secondary: #7c7c7c;
+  --b-color-accent: #c9a968;
+  --b-color-link: #1f4e5f;
+  --b-size-age: 1.54em;
+  --b-size-names: 2.16em;
+  --b-size-event: 1.14em;
+  --b-size-message: 1.05em;
+  --b-size-caps: 0.95em;
+  --b-size-place: 0.96em;
+  --b-size-date: 0.88em;
+  --b-size-link: 0.86em;
+}
+
+/* 2) Romantic Floral / Rose Garden */
+.teinvit-canvas.theme-birthday-romantic-floral {
+  --b-names-font: 'Parisienne', cursive;
+  --b-body-font: 'Lora', serif;
+  --b-caps-font: 'Montserrat', sans-serif;
+  --b-color-names: #b86b7a;
+  --b-color-primary: #372f2a;
+  --b-color-secondary: #6e635e;
+  --b-color-accent: #bfa76f;
+  --b-color-link: #0f4c5c;
+  --b-size-age: 1.50em;
+  --b-size-names: 2.20em;
+  --b-size-event: 1.13em;
+  --b-size-message: 1.06em;
+  --b-size-caps: 0.96em;
+  --b-size-place: 0.97em;
+  --b-size-date: 0.89em;
+  --b-size-link: 0.87em;
+}
+
+/* 3) Modern Minimal / Graphite Olive */
+.teinvit-canvas.theme-birthday-modern-minimal {
+  --b-names-font: 'Poppins', sans-serif;
+  --b-body-font: 'DM Sans', sans-serif;
+  --b-caps-font: 'Poppins', sans-serif;
+  --b-color-names: #202420;
+  --b-color-primary: #202420;
+  --b-color-secondary: #667063;
+  --b-color-accent: #a69a67;
+  --b-color-link: #2d4a44;
+  --b-size-age: 1.50em;
+  --b-size-names: 2.20em;
+  --b-size-event: 1.13em;
+  --b-size-message: 1.06em;
+  --b-size-caps: 0.96em;
+  --b-size-place: 0.97em;
+  --b-size-date: 0.89em;
+  --b-size-link: 0.87em;
+}
+
+/* 4) Classic Elegant / Sepia Gold */
+.teinvit-canvas.theme-birthday-classic-elegant {
+  --b-names-font: 'EB Garamond', serif;
+  --b-body-font: 'Libre Baskerville', serif;
+  --b-caps-font: 'Libre Baskerville', serif;
+  --b-color-names: #2e2a27;
+  --b-color-primary: #2e2a27;
+  --b-color-secondary: #6a635c;
+  --b-color-accent: #b99b5b;
+  --b-color-link: #1f4e5f;
+  --b-size-age: 1.58em;
+  --b-size-names: 2.34em;
+  --b-size-event: 1.18em;
+  --b-size-message: 1.08em;
+  --b-size-caps: 0.98em;
+  --b-size-place: 0.98em;
+  --b-size-date: 0.90em;
+  --b-size-link: 0.88em;
+}
+
+/* 5) Playful Confetti / Party Mint */
+.teinvit-canvas.theme-birthday-playful-confetti {
+  --b-names-font: 'Baloo 2', cursive;
+  --b-body-font: 'Poppins', sans-serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #14b8a6;
+  --b-color-primary: #233b3b;
+  --b-color-secondary: #5d7a79;
+  --b-color-accent: #f7a541;
+  --b-color-link: #2d5b8c;
+  --b-size-age: 1.50em;
+  --b-size-names: 2.20em;
+  --b-size-event: 1.13em;
+  --b-size-message: 1.06em;
+  --b-size-caps: 0.96em;
+  --b-size-place: 0.97em;
+  --b-size-date: 0.89em;
+  --b-size-link: 0.87em;
+}
+
+/* 6) Candy Pastel / Mint Sugar */
+.teinvit-canvas.theme-birthday-candy-pastel {
+  --b-names-font: 'Satisfy', cursive;
+  --b-body-font: 'DM Sans', sans-serif;
+  --b-caps-font: 'Raleway', sans-serif;
+  --b-color-names: #34d399;
+  --b-color-primary: #314a43;
+  --b-color-secondary: #6c8a82;
+  --b-color-accent: #f9a8d4;
+  --b-color-link: #3c6e71;
+  --b-size-age: 1.54em;
+  --b-size-names: 2.16em;
+  --b-size-event: 1.14em;
+  --b-size-message: 1.05em;
+  --b-size-caps: 0.95em;
+  --b-size-place: 0.96em;
+  --b-size-date: 0.88em;
+  --b-size-link: 0.86em;
+}
+
+/* 7) Storybook Dream / Lilac Tale */
+.teinvit-canvas.theme-birthday-storybook-dream {
+  --b-names-font: 'Unna', serif;
+  --b-body-font: 'Source Serif 4', serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #9d4edd;
+  --b-color-primary: #453055;
+  --b-color-secondary: #826e90;
+  --b-color-accent: #ddbb7a;
+  --b-color-link: #40627a;
+  --b-size-age: 1.54em;
+  --b-size-names: 2.16em;
+  --b-size-event: 1.14em;
+  --b-size-message: 1.05em;
+  --b-size-caps: 0.95em;
+  --b-size-place: 0.96em;
+  --b-size-date: 0.88em;
+  --b-size-link: 0.86em;
+}
+
+/* 8) Balloon Party / Sky Balloons */
+.teinvit-canvas.theme-birthday-balloon-party {
+  --b-names-font: 'Poppins', sans-serif;
+  --b-body-font: 'Nunito', sans-serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #ff4ec9;
+  --b-color-primary: #2d3a58;
+  --b-color-secondary: #6b7593;
+  --b-color-accent: #f6c453;
+  --b-color-link: #355e8c;
+  --b-size-age: 1.58em;
+  --b-size-names: 2.34em;
+  --b-size-event: 1.18em;
+  --b-size-message: 1.08em;
+  --b-size-caps: 0.98em;
+  --b-size-place: 0.98em;
+  --b-size-date: 0.90em;
+  --b-size-link: 0.88em;
+}
+
+/* 9) Golden Celebration / Gold Dust */
+.teinvit-canvas.theme-birthday-golden-celebration {
+  --b-names-font: 'Bodoni Moda', serif;
+  --b-body-font: 'Libre Baskerville', serif;
+  --b-caps-font: 'Montserrat', sans-serif;
+  --b-color-names: #9c6b00;
+  --b-color-primary: #3a2f1d;
+  --b-color-secondary: #7c6e53;
+  --b-color-accent: #e3b23c;
+  --b-color-link: #2b5a78;
+  --b-size-age: 1.58em;
+  --b-size-names: 2.34em;
+  --b-size-event: 1.18em;
+  --b-size-message: 1.08em;
+  --b-size-caps: 0.98em;
+  --b-size-place: 0.98em;
+  --b-size-date: 0.90em;
+  --b-size-link: 0.88em;
+}
+
+/* 10) Chic Blush / Blush Satin */
+.teinvit-canvas.theme-birthday-chic-blush {
+  --b-names-font: 'Playfair Display', serif;
+  --b-body-font: 'DM Sans', sans-serif;
+  --b-caps-font: 'Montserrat', sans-serif;
+  --b-color-names: #e879a6;
+  --b-color-primary: #3a2d35;
+  --b-color-secondary: #766571;
+  --b-color-accent: #d3a46a;
+  --b-color-link: #3a6073;
+  --b-size-age: 1.58em;
+  --b-size-names: 2.34em;
+  --b-size-event: 1.18em;
+  --b-size-message: 1.08em;
+  --b-size-caps: 0.98em;
+  --b-size-place: 0.98em;
+  --b-size-date: 0.90em;
+  --b-size-link: 0.88em;
+}
+
+/* 11) Midnight Glam / Plum Night */
+.teinvit-canvas.theme-birthday-midnight-glam {
+  --b-names-font: 'Cormorant Garamond', serif;
+  --b-body-font: 'Spectral', serif;
+  --b-caps-font: 'Inter', sans-serif;
+  --b-color-names: #e879f9;
+  --b-color-primary: #1d1525;
+  --b-color-secondary: #675a78;
+  --b-color-accent: #e6b85c;
+  --b-color-link: #8ab4f8;
+  --b-size-age: 1.54em;
+  --b-size-names: 2.16em;
+  --b-size-event: 1.14em;
+  --b-size-message: 1.05em;
+  --b-size-caps: 0.95em;
+  --b-size-place: 0.96em;
+  --b-size-date: 0.88em;
+  --b-size-link: 0.86em;
+}
+
+/* 12) Botanical Grace / Sage Garden */
+.teinvit-canvas.theme-birthday-botanical-grace {
+  --b-names-font: 'Lora', serif;
+  --b-body-font: 'Source Serif 4', serif;
+  --b-caps-font: 'Montserrat', sans-serif;
+  --b-color-names: #506b52;
+  --b-color-primary: #2d3b2e;
+  --b-color-secondary: #708172;
+  --b-color-accent: #c2a14a;
+  --b-color-link: #2b5a78;
+  --b-size-age: 1.58em;
+  --b-size-names: 2.34em;
+  --b-size-event: 1.18em;
+  --b-size-message: 1.08em;
+  --b-size-caps: 0.98em;
+  --b-size-place: 0.98em;
+  --b-size-date: 0.90em;
+  --b-size-link: 0.88em;
+}
+
+/* 13) Royal Blue / Navy Crown */
+.teinvit-canvas.theme-birthday-royal-blue {
+  --b-names-font: 'DM Serif Display', serif;
+  --b-body-font: 'Inter', sans-serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #1e3a8a;
+  --b-color-primary: #18264a;
+  --b-color-secondary: #66769f;
+  --b-color-accent: #e5c46a;
+  --b-color-link: #355c7d;
+  --b-size-age: 1.50em;
+  --b-size-names: 2.20em;
+  --b-size-event: 1.13em;
+  --b-size-message: 1.06em;
+  --b-size-caps: 0.96em;
+  --b-size-place: 0.97em;
+  --b-size-date: 0.89em;
+  --b-size-link: 0.87em;
+}
+
+/* 14) Velvet Noir / Ruby Noir */
+.teinvit-canvas.theme-birthday-velvet-noir {
+  --b-names-font: 'Prata', serif;
+  --b-body-font: 'DM Sans', sans-serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #c24163;
+  --b-color-primary: #1c1318;
+  --b-color-secondary: #665864;
+  --b-color-accent: #d7a56a;
+  --b-color-link: #6d9dc5;
+  --b-size-age: 1.50em;
+  --b-size-names: 2.20em;
+  --b-size-event: 1.13em;
+  --b-size-message: 1.06em;
+  --b-size-caps: 0.96em;
+  --b-size-place: 0.97em;
+  --b-size-date: 0.89em;
+  --b-size-link: 0.87em;
+}
+
+/* 15) Sunset Fiesta / Coral Sunset */
+.teinvit-canvas.theme-birthday-sunset-fiesta {
+  --b-names-font: 'Poppins', sans-serif;
+  --b-body-font: 'Nunito', sans-serif;
+  --b-caps-font: 'Oswald', sans-serif;
+  --b-color-names: #f97316;
+  --b-color-primary: #4a2e1e;
+  --b-color-secondary: #8b6a5c;
+  --b-color-accent: #fbbf24;
+  --b-color-link: #2b6f8a;
+  --b-size-age: 1.58em;
+  --b-size-names: 2.34em;
+  --b-size-event: 1.18em;
+  --b-size-message: 1.08em;
+  --b-size-caps: 0.98em;
+  --b-size-place: 0.98em;
+  --b-size-date: 0.90em;
+  --b-size-link: 0.88em;
+}
+
+.teinvit-birthday .inv-age,
+.teinvit-birthday .inv-event-name {
+  text-align: center;
+  letter-spacing: .01em;
+  color: var(--b-color-primary);
+  font-family: var(--b-body-font);
+}
+
+.teinvit-birthday .inv-age {
+  font-size: var(--b-size-age);
+  font-weight: 600;
+}
+
+.teinvit-birthday .inv-names {
+  font-family: var(--b-names-font);
+  color: var(--b-color-names);
+  font-size: var(--b-size-names);
+  line-height: 1.12;
+}
+
+.teinvit-birthday .inv-event-name {
+  font-size: var(--b-size-event);
+  font-weight: 600;
+}
+
+.teinvit-birthday .inv-message {
+  font-family: var(--b-body-font);
+  color: var(--b-color-secondary);
+  font-size: var(--b-size-message);
+  line-height: 1.35;
+}
+
+.teinvit-birthday .events-row.top .inv-event {
+  width: 100%;
+  max-width: 100%;
+}
+
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event strong {
+  font-family: var(--b-caps-font);
+  color: var(--b-color-caps, var(--b-color-primary)) !important;
+  font-size: var(--b-size-caps);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-divider {
+  width: min(82%, 320px);
+  height: 40px;
+  margin: 0.36em auto 0.42em;
+  background: transparent;
+  opacity: 1;
+}
+
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-divider svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event .inv-weekday {
+  font-family: var(--b-body-font);
+  color: var(--b-color-secondary);
+  font-size: var(--b-size-weekday);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.teinvit-birthday .inv-events .inv-event .inv-place {
+  font-family: var(--b-body-font);
+  color: var(--b-color-primary);
+  font-size: var(--b-size-place);
+}
+
+.teinvit-birthday .inv-events .inv-event .inv-datetime {
+  font-family: var(--b-body-font);
+  color: var(--b-color-secondary);
+  font-size: var(--b-size-date);
+}
+
+.teinvit-birthday .inv-events .inv-event a {
+  color: var(--b-color-link);
+  font-family: var(--b-body-font);
+  font-size: var(--b-size-link);
+}
+
+.teinvit-birthday .inv-event > div {
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.teinvit-birthday .inv-event .inv-datetime,
+.teinvit-birthday .inv-event .inv-weekday,
+.teinvit-birthday .inv-event .inv-place {
+  white-space: nowrap;
+}
+
+/* Birthday approved sizing + spacing spec (override layer). */
+.teinvit-canvas.theme-birthday-editorial-luxury {
+  --b-size-age: 1.55em; --b-size-names: 2.56em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.40em; --b-name-size-4: 2.23em;
+}
+.teinvit-canvas.theme-birthday-romantic-floral {
+  --b-size-age: 1.52em; --b-size-names: 2.48em; --b-size-event: 1.10em; --b-size-message: 1em; --b-size-caps: 0.96em; --b-size-place: 0.98em; --b-size-weekday: 0.90em; --b-size-date: 0.90em; --b-size-link: 0.87em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-4: 2.26em; --b-message-size-3: 0.98em; --b-message-size-4: 0.96em;
+}
+.teinvit-canvas.theme-birthday-modern-minimal {
+  --b-size-age: 1.58em; --b-size-names: 2.45em; --b-size-event: 1.14em; --b-size-message: 1.02em; --b-size-caps: 1em; --b-size-place: 1.02em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.25em; --b-name-size-4: 2.10em; --b-message-size-4: 0.98em;
+}
+.teinvit-canvas.theme-birthday-classic-elegant {
+  --b-size-age: 1.56em; --b-size-names: 2.32em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.18em; --b-name-size-4: 2.04em;
+}
+.teinvit-canvas.theme-birthday-playful-confetti {
+  --b-size-age: 1.60em; --b-size-names: 2.66em; --b-size-event: 1.14em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-3: 2.44em; --b-name-size-4: 2.29em;
+}
+.teinvit-canvas.theme-birthday-candy-pastel {
+  --b-size-age: 1.52em; --b-size-names: 2.26em; --b-size-event: 1.10em; --b-size-message: 0.98em; --b-size-caps: 0.96em; --b-size-place: 0.98em; --b-size-weekday: 0.90em; --b-size-date: 0.90em; --b-size-link: 0.86em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-message-size-3: 0.96em; --b-message-size-4: 0.94em;
+}
+.teinvit-canvas.theme-birthday-storybook-dream {
+  --b-size-age: 1.54em; --b-size-names: 2.30em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.97em; --b-size-place: 0.99em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.16em; --b-name-size-4: 2.02em; --b-message-size-4: 0.97em;
+}
+.teinvit-canvas.theme-birthday-balloon-party {
+  --b-size-age: 1.60em; --b-size-names: 2.44em; --b-size-event: 1.15em; --b-size-message: 1em; --b-size-caps: 0.99em; --b-size-place: 1.01em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-4: 2.10em;
+}
+.teinvit-canvas.theme-birthday-golden-celebration {
+  --b-size-age: 1.58em; --b-size-names: 2.36em; --b-size-event: 1.13em; --b-size-message: 1em; --b-size-caps: 1em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-message-size-3: 0.98em; --b-message-size-4: 0.96em;
+}
+.teinvit-canvas.theme-birthday-chic-blush {
+  --b-size-age: 1.54em; --b-size-names: 2.30em; --b-size-event: 1.11em; --b-size-message: 0.99em; --b-size-caps: 0.97em; --b-size-place: 0.99em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 26px; --b-gap-tight: 22px;
+}
+.teinvit-canvas.theme-birthday-midnight-glam {
+  --b-size-age: 1.58em; --b-size-names: 2.62em; --b-size-event: 1.13em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-4: 2.29em; --b-message-size-4: 0.97em;
+}
+.teinvit-canvas.theme-birthday-botanical-grace {
+  --b-size-age: 1.56em; --b-size-names: 2.34em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-message-size-3: 0.98em; --b-message-size-4: 0.96em;
+}
+.teinvit-canvas.theme-birthday-royal-blue {
+  --b-size-age: 1.58em; --b-size-names: 2.40em; --b-size-event: 1.13em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-4: 2.12em;
+}
+.teinvit-canvas.theme-birthday-velvet-noir {
+  --b-size-age: 1.56em; --b-size-names: 2.34em; --b-size-event: 1.12em; --b-size-message: 1em; --b-size-caps: 0.98em; --b-size-place: 1em; --b-size-weekday: 0.91em; --b-size-date: 0.91em; --b-size-link: 0.87em; --b-gap-base: 28px; --b-gap-tight: 22px; --b-name-size-3: 2.18em; --b-name-size-4: 2.04em;
+}
+.teinvit-canvas.theme-birthday-sunset-fiesta {
+  --b-size-age: 1.60em; --b-size-names: 2.44em; --b-size-event: 1.14em; --b-size-message: 1em; --b-size-caps: 0.99em; --b-size-place: 1.01em; --b-size-weekday: 0.92em; --b-size-date: 0.92em; --b-size-link: 0.88em; --b-gap-base: 26px; --b-gap-tight: 22px; --b-name-size-3: 2.22em; --b-name-size-4: 2.08em;
+}

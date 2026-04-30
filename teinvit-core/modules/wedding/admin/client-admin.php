@@ -279,7 +279,7 @@ function teinvit_token_has_premium_upgrade_addon( $token ) {
         }
     }
 
-    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
     $upgrade_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
     if ( empty( $upgrade_ids ) ) {
         return false;
@@ -316,7 +316,7 @@ function teinvit_resolve_token_product_state( $token ) {
         return 'premium_native';
     }
 
-    $catalog = function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [];
+    $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
     $basic_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'basic_product_ids' ) : [];
     $premium_native_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' ) : [];
 
@@ -400,14 +400,18 @@ function teinvit_gifts_used_count_for_token( $token ) {
     if ( $token === '' ) {
         return 0;
     }
-    $t = function_exists( 'teinvit_db_tables' ) ? teinvit_db_tables() : [];
-    if ( empty( $t['gifts'] ) ) {
+    $gifts_table = function_exists( 'teinvit_gifts_table_for_token' ) ? teinvit_gifts_table_for_token( $token ) : '';
+    if ( $gifts_table === '' && function_exists( 'teinvit_db_tables' ) ) {
+        $t = teinvit_db_tables();
+        $gifts_table = (string) ( $t['gifts'] ?? '' );
+    }
+    if ( $gifts_table === '' ) {
         return 0;
     }
 
     $count = (int) $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$t['gifts']} WHERE token=%s AND (gift_name<>'' OR gift_link<>'')",
+            "SELECT COUNT(*) FROM {$gifts_table} WHERE token=%s AND (gift_name<>'' OR gift_link<>'')",
             $token
         )
     );
