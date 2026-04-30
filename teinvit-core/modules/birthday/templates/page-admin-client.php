@@ -149,11 +149,11 @@ $admin_toggle_fields = [
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-form-row label{display:block}.teinvit-form-row input[type=text]{width:100%}
-.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-birthday .teinvit-birthday-main-grid{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr)!important;gap:20px;align-items:start}.teinvit-admin-page-birthday .teinvit-birthday-main-left{grid-column:1!important;min-width:0;order:1}.teinvit-admin-page-birthday .teinvit-birthday-preview-col{grid-row:1!important}.teinvit-admin-page-birthday .teinvit-birthday-config-col{grid-row:2!important}.teinvit-admin-page-birthday .teinvit-apf-col{grid-column:2!important;grid-row:1 / span 2!important;min-width:0;order:2}.teinvit-admin-page-birthday .teinvit-admin-gifts{display:block!important;width:100%!important;max-width:100%!important;clear:both;grid-column:1/-1}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
+.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-birthday .teinvit-birthday-main-grid{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr)!important;grid-template-areas:"preview wapf" "config wapf";gap:20px;align-items:start}.teinvit-admin-page-birthday .teinvit-birthday-main-left{min-width:0}.teinvit-admin-page-birthday .teinvit-birthday-preview-col{grid-area:preview!important}.teinvit-admin-page-birthday .teinvit-birthday-config-col{grid-area:config!important}.teinvit-admin-page-birthday .teinvit-apf-col{grid-area:wapf!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-gifts{display:block!important;width:100%!important;max-width:100%!important;clear:both;grid-column:1/-1}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 .teinvit-share-card h3{margin-top:0}.teinvit-share-actions,.teinvit-share-quick{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{flex-direction:column;max-width:320px;margin-top:8px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px}
 .teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
-@media (max-width: 900px){.teinvit-two-col,.teinvit-admin-page-birthday .teinvit-birthday-main-grid,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page-birthday .teinvit-birthday-main-left,.teinvit-admin-page-birthday .teinvit-apf-col{grid-column:1!important;grid-row:auto!important}.teinvit-admin-page-birthday .teinvit-birthday-preview-col{order:1}.teinvit-admin-page-birthday .teinvit-apf-col{order:2}.teinvit-admin-page-birthday .teinvit-birthday-config-col{order:3}.teinvit-admin-page{padding:10px}}
+@media (max-width: 640px){.teinvit-two-col,.teinvit-admin-page-birthday .teinvit-birthday-main-grid,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page-birthday .teinvit-birthday-main-grid{grid-template-areas:"preview" "wapf" "config"}.teinvit-admin-page{padding:10px}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-birthday">
   <div class="teinvit-admin-title-card">
@@ -581,6 +581,24 @@ $admin_toggle_fields = [
     return window.jQuery(saveForm).find('.field-' + id).first();
   }
 
+  function clearNewRepeatableClone(node, id){
+    if (!node) return [];
+    const changed = [];
+    qsa('[name^="wapf[field_' + id + '_"]', node).forEach(function(el){
+      if (isSkippableInput(el)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        el.checked = false;
+      } else {
+        el.value = '';
+      }
+      changed.push(el);
+    });
+    if (changed.length) {
+      triggerFieldEvents(changed);
+    }
+    return changed;
+  }
+
   function createRepeatableClone(id){
     markCloneButtonsAsNonSubmit();
     const $wrapper = wapfWrapper();
@@ -646,6 +664,17 @@ $admin_toggle_fields = [
     }
     syncRepeatableQty(id);
     return inputs;
+  }
+
+  function bindManualRepeatableCloneReset(){
+    if (!window.jQuery || !saveForm) return;
+    window.jQuery(document).off('wapf/cloned.teinvitBirthdayAdmin').on('wapf/cloned.teinvitBirthdayAdmin', function(e, fieldId, cloneNumber, clone){
+      const id = normalizeFieldId(fieldId);
+      if (repeatableFieldIds.indexOf(id) === -1 || isHydratingWapf) return;
+      const node = clone && clone[0] ? clone[0] : clone;
+      clearNewRepeatableClone(node, id);
+      syncRepeatableQty(id);
+    });
   }
 
   function applyRepeatableField(id, raw){
@@ -833,8 +862,10 @@ $admin_toggle_fields = [
 
   markCloneButtonsAsNonSubmit();
   installSaveSubmitGuard();
+  bindManualRepeatableCloneReset();
 
   document.addEventListener('DOMContentLoaded', function(){
+    bindManualRepeatableCloneReset();
 
     const deadlineCb = document.getElementById('date_confirm');
     const deadlineWrap = document.getElementById('selecteaza-data-wrap');
