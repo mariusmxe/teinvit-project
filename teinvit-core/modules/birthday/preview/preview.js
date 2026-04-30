@@ -1,6 +1,11 @@
 (function () {
     var REPEATABLE_ID = 'd1fe0da';
     var MESSAGE_ID = 'bef895a';
+    var PARENT_CHILD_FALLBACKS = {
+        fc5b530: { value: '59yiz', children: ['0c45e7b', '1d485ae', 'baee2f0', 'a2be7ee'] },
+        '2cac251': { value: '1', children: ['4e73bc1'] },
+        '1aa14a1': { value: '1', children: ['cb7c1fd'] }
+    };
     var MESSAGE_MAX = 255;
     var BUILD_DEBOUNCE_MS = 140;
     var buildTimer = null;
@@ -70,6 +75,14 @@
             } else {
                 out[id] = String(out[id] || '').trim();
             }
+        });
+        Object.keys(PARENT_CHILD_FALLBACKS).forEach(function (parentId) {
+            if (String(out[parentId] || '').trim()) return;
+            var fallback = PARENT_CHILD_FALLBACKS[parentId] || {};
+            var hasChild = (fallback.children || []).some(function (childId) {
+                return String(out[childId] || '').trim() !== '';
+            });
+            if (hasChild) out[parentId] = fallback.value || '1';
         });
         return out;
     }
@@ -726,6 +739,7 @@
     }
 
     function clearPrefilledCloneInputs(scope) {
+        if (isDeferredAdminPreviewContext()) return;
         qsa('[name^="wapf[field_' + REPEATABLE_ID + '_"]', scope || document).forEach(function (el) {
             var name = String(el.getAttribute('name') || '');
             var m = name.match(new RegExp('^wapf\\[field_' + REPEATABLE_ID + '_(?:clone_)?(\\d+)\\]$'));
