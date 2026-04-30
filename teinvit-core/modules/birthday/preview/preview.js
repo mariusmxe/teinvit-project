@@ -25,13 +25,20 @@
     function getRoot() { return qs('#teinvit-vertical-product-preview') || document; }
     function getCanvas() { return qs('.teinvit-canvas', getRoot()) || qs('.teinvit-canvas'); }
     function isProductPreviewContext() { return !!qs('#teinvit-vertical-product-preview[data-product-id]'); }
+    function isDeferredAdminPreviewContext() {
+        var cfg = window.teinvitBirthdayPreviewConfig || {};
+        return isProductPreviewContext() && !!(cfg.adminClient || cfg.deferInitialBuild);
+    }
+    function canScheduleWapfBuild() {
+        return !(isDeferredAdminPreviewContext() && !window.__TEINVIT_BIRTHDAY_WAPF_READY__);
+    }
     function engine() { return window.TEINVIT_PREVIEW_LAYOUT_ENGINE || null; }
 
     function parseFieldId(name) {
         var raw = String(name || '').trim();
         var m = raw.match(/field_([a-z0-9_\-]+)/i);
         if (!m) return '';
-        return String(m[1] || '').replace(/_\d+$/, '').trim();
+        return String(m[1] || '').replace(/_(?:clone_)?\d+$/, '').trim();
     }
 
     function collectWapfMapFromForm() {
@@ -853,31 +860,49 @@
             else schedulePreviewFinalLayout(canvas);
         }
         if (isProductContext) {
-            buildFromApi();
-            scheduleFinalProductPass();
+            if (isDeferredAdminPreviewContext() && window.TEINVIT_INVITATION_DATA) {
+                var adminCanvas = renderInvitation(window.TEINVIT_INVITATION_DATA);
+                schedulePreviewFinalLayout(adminCanvas);
+            } else {
+                buildFromApi();
+                scheduleFinalProductPass();
+            }
         }
         setupPreviewResizeObserver();
     });
 
     document.addEventListener('input', function (e) {
         var t = e && e.target;
+        if (!canScheduleWapfBuild()) return;
         if (t && t.name && t.name.indexOf('wapf[') === 0) {
             scheduleBuildFromApi();
         }
     });
     document.addEventListener('change', function (e) {
         var t = e && e.target;
+        if (!canScheduleWapfBuild()) return;
         if (t && t.name && t.name.indexOf('wapf[') === 0 && (!t.type || t.type.toLowerCase() !== 'text') && t.tagName !== 'TEXTAREA') {
             scheduleBuildFromApi();
         }
     });
     document.addEventListener('wapf/date_selected', function () {
+        if (!canScheduleWapfBuild()) return;
         setTimeout(function () {
             scheduleBuildFromApi();
         }, 30);
     });
+    document.addEventListener('teinvit:birthday-wapf-hydrated', function () {
+        if (!isProductPreviewContext()) return;
+        window.__TEINVIT_BIRTHDAY_WAPF_READY__ = true;
+        window.__TEINVIT_AUTOFIT_DONE__ = false;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+        setupMessageCounter();
+        scheduleBuildFromApi();
+        scheduleFinalProductPass();
+    });
     document.addEventListener('click', function (e) {
         var t = e && e.target;
+        if (!canScheduleWapfBuild()) return;
         if (!isRepeatControl(t)) return;
         setTimeout(function () {
             clearPrefilledCloneInputs(document);

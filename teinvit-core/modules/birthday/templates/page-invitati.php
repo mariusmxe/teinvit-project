@@ -36,14 +36,44 @@ $show_vegetarian = ! empty( $config['show_vegetarian'] );
 $show_allergies = ! empty( $config['show_allergies'] );
 $show_message = isset( $config['show_message'] ) ? ! empty( $config['show_message'] ) : true;
 $show_special_observations = ! empty( $config['show_special_observations'] );
+$guest_count_question = 'Pentru câte persoane faceți confirmarea (exceptând copii)?';
+$rsvp_short_question_defs = [
+    'show_attending_party' => 'party',
+    'show_guest_count' => 'guest_count',
+    'show_kids' => 'kids',
+    'show_child_menu' => 'child_menu',
+    'show_accommodation' => 'accommodation',
+    'show_vegetarian' => 'vegetarian',
+    'show_allergies' => 'allergies',
+];
+$rsvp_enabled_lookup = [
+    'show_attending_party' => $show_party,
+    'show_guest_count' => $show_guest_count,
+    'show_kids' => $show_kids,
+    'show_child_menu' => $show_child_menu,
+    'show_accommodation' => $show_accommodation,
+    'show_vegetarian' => $show_vegetarian,
+    'show_allergies' => $show_allergies,
+];
+$rsvp_order = isset( $config['rsvp_zone2_order'] ) && is_array( $config['rsvp_zone2_order'] ) ? $config['rsvp_zone2_order'] : array_keys( $rsvp_short_question_defs );
+$rsvp_order = array_values( array_unique( array_filter( array_map( 'sanitize_key', $rsvp_order ), static function( $key ) use ( $rsvp_short_question_defs ) {
+    return isset( $rsvp_short_question_defs[ $key ] );
+} ) ) );
+$rsvp_order = array_values( array_unique( array_merge( $rsvp_order, array_keys( $rsvp_short_question_defs ) ) ) );
+$rsvp_short_questions = [];
+foreach ( $rsvp_order as $question_key ) {
+    if ( ! empty( $rsvp_enabled_lookup[ $question_key ] ) && isset( $rsvp_short_question_defs[ $question_key ] ) ) {
+        $rsvp_short_questions[] = $rsvp_short_question_defs[ $question_key ];
+    }
+}
 
 $policy_url = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy_url() : '';
 $terms_page = get_page_by_path( 'termeni-si-conditii', OBJECT, 'page' );
 $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
 ?>
 <style>
-.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px}.teinvit-info-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-rsvp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:14px}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}
-@media (max-width: 768px){.teinvit-info-strip,.teinvit-rsvp-grid{grid-template-columns:1fr}.teinvit-surface-card{padding:14px}.teinvit-rsvp-dependent{margin-left:0}.teinvit-rsvp-dependent input{max-width:100%}}
+.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px}.teinvit-info-card{margin-top:16px}.teinvit-info-deadline-row{text-align:center;margin-bottom:10px}.teinvit-info-meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-info-meta-row .teinvit-info-pill{flex:1 1 240px;max-width:360px;text-align:center}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:0}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}
+@media (max-width: 768px){.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{grid-template-columns:1fr}.teinvit-surface-card{padding:14px}.teinvit-rsvp-dependent{margin-left:0}.teinvit-rsvp-dependent input{max-width:100%}}
 </style>
 <div class="teinvit-birthday-invitati">
   <?php if ( $deadline_expired ) : ?>
@@ -51,18 +81,20 @@ $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
   <?php endif; ?>
 
   <?php if ( ( $deadline_active && $deadline_raw !== '' ) || ( $show_theme && $theme_text !== '' ) || ( $show_dress && $dress_text !== '' ) ) : ?>
-  <div class="teinvit-surface-card" style="margin-top:16px;">
-    <div class="teinvit-info-strip">
-      <?php if ( $deadline_active && $deadline_raw !== '' ) : ?>
-        <div class="teinvit-info-pill"><strong>Data maximă pentru confirmări:</strong> <?php echo esc_html( $deadline_raw ); ?></div>
-      <?php endif; ?>
-      <?php if ( $show_theme && $theme_text !== '' ) : ?>
-        <div class="teinvit-info-pill"><strong>Tematica petrecerii:</strong> <?php echo esc_html( $theme_text ); ?></div>
-      <?php endif; ?>
-      <?php if ( $show_dress && $dress_text !== '' ) : ?>
-        <div class="teinvit-info-pill"><strong>Dress code:</strong> <?php echo esc_html( $dress_text ); ?></div>
-      <?php endif; ?>
-    </div>
+  <div class="teinvit-surface-card teinvit-info-card">
+    <?php if ( $deadline_active && $deadline_raw !== '' ) : ?>
+      <div class="teinvit-info-deadline-row"><strong>Data maximă pentru confirmări:</strong> <?php echo esc_html( $deadline_raw ); ?></div>
+    <?php endif; ?>
+    <?php if ( ( $show_dress && $dress_text !== '' ) || ( $show_theme && $theme_text !== '' ) ) : ?>
+      <div class="teinvit-info-meta-row">
+        <?php if ( $show_dress && $dress_text !== '' ) : ?>
+          <div class="teinvit-info-pill"><strong>Dress code:</strong> <?php echo esc_html( $dress_text ); ?></div>
+        <?php endif; ?>
+        <?php if ( $show_theme && $theme_text !== '' ) : ?>
+          <div class="teinvit-info-pill"><strong>Tematica petrecerii:</strong> <?php echo esc_html( $theme_text ); ?></div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
@@ -88,95 +120,91 @@ $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
             <label for="birthday-rsvp-email">Email</label>
             <input id="birthday-rsvp-email" name="guest_email" type="email">
           </div>
-          <?php if ( $show_guest_count ) : ?>
-          <div class="teinvit-rsvp-field">
-            <label for="birthday-rsvp-guest-count">Pentru câte persoane confirmați participarea?</label>
-            <input id="birthday-rsvp-guest-count" name="attending_people_count" type="number" min="1" max="50" value="1">
-          </div>
-          <?php else : ?>
-            <input type="hidden" name="attending_people_count" value="1">
-          <?php endif; ?>
         </div>
+        <?php if ( ! $show_guest_count ) : ?>
+          <input type="hidden" name="attending_people_count" value="1">
+        <?php endif; ?>
 
         <hr class="teinvit-separator">
 
-        <?php if ( $show_party ) : ?>
-        <div class="teinvit-rsvp-question">
-          <label>Veți participa la petrecere?</label>
-          <div class="teinvit-rsvp-choice-group">
-            <label><input type="radio" name="attending_party" value="1" required> DA</label>
-            <label><input type="radio" name="attending_party" value="0"> NU</label>
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if ( $show_kids ) : ?>
-        <div class="teinvit-rsvp-question">
-          <label>Veți veni însoțiți de copii?</label>
-          <div class="teinvit-rsvp-choice-group">
-            <label><input type="radio" name="bringing_kids" value="1"> DA</label>
-            <label><input type="radio" name="bringing_kids" value="0" checked> NU</label>
-          </div>
-          <div id="birthday-rsvp-kids-wrap" class="teinvit-rsvp-dependent" style="display:none;">
-            <label for="birthday-rsvp-kids-count">Număr copii</label>
-            <input id="birthday-rsvp-kids-count" name="kids_count" type="number" min="1" max="50">
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if ( $show_child_menu ) : ?>
-        <div class="teinvit-rsvp-question">
-          <label>Aveți nevoie de meniu pentru copil/copii?</label>
-          <div class="teinvit-rsvp-choice-group">
-            <label><input type="radio" name="child_menu_requested" value="1"> DA</label>
-            <label><input type="radio" name="child_menu_requested" value="0" checked> NU</label>
-          </div>
-          <div id="birthday-rsvp-child-menu-wrap" class="teinvit-rsvp-dependent" style="display:none;">
-            <label for="birthday-rsvp-child-menu-count">Număr meniuri copii</label>
-            <input id="birthday-rsvp-child-menu-count" name="child_menu_count" type="number" min="1" max="50">
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if ( $show_accommodation ) : ?>
-        <div class="teinvit-rsvp-question">
-          <label>Aveți nevoie de cazare?</label>
-          <div class="teinvit-rsvp-choice-group">
-            <label><input type="radio" name="needs_accommodation" value="1"> DA</label>
-            <label><input type="radio" name="needs_accommodation" value="0" checked> NU</label>
-          </div>
-          <div id="birthday-rsvp-accommodation-wrap" class="teinvit-rsvp-dependent" style="display:none;">
-            <label for="birthday-rsvp-accommodation-count">Număr persoane pentru cazare</label>
-            <input id="birthday-rsvp-accommodation-count" name="accommodation_people_count" type="number" min="1" max="50">
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if ( $show_vegetarian ) : ?>
-        <div class="teinvit-rsvp-question">
-          <label>Doriți meniu vegetarian?</label>
-          <div class="teinvit-rsvp-choice-group">
-            <label><input type="radio" name="vegetarian_requested" value="1"> DA</label>
-            <label><input type="radio" name="vegetarian_requested" value="0" checked> NU</label>
-          </div>
-          <div id="birthday-rsvp-vegetarian-wrap" class="teinvit-rsvp-dependent" style="display:none;">
-            <label for="birthday-rsvp-vegetarian-count">Număr meniuri vegetariene</label>
-            <input id="birthday-rsvp-vegetarian-count" name="vegetarian_menus_count" type="number" min="1" max="50">
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if ( $show_allergies ) : ?>
-        <div class="teinvit-rsvp-question">
-          <label>Aveți alergii alimentare?</label>
-          <div class="teinvit-rsvp-choice-group">
-            <label><input type="radio" name="has_allergies" value="1"> DA</label>
-            <label><input type="radio" name="has_allergies" value="0" checked> NU</label>
-          </div>
-          <div id="birthday-rsvp-allergies-wrap" class="teinvit-rsvp-dependent" style="display:none;">
-            <label for="birthday-rsvp-allergy-details">Detalii alergii</label>
-            <textarea id="birthday-rsvp-allergy-details" name="allergy_details" rows="3"></textarea>
-          </div>
+        <?php if ( ! empty( $rsvp_short_questions ) ) : ?>
+        <div class="teinvit-rsvp-question-grid">
+          <?php foreach ( $rsvp_short_questions as $question_type ) : ?>
+            <?php if ( $question_type === 'guest_count' ) : ?>
+              <div class="teinvit-rsvp-field teinvit-rsvp-question">
+                <label for="birthday-rsvp-guest-count"><?php echo esc_html( $guest_count_question ); ?></label>
+                <input id="birthday-rsvp-guest-count" name="attending_people_count" type="number" min="1" max="50" value="1">
+              </div>
+            <?php elseif ( $question_type === 'party' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Veți participa la petrecere?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="attending_party" value="1" required> DA</label>
+                  <label><input type="radio" name="attending_party" value="0"> NU</label>
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'kids' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Veți veni însoțiți de copii?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="bringing_kids" value="1"> DA</label>
+                  <label><input type="radio" name="bringing_kids" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-kids-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-kids-count">Număr copii</label>
+                  <input id="birthday-rsvp-kids-count" name="kids_count" type="number" min="1" max="50">
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'child_menu' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Aveți nevoie de meniu pentru copil/copii?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="child_menu_requested" value="1"> DA</label>
+                  <label><input type="radio" name="child_menu_requested" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-child-menu-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-child-menu-count">Număr meniuri copii</label>
+                  <input id="birthday-rsvp-child-menu-count" name="child_menu_count" type="number" min="1" max="50">
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'accommodation' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Aveți nevoie de cazare?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="needs_accommodation" value="1"> DA</label>
+                  <label><input type="radio" name="needs_accommodation" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-accommodation-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-accommodation-count">Număr persoane pentru cazare</label>
+                  <input id="birthday-rsvp-accommodation-count" name="accommodation_people_count" type="number" min="1" max="50">
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'vegetarian' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Doriți meniu vegetarian?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="vegetarian_requested" value="1"> DA</label>
+                  <label><input type="radio" name="vegetarian_requested" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-vegetarian-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-vegetarian-count">Număr meniuri vegetariene</label>
+                  <input id="birthday-rsvp-vegetarian-count" name="vegetarian_menus_count" type="number" min="1" max="50">
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'allergies' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Aveți alergii alimentare?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="has_allergies" value="1"> DA</label>
+                  <label><input type="radio" name="has_allergies" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-allergies-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-allergy-details">Detalii alergii</label>
+                  <textarea id="birthday-rsvp-allergy-details" name="allergy_details" rows="3"></textarea>
+                </div>
+              </div>
+            <?php endif; ?>
+          <?php endforeach; ?>
         </div>
         <?php endif; ?>
 

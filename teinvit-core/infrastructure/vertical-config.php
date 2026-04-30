@@ -80,7 +80,7 @@ function teinvit_vertical_semantics_registry() {
             'label' => 'Aniversare',
             'basic_copy' => [
                 'notice' => 'Pachet Basic activ. Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul Pachet Premium.',
-                'deadline_locked' => 'Publicarea datei limită pe pagina invitaților este disponibilă după upgrade la Premium.',
+                'deadline_locked' => 'Informațiile pot fi publicate pe pagina invitaților doar după upgrade la Premium.',
                 'publish_locked' => 'Publicarea de versiuni este disponibilă după upgrade la Premium.',
                 'guest_page_locked' => 'Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.',
                 'content_locked' => 'Editările de conținut și salvarea versiunilor sunt blocate pe pachetul Basic.',
@@ -122,7 +122,7 @@ function teinvit_vertical_semantics_registry() {
             ],
             'rsvp_fields' => [
                 'show_attending_party' => [ 'label' => 'Permite confirmarea participării la petrecere', 'question' => 'Veți participa la petrecere?', 'storage' => 'attending_party', 'type' => 'boolean' ],
-                'show_guest_count' => [ 'label' => 'Permite completarea numărului de persoane participante', 'question' => 'Pentru câte persoane confirmați participarea?', 'storage' => 'attending_people_count', 'type' => 'count' ],
+                'show_guest_count' => [ 'label' => 'Permite completarea numărului de persoane participante', 'question' => 'Pentru câte persoane faceți confirmarea (exceptând copii)?', 'storage' => 'attending_people_count', 'type' => 'count' ],
                 'show_kids' => [ 'label' => 'Permite confirmarea copiilor însoțitori', 'question' => 'Veți veni însoțiți de copii?', 'storage' => 'kids_count', 'type' => 'count' ],
                 'show_child_menu' => [ 'label' => 'Permite solicitarea meniului pentru copii', 'question' => 'Aveți nevoie de meniu pentru copil/copii?', 'storage' => 'child_menu_count', 'type' => 'extra_count' ],
                 'show_accommodation' => [ 'label' => 'Permite solicitarea de cazare', 'question' => 'Aveți nevoie de cazare?', 'storage' => 'accommodation_people_count', 'type' => 'count' ],

@@ -106,6 +106,7 @@ $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) )
 $edits_paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
 $edits_remaining = $edits_free_remaining + $edits_paid_remaining;
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
+$can_save_invitation_info = ! empty( $capabilities['can_save_invitation_info'] );
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
 $basic_copy = function_exists( 'teinvit_vertical_basic_copy' ) ? teinvit_vertical_basic_copy( 'birthday' ) : [];
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
@@ -147,11 +148,12 @@ $admin_toggle_fields = [
 ?>
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}
-.teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}.teinvit-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-form-row label{display:block}.teinvit-form-row input[type=text]{width:100%}
+.teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-form-row label{display:block}.teinvit-form-row input[type=text]{width:100%}
+.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 .teinvit-share-card h3{margin-top:0}.teinvit-share-actions,.teinvit-share-quick{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{flex-direction:column;max-width:320px;margin-top:8px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px}
 .teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
-@media (max-width: 900px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid{grid-template-columns:1fr}.teinvit-admin-page{padding:10px}}
+@media (max-width: 900px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr}.teinvit-admin-page{padding:10px}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-birthday">
   <div class="teinvit-admin-title-card">
@@ -170,38 +172,36 @@ $admin_toggle_fields = [
 
   <div class="teinvit-zone">
     <h3 style="text-align:center;margin-top:0;">Informații publicate pe pagina invitaților</h3>
-    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-birthday-info-form">
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-birthday-info-form" class="teinvit-info-form">
       <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
       <input type="hidden" name="action" value="teinvit_birthday_save_invitation_info">
       <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
 
-      <label><input type="checkbox" id="date_confirm" name="date_confirm" value="1" <?php checked( $show_deadline ); ?>> Doresc afișarea datei limită pentru confirmări</label>
-      <div id="selecteaza-data-wrap" style="margin-top:10px;<?php echo $show_deadline ? '' : 'display:none;'; ?>" class="acf-field acf-field-date-picker" data-name="selecteaza_data" data-type="date_picker">
+      <label class="teinvit-info-deadline-toggle"><input type="checkbox" id="date_confirm" name="date_confirm" value="1" <?php checked( $show_deadline ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Doresc afișarea datei limită pentru confirmări</label>
+      <div id="selecteaza-data-wrap" style="<?php echo $show_deadline ? '' : 'display:none;'; ?>" class="acf-field acf-field-date-picker teinvit-info-date-wrap" data-name="selecteaza_data" data-type="date_picker">
         <label for="selecteaza_data">Selectează data</label>
         <div class="acf-input">
           <div class="acf-date-picker acf-input-wrap" data-date_format="dd/mm/yy" data-display_format="dd/mm/yy" data-first_day="1">
-            <input type="text" id="selecteaza_data" name="selecteaza_data" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>" autocomplete="off" class="input">
+            <input type="text" id="selecteaza_data" name="selecteaza_data" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>" autocomplete="off" class="input" <?php disabled( ! $can_save_invitation_info ); ?>>
           </div>
         </div>
       </div>
 
-      <div class="teinvit-form-row" style="margin-top:12px;">
-        <label>
-          <input type="checkbox" name="show_birthday_party_theme" value="1" <?php checked( ! empty( $config['show_birthday_party_theme'] ) ); ?>>
-          Afișează tematica petrecerii
-          <input type="text" name="birthday_party_theme_text" value="<?php echo esc_attr( (string) ( $config['birthday_party_theme_text'] ?? '' ) ); ?>" placeholder="Tematica petrecerii">
+      <div class="teinvit-info-free-text-grid">
+        <label class="teinvit-info-text-card">
+          <span><input type="checkbox" name="show_birthday_party_theme" value="1" <?php checked( ! empty( $config['show_birthday_party_theme'] ) ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Afișează tematica petrecerii</span>
+          <input type="text" name="birthday_party_theme_text" value="<?php echo esc_attr( (string) ( $config['birthday_party_theme_text'] ?? '' ) ); ?>" placeholder="Tematica petrecerii" aria-label="Tematica petrecerii" <?php disabled( ! $can_save_invitation_info ); ?>>
         </label>
-        <label>
-          <input type="checkbox" name="show_birthday_dress_code" value="1" <?php checked( ! empty( $config['show_birthday_dress_code'] ) ); ?>>
-          Afișează dress code / ținută recomandată
-          <input type="text" name="birthday_dress_code_text" value="<?php echo esc_attr( (string) ( $config['birthday_dress_code_text'] ?? '' ) ); ?>" placeholder="Dress code">
+        <label class="teinvit-info-text-card">
+          <span><input type="checkbox" name="show_birthday_dress_code" value="1" <?php checked( ! empty( $config['show_birthday_dress_code'] ) ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Afișează dress code / ținută recomandată</span>
+          <input type="text" name="birthday_dress_code_text" value="<?php echo esc_attr( (string) ( $config['birthday_dress_code_text'] ?? '' ) ); ?>" placeholder="Dress code" aria-label="Dress code" <?php disabled( ! $can_save_invitation_info ); ?>>
         </label>
       </div>
 
-      <?php if ( ! empty( $capabilities['can_save_invitation_info'] ) ) : ?>
-        <p><button type="submit" class="button">Salvează informațiile</button></p>
+      <?php if ( $can_save_invitation_info ) : ?>
+        <p class="teinvit-info-actions"><button type="submit" class="button">Salvează informațiile</button></p>
       <?php else : ?>
-        <p><em><?php echo esc_html( (string) ( $basic_copy['deadline_locked'] ?? 'Publicarea datei limită pe pagina invitaților este disponibilă după upgrade la Premium.' ) ); ?></em></p>
+        <p class="teinvit-info-actions"><em><?php echo esc_html( (string) ( $basic_copy['deadline_locked'] ?? 'Informațiile pot fi publicate pe pagina invitaților doar după upgrade la Premium.' ) ); ?></em></p>
       <?php endif; ?>
     </form>
   </div>
@@ -299,14 +299,6 @@ $admin_toggle_fields = [
       </div>
       <?php endif; ?>
 
-      <div class="teinvit-zone teinvit-admin-gifts">
-        <h3 style="text-align:center;margin-top:0;">Lista de cadouri</h3>
-        <?php if ( ! empty( $capabilities['can_manage_gifts'] ) ) : ?>
-          <p><em>Configurarea completă a cadourilor pentru Birthday se activează într-o fază următoare.</em></p>
-        <?php else : ?>
-          <p><em><?php echo esc_html( (string) ( $basic_copy['gifts_locked'] ?? 'Activarea listei de Cadouri pe pagina invitaților este disponibilă doar pentru pachetul Premium.' ) ); ?></em></p>
-        <?php endif; ?>
-      </div>
     </div>
 
     <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
@@ -340,6 +332,15 @@ $admin_toggle_fields = [
       </form>
     </div>
   </div>
+
+  <div class="teinvit-zone teinvit-admin-gifts">
+    <h3>Lista de cadouri</h3>
+    <?php if ( ! empty( $capabilities['can_manage_gifts'] ) ) : ?>
+      <p><em>Configurarea completă a cadourilor pentru Birthday se activează într-o fază următoare.</em></p>
+    <?php else : ?>
+      <p><em><?php echo esc_html( (string) ( $basic_copy['gifts_locked'] ?? 'Activarea listei de Cadouri pe pagina invitaților este disponibilă doar pentru pachetul Premium.' ) ); ?></em></p>
+    <?php endif; ?>
+  </div>
 </div>
 <script>
 (function(){
@@ -352,54 +353,311 @@ $admin_toggle_fields = [
 
   const variants = <?php echo wp_json_encode( $variants ); ?>;
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
+  const initialInvitation = <?php echo wp_json_encode( $current_invitation ); ?>;
   const baseUrl = <?php echo wp_json_encode( home_url( '/admin-client/' . rawurlencode( $token ) ) ); ?>;
   const shareUrl = <?php echo wp_json_encode( $guest_page_url ); ?>;
   const shareTitle = <?php echo wp_json_encode( (string) ( $share_payload['title'] ?? 'Invitație aniversare - Te Invit' ) ); ?>;
   const shareText = <?php echo wp_json_encode( (string) ( $share_payload['text'] ?? 'Te invităm cu drag la petrecerea aniversară' ) ); ?>;
+  const editsRemaining = <?php echo (int) $edits_remaining; ?>;
+  const saveForm = document.getElementById('teinvit-save-form');
+  const parentBooleanIds = ['fc5b530'];
+  const repeatableFieldIds = ['d1fe0da'];
 
-  function splitSelected(raw){
-    return String(raw || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  window.teinvitBirthdayPreviewConfig.adminClient = true;
+  window.teinvitBirthdayPreviewConfig.deferInitialBuild = true;
+  window.__TEINVIT_BIRTHDAY_WAPF_READY__ = false;
+
+  function qsa(selector, root){
+    return Array.prototype.slice.call((root || document).querySelectorAll(selector));
   }
 
-  function setWapfValues(map){
+  function normalizeFieldId(id){
+    return String(id || '')
+      .replace(/^field_/, '')
+      .replace(/^wapf\[field_/, '')
+      .replace(/\]$/, '')
+      .replace(/_(?:clone_)?\d+$/, '')
+      .trim();
+  }
+
+  function rawFieldIdFromName(name){
+    const match = String(name || '').match(/^wapf\[field_([^\]]+)\]/);
+    return match ? String(match[1] || '').trim() : '';
+  }
+
+  function fieldIdFromName(name){
+    return normalizeFieldId(rawFieldIdFromName(name));
+  }
+
+  function isSkippableInput(el){
+    return !el || (el.type === 'hidden' && el.classList.contains('wapf-tf-h')) || /_qty\]$/.test(String(el.name || ''));
+  }
+
+  function lower(value){
+    return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function splitSelected(raw){
+    if (Array.isArray(raw)) {
+      return raw.map(function(value){ return String(value || '').trim(); }).filter(Boolean);
+    }
+    return String(raw || '')
+      .split(/[\n,]+/)
+      .map(function(value){ return value.trim(); })
+      .filter(Boolean);
+  }
+
+  function rawValueForField(map, id){
+    if (!map || typeof map !== 'object') return '';
+    if (Object.prototype.hasOwnProperty.call(map, id)) return map[id];
+    const matches = [];
+    Object.keys(map).forEach(function(key){
+      const normalized = normalizeFieldId(key);
+      if (normalized !== id) return;
+      const value = map[key];
+      if (Array.isArray(value)) {
+        value.forEach(function(part){ if (String(part || '').trim() !== '') matches.push(part); });
+      } else if (String(value || '').trim() !== '') {
+        matches.push(value);
+      }
+    });
+    return matches.length > 1 ? matches : (matches[0] || '');
+  }
+
+  function isTruthyRaw(raw){
+    const selected = splitSelected(raw);
+    if (!selected.length) return false;
+    return selected.some(function(value){
+      const normalized = lower(value);
+      return normalized !== '' && normalized !== '0' && normalized !== 'false' && normalized !== 'nu' && normalized !== 'no';
+    });
+  }
+
+  function labelForInput(el){
+    const label = el && el.closest ? el.closest('label') : null;
+    return label && label.textContent ? label.textContent.replace(/\s+/g, ' ').trim() : '';
+  }
+
+  function optionLookups(elements){
+    const byValue = {};
+    const byLabel = {};
+    elements.forEach(function(el){
+      if (!el) return;
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options || []).forEach(function(option){
+          byValue[lower(option.value)] = option.value;
+          byLabel[lower(option.text)] = option.value;
+        });
+        return;
+      }
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        byValue[lower(el.value)] = el.value;
+        byLabel[lower(labelForInput(el))] = el.value;
+      }
+    });
+    return { byValue: byValue, byLabel: byLabel };
+  }
+
+  function resolvedSelections(raw, elements){
+    const lookups = optionLookups(elements);
+    return splitSelected(raw).map(function(value){
+      const key = lower(value);
+      if (Object.prototype.hasOwnProperty.call(lookups.byValue, key)) return lookups.byValue[key];
+      if (Object.prototype.hasOwnProperty.call(lookups.byLabel, key)) return lookups.byLabel[key];
+      return value;
+    }).filter(Boolean);
+  }
+
+  function groupCurrentInputs(){
     const groups = {};
-    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(function(el){
-      const m = el.name.match(/^wapf\[field_([^\]]+)\]/);
-      if (!m) return;
-      const id = m[1].replace(/_(?:clone_)?\d+$/, '');
+    if (!saveForm) return groups;
+    qsa('[name^="wapf[field_"]', saveForm).forEach(function(el){
+      if (isSkippableInput(el)) return;
+      const id = fieldIdFromName(el.name);
+      if (!id) return;
       if (!groups[id]) groups[id] = [];
       groups[id].push(el);
     });
-
-    Object.keys(groups).forEach(function(id){
-      const raw = map && Object.prototype.hasOwnProperty.call(map, id) ? map[id] : '';
-      const selected = splitSelected(raw);
-      groups[id].forEach(function(el){
-        if (el.type === 'hidden' && el.classList.contains('wapf-tf-h')) return;
-        if (el.type === 'checkbox') {
-          const label = el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '';
-          const selectedLower = selected.map(function(v){ return String(v).toLowerCase(); });
-          el.checked = selected.includes(el.value) || selected.includes(label) || selectedLower.includes(String(el.value || '').toLowerCase()) || selectedLower.includes(String(label || '').toLowerCase());
-        } else if (el.type === 'radio') {
-          const label = el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '';
-          el.checked = String(el.value) === String(raw) || String(label).trim().toLowerCase() === String(raw).trim().toLowerCase();
-        } else if (el.tagName === 'SELECT') {
-          const byValue = Array.from(el.options || []).find(function(o){ return String(o.value) === String(raw); });
-          const byLabel = Array.from(el.options || []).find(function(o){ return String(o.text).trim() === String(raw).trim(); });
-          el.value = byValue ? byValue.value : (byLabel ? byLabel.value : String(raw));
-        } else {
-          el.value = String(raw || '');
-        }
-      });
-    });
-
-    document.dispatchEvent(new Event('input', { bubbles: true }));
-    document.dispatchEvent(new Event('change', { bubbles: true }));
-    document.dispatchEvent(new CustomEvent('teinvit:variant-applied'));
+    return groups;
   }
 
+  function triggerFieldEvents(elements){
+    elements.forEach(function(el){
+      if (!el) return;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  function phaseAllows(id, phase){
+    const isParent = parentBooleanIds.indexOf(id) !== -1;
+    if (phase === 'parents') return isParent;
+    if (phase === 'children') return !isParent;
+    return true;
+  }
+
+  function cloneIndex(el){
+    const raw = rawFieldIdFromName(el && el.name);
+    const match = raw.match(/_(?:clone_)?(\d+)$/);
+    if (!match) return 0;
+    const parsed = parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function repeatableInputs(id){
+    if (!saveForm) return [];
+    return qsa('[name^="wapf[field_' + id + '"]', saveForm)
+      .filter(function(el){ return !isSkippableInput(el) && fieldIdFromName(el.name) === id && el.type !== 'checkbox' && el.type !== 'radio'; })
+      .sort(function(a, b){ return cloneIndex(a) - cloneIndex(b); });
+  }
+
+  function findRepeatableAddButton(id, inputs){
+    const scope = (inputs[0] && inputs[0].closest('.wapf-field, .wapf-field-container, .wapf-repeatable, .wapf-field-row')) || saveForm;
+    if (!scope) return null;
+    const candidates = qsa('button,a,[role="button"],input[type="button"]', scope);
+    return candidates.find(function(btn){
+      const text = lower((btn.getAttribute('class') || '') + ' ' + (btn.getAttribute('data-action') || '') + ' ' + (btn.value || '') + ' ' + (btn.textContent || ''));
+      return text.indexOf('add') !== -1 || text.indexOf('clone') !== -1 || text.indexOf('repeat') !== -1 || text.indexOf('adauga') !== -1 || text.indexOf('adaugă') !== -1 || text === '+';
+    }) || null;
+  }
+
+  function ensureRepeatableInputs(id, values){
+    let inputs = repeatableInputs(id);
+    let guard = 0;
+    while (inputs.length < values.length && guard < values.length + 3) {
+      const addButton = findRepeatableAddButton(id, inputs);
+      if (!addButton) break;
+      addButton.click();
+      inputs = repeatableInputs(id);
+      guard += 1;
+    }
+    return inputs;
+  }
+
+  function applyRepeatableField(id, raw){
+    const values = splitSelected(raw);
+    let inputs = ensureRepeatableInputs(id, values.length ? values : ['']);
+    if (!inputs.length) return [];
+    if (values.length > 1 && inputs.length < values.length) {
+      inputs[0].value = values.join(', ');
+      return [inputs[0]];
+    }
+    inputs.forEach(function(el, index){
+      el.value = values[index] || (index === 0 ? String(raw || '') : '');
+    });
+    return inputs;
+  }
+
+  function applyStandardField(id, elements, raw){
+    const changed = [];
+    const checkboxes = elements.filter(function(el){ return el.type === 'checkbox'; });
+    const radios = elements.filter(function(el){ return el.type === 'radio'; });
+    const selects = elements.filter(function(el){ return el.tagName === 'SELECT'; });
+    const textControls = elements.filter(function(el){ return el.type !== 'checkbox' && el.type !== 'radio' && el.tagName !== 'SELECT'; });
+
+    if (checkboxes.length) {
+      const selections = resolvedSelections(raw, checkboxes);
+      const selectedLower = selections.map(lower);
+      const parentTruthy = parentBooleanIds.indexOf(id) !== -1 && isTruthyRaw(raw);
+      checkboxes.forEach(function(el, index){
+        const checked = selectedLower.indexOf(lower(el.value)) !== -1 || selectedLower.indexOf(lower(labelForInput(el))) !== -1 || (parentTruthy && !selectedLower.length && index === 0);
+        el.checked = checked;
+        changed.push(el);
+      });
+    }
+
+    if (radios.length) {
+      const selections = resolvedSelections(raw, radios);
+      const wanted = lower(selections[0] || raw);
+      radios.forEach(function(el){
+        el.checked = lower(el.value) === wanted || lower(labelForInput(el)) === wanted;
+        changed.push(el);
+      });
+    }
+
+    selects.forEach(function(el){
+      const selections = resolvedSelections(raw, [el]);
+      el.value = selections[0] || String(raw || '');
+      changed.push(el);
+    });
+
+    textControls.forEach(function(el){
+      el.value = Array.isArray(raw) ? raw.join(', ') : String(raw || '');
+      changed.push(el);
+    });
+
+    return changed;
+  }
+
+  function dispatchWapfInit(){
+    if (window.jQuery) {
+      const $form = window.jQuery(saveForm || document);
+      window.jQuery(document).trigger('wapf/init', [$form]);
+      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+    }
+    document.dispatchEvent(new CustomEvent('wapf/init', { detail: { form: saveForm } }));
+    document.dispatchEvent(new CustomEvent('wapf/init_datepickers', { detail: { form: saveForm } }));
+  }
+
+  function serializeParentCheckedState(){
+    const holder = document.getElementById('teinvit-parent-checked-json');
+    if (!holder || !saveForm) return;
+    const payload = {};
+    parentBooleanIds.forEach(function(id){
+      payload[id] = qsa('[name="wapf[field_' + id + '][]"], [name="wapf[field_' + id + ']"]', saveForm).some(function(el){ return !!el.checked; }) ? 1 : 0;
+    });
+    holder.value = JSON.stringify(payload);
+  }
+
+  function setWapfValues(map, options){
+    const opts = options || {};
+    const phases = opts.phase ? [opts.phase] : ['parents', 'children'];
+    let changed = [];
+
+    phases.forEach(function(phase){
+      const groups = groupCurrentInputs();
+      Object.keys(groups).forEach(function(id){
+        if (!phaseAllows(id, phase)) return;
+        const raw = rawValueForField(map, id);
+        if (repeatableFieldIds.indexOf(id) !== -1) {
+          changed = changed.concat(applyRepeatableField(id, raw));
+          return;
+        }
+        changed = changed.concat(applyStandardField(id, groups[id], raw));
+      });
+
+      if (phase === 'parents') {
+        triggerFieldEvents(changed);
+        dispatchWapfInit();
+      }
+    });
+
+    serializeParentCheckedState();
+    triggerFieldEvents(changed);
+    dispatchWapfInit();
+    return changed;
+  }
+
+  function hydrateWapf(map, options){
+    const opts = options || {};
+    const shouldAnnounce = opts.announce !== false;
+    if (opts.invitation) {
+      window.TEINVIT_INVITATION_DATA = opts.invitation;
+    }
+    setWapfValues(map || {}, opts);
+    document.dispatchEvent(new CustomEvent('teinvit:variant-applied'));
+    window.setTimeout(function(){
+      setWapfValues(map || {}, { phase: 'children' });
+      if (shouldAnnounce) {
+        window.__TEINVIT_BIRTHDAY_WAPF_READY__ = true;
+        document.dispatchEvent(new CustomEvent('teinvit:birthday-wapf-hydrated', { detail: { initial: !!opts.initial } }));
+      }
+    }, 60);
+  }
+
+  hydrateWapf(initialWapf || {}, { invitation: initialInvitation, initial: true, announce: false });
+
   document.addEventListener('DOMContentLoaded', function(){
-    setWapfValues(initialWapf || {});
 
     const deadlineCb = document.getElementById('date_confirm');
     const deadlineWrap = document.getElementById('selecteaza-data-wrap');
@@ -414,16 +672,37 @@ $admin_toggle_fields = [
       window.jQuery('#selecteaza_data').datepicker({ dateFormat: 'dd/mm/yy' });
     }
 
+    hydrateWapf(initialWapf || {}, { invitation: initialInvitation, initial: true });
+
     document.querySelectorAll('.teinvit-variant-radio').forEach(function(radio){
       radio.addEventListener('change', function(){
         const id = parseInt(radio.value || '0', 10);
         const found = variants.find(function(v){ return parseInt(v.id || '0', 10) === id; });
         if (found && found.wapf_fields) {
-          setWapfValues(found.wapf_fields);
+          hydrateWapf(found.wapf_fields, { invitation: found.invitation || null });
         }
         window.location.href = baseUrl + '?selected_version_id=' + encodeURIComponent(id);
       });
     });
+
+    if (saveForm) {
+      serializeParentCheckedState();
+      saveForm.addEventListener('input', serializeParentCheckedState);
+      saveForm.addEventListener('change', serializeParentCheckedState);
+      saveForm.addEventListener('submit', function(e){
+        serializeParentCheckedState();
+        if (editsRemaining <= 0) {
+          e.preventDefault();
+          return;
+        }
+        const msg = editsRemaining === 1
+          ? 'Aceasta este ultima modificare disponibilă. Poți achiziționa altele oricând. Salvezi modificările?'
+          : 'Această acțiune consumă o modificare disponibilă din ' + editsRemaining + '. Salvezi modificările?';
+        if (!window.confirm(msg)) {
+          e.preventDefault();
+        }
+      });
+    }
   });
 
   function fallbackCopy(text){
