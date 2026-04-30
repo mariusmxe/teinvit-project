@@ -96,7 +96,24 @@ function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
     $show_special_observations = teinvit_birthday_rsvp_config_enabled( $config, 'show_special_observations' );
 
     $attending_party = $show_party ? teinvit_birthday_rsvp_bool( $p, 'attending_party' ) : 0;
-    $attending_people_count = $show_guest_count ? max( 1, teinvit_birthday_rsvp_int( $p, 'attending_people_count', 1 ) ) : 1;
+    $attending_people_raw = isset( $p['attending_people_count'] ) ? trim( (string) $p['attending_people_count'] ) : '';
+    $attending_people_submitted = $attending_people_raw === '' ? null : (int) $p['attending_people_count'];
+    if ( $show_party && ! $attending_party ) {
+        if ( $attending_people_submitted !== null && $attending_people_submitted !== 0 ) {
+            return new WP_Error( 'guest_count_party_no_invalid', 'Dacă nu participați la petrecere, numărul de adulți trebuie să fie 0.', [ 'status' => 400, 'field' => 'attending_people_count' ] );
+        }
+        $attending_people_count = 0;
+    } elseif ( $show_guest_count ) {
+        if ( $attending_people_submitted === null ) {
+            return new WP_Error( 'guest_count_required', 'Completați numărul de adulți participanți.', [ 'status' => 400, 'field' => 'attending_people_count' ] );
+        }
+        $attending_people_count = $attending_people_submitted;
+    } else {
+        $attending_people_count = 1;
+    }
+    if ( ( ! $show_party || $attending_party ) && $show_guest_count && $attending_people_count < 1 ) {
+        return new WP_Error( 'guest_count_invalid', 'Numărul de adulți participanți trebuie să fie între 1 și 50.', [ 'status' => 400, 'field' => 'attending_people_count' ] );
+    }
     if ( $attending_people_count > 50 ) {
         return new WP_Error( 'guest_count_invalid', 'Numărul de persoane este prea mare.', [ 'status' => 400, 'field' => 'attending_people_count' ] );
     }

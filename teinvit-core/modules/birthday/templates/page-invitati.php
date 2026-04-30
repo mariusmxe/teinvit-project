@@ -98,7 +98,7 @@ if ( $show_gifts_section ) {
 }
 ?>
 <style>
-.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-birthday-invitati *{box-sizing:border-box}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px;max-width:100%;min-width:0}.teinvit-info-card{margin-top:16px}.teinvit-info-deadline-row{text-align:center;margin-bottom:10px}.teinvit-info-meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-info-meta-row .teinvit-info-pill{flex:1 1 240px;max-width:360px;text-align:center}.teinvit-birthday-invitati form,.teinvit-birthday-invitati fieldset{max-width:100%;min-width:0}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:0}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}.teinvit-gifts-intro{text-align:center;margin-bottom:12px}.teinvit-gifts-intro h3{margin:0 0 6px}.teinvit-gifts-intro p{margin:0}.teinvit-gifts-table-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}.teinvit-gifts-table{width:100%;min-width:780px;max-width:none;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-gifts-table th{background:#fafafa}.teinvit-gift-status-reserved{color:#8a4b00;font-weight:600}.teinvit-gift-status-free{color:#176b2c;font-weight:600}
+.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-birthday-invitati *{box-sizing:border-box}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px;max-width:100%;min-width:0}.teinvit-info-card{margin-top:16px}.teinvit-info-deadline-row{text-align:center;margin-bottom:10px}.teinvit-info-meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-info-meta-row .teinvit-info-pill{flex:1 1 240px;max-width:360px;text-align:center}.teinvit-birthday-invitati form,.teinvit-birthday-invitati fieldset{max-width:100%;min-width:0;min-inline-size:0}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:0}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}.teinvit-gifts-intro{text-align:center;margin-bottom:12px}.teinvit-gifts-intro h3{margin:0 0 6px}.teinvit-gifts-intro p{margin:0}.teinvit-gifts-table-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x}.teinvit-gifts-table{width:max-content;min-width:960px;max-width:none;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-gifts-table th{background:#fafafa;white-space:nowrap}.teinvit-gifts-table th:nth-child(1),.teinvit-gifts-table td:nth-child(1){width:10ch;min-width:10ch;text-align:center}.teinvit-gifts-table th:nth-child(2),.teinvit-gifts-table td:nth-child(2){width:30ch;min-width:30ch}.teinvit-gifts-table th:nth-child(3),.teinvit-gifts-table td:nth-child(3){width:18ch;min-width:18ch;white-space:nowrap}.teinvit-gifts-table th:nth-child(4),.teinvit-gifts-table td:nth-child(4){width:48ch;min-width:48ch}.teinvit-gifts-table th:nth-child(5),.teinvit-gifts-table td:nth-child(5){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-gift-status-reserved{color:#8a4b00;font-weight:600}.teinvit-gift-status-free{color:#176b2c;font-weight:600}
 @media (max-width: 768px){.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{grid-template-columns:1fr}.teinvit-surface-card{padding:14px}.teinvit-rsvp-dependent{margin-left:0}.teinvit-rsvp-dependent input{max-width:100%}}
 </style>
 <div class="teinvit-birthday-invitati">
@@ -148,7 +148,7 @@ if ( $show_gifts_section ) {
           </div>
         </div>
         <?php if ( ! $show_guest_count ) : ?>
-          <input type="hidden" name="attending_people_count" value="1">
+          <input type="hidden" name="attending_people_count" value="<?php echo $show_party ? '0' : '1'; ?>">
         <?php endif; ?>
 
         <hr class="teinvit-separator">
@@ -159,7 +159,7 @@ if ( $show_gifts_section ) {
             <?php if ( $question_type === 'guest_count' ) : ?>
               <div class="teinvit-rsvp-field teinvit-rsvp-question">
                 <label for="birthday-rsvp-guest-count"><?php echo esc_html( $guest_count_question ); ?></label>
-                <input id="birthday-rsvp-guest-count" name="attending_people_count" type="number" min="1" max="50" value="1">
+                <input id="birthday-rsvp-guest-count" name="attending_people_count" type="number" min="0" max="50">
               </div>
             <?php elseif ( $question_type === 'party' ) : ?>
               <div class="teinvit-rsvp-question">
@@ -386,6 +386,33 @@ if ( $show_gifts_section ) {
   bindConditional('vegetarian_requested', 'birthday-rsvp-vegetarian-wrap');
   bindConditional('has_allergies', 'birthday-rsvp-allergies-wrap');
 
+  function syncPartyAdultsCount(){
+    const field = byName('attending_people_count');
+    const radios = form.querySelectorAll('[name="attending_party"]');
+    if (!field || !radios.length) return;
+
+    const refresh = function(){
+      const party = checkedValue('attending_party');
+      if (party === '0') {
+        field.value = '0';
+        if (field.type !== 'hidden') field.setAttribute('readonly', 'readonly');
+        clearFieldError(field);
+        return;
+      }
+
+      if (field.type !== 'hidden') {
+        field.removeAttribute('readonly');
+        if (party === '1' && field.value === '0') field.value = '';
+      } else if (party === '1' && field.value === '0') {
+        field.value = '1';
+      }
+    };
+
+    radios.forEach(function(r){ r.addEventListener('change', refresh); });
+    refresh();
+  }
+  syncPartyAdultsCount();
+
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if (form.querySelector('fieldset[disabled]')) return;
@@ -421,7 +448,31 @@ if ( $show_gifts_section ) {
       setFieldError(gdpr, 'GDPR obligatoriu.');
     }
 
-    const peopleCount = Math.max(1, intValue('attending_people_count', 1));
+    const partyField = form.querySelector('[name="attending_party"]');
+    const partyValue = partyField ? checkedValue('attending_party') : '';
+    if (partyField && partyValue === '') {
+      errors.push('Alegeți dacă veți participa la petrecere.');
+      setFieldError(partyField, 'Alegeți DA sau NU.');
+    }
+
+    const peopleField = byName('attending_people_count');
+    const peopleRaw = peopleField ? String(peopleField.value || '').trim() : '';
+    let peopleCount = 0;
+    if (partyField && partyValue === '0') {
+      peopleCount = peopleRaw === '' ? 0 : intValue('attending_people_count', 0);
+      if (peopleCount !== 0) {
+        errors.push('Dacă nu participați la petrecere, numărul de adulți trebuie să fie 0.');
+        setFieldError(peopleField, 'Trebuie să fie 0 pentru răspuns NU.');
+      } else if (peopleField) {
+        peopleField.value = '0';
+      }
+    } else {
+      peopleCount = intValue('attending_people_count', 0);
+      if (!peopleRaw || peopleCount < 1 || peopleCount > 50) {
+        errors.push('Completați numărul de adulți participanți.');
+        setFieldError(peopleField, 'Completați un număr între 1 și 50.');
+      }
+    }
     const kidsCount = boolValue('bringing_kids') ? intValue('kids_count', 0) : 0;
     if (boolValue('bringing_kids') && kidsCount < 1) {
       errors.push('Completați numărul de copii.');
