@@ -108,6 +108,55 @@ $edits_remaining = $edits_free_remaining + $edits_paid_remaining;
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
 $can_save_invitation_info = ! empty( $capabilities['can_save_invitation_info'] );
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
+$show_gifts_section = ! empty( $config['show_gifts_section'] );
+$gifts_summary = function_exists( 'teinvit_birthday_build_gifts_summary_for_token' ) ? teinvit_birthday_build_gifts_summary_for_token( $token, $config ) : [ 'total_slots' => 20, 'used_slots' => 0, 'available_slots' => 20 ];
+$gifts_max_slots = max( 0, (int) ( $gifts_summary['total_slots'] ?? 20 ) );
+$gift_rows_export = [];
+$gifts_table = function_exists( 'teinvit_birthday_gifts_table_for_token' ) ? teinvit_birthday_gifts_table_for_token( $token ) : '';
+$rsvp_table = function_exists( 'teinvit_birthday_rsvp_table_for_token' ) ? teinvit_birthday_rsvp_table_for_token( $token ) : '';
+if ( $gifts_table !== '' && $rsvp_table !== '' ) {
+    global $wpdb;
+    $gift_rows = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, rs.guest_first_name, rs.guest_last_name, rs.guest_phone FROM {$gifts_table} g LEFT JOIN {$rsvp_table} rs ON rs.id = g.reserved_by_rsvp_id WHERE g.token = %s ORDER BY g.id ASC", $token ), ARRAY_A );
+    $gift_rows = is_array( $gift_rows ) ? $gift_rows : [];
+    foreach ( $gift_rows as $row ) {
+        $phone = trim( (string) ( $row['guest_phone'] ?? '' ) );
+        if ( strpos( $phone, '+407' ) === 0 ) {
+            $phone = '0' . substr( $phone, 3 );
+        }
+
+        $reserved_by = 'Disponibil';
+        if ( (string) ( $row['status'] ?? '' ) === 'reserved' ) {
+            $reserved_by = trim( (string) ( $row['guest_first_name'] ?? '' ) . ' ' . (string) ( $row['guest_last_name'] ?? '' ) );
+            if ( $phone !== '' ) {
+                $reserved_by = trim( $reserved_by . ' ' . $phone );
+            }
+            if ( $reserved_by === '' ) {
+                $reserved_by = 'Rezervat';
+            }
+        }
+
+        $gift_rows_export[] = [
+            'gift_id' => (string) ( $row['gift_id'] ?? '' ),
+            'gift_name' => (string) ( $row['gift_name'] ?? '' ),
+            'gift_link' => (string) ( $row['gift_link'] ?? '' ),
+            'gift_delivery_address' => (string) ( $row['gift_delivery_address'] ?? '' ),
+            'include_in_public' => ! empty( $row['include_in_public'] ) ? 1 : 0,
+            'published_locked' => ! empty( $row['published_locked'] ) ? 1 : 0,
+            'status' => (string) ( $row['status'] ?? 'free' ),
+            'reserved_by' => $reserved_by,
+        ];
+    }
+}
+$gifts_remaining = max( 0, (int) ( $gifts_summary['available_slots'] ?? $gifts_max_slots ) );
+$buy_gifts_url = add_query_arg( [ 'teinvit_buy_gifts_token' => $token ], home_url( '/' ) );
+$catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : [];
+$gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
+$buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
+$report_sets = function_exists( 'teinvit_birthday_build_rsvp_report_sets' ) ? teinvit_birthday_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
+$report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
+$report_history = is_array( $report_sets['history'] ?? null ) ? $report_sets['history'] : [];
+$report_kpis = function_exists( 'teinvit_birthday_build_rsvp_report_kpis' ) ? teinvit_birthday_build_rsvp_report_kpis( $report_sets, $config ) : [];
+$report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_birthday_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
 $basic_copy = function_exists( 'teinvit_vertical_basic_copy' ) ? teinvit_vertical_basic_copy( 'birthday' ) : [];
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
@@ -153,6 +202,7 @@ $admin_toggle_fields = [
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 .teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}
 .teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
+.teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-table td:nth-child(20),.teinvit-report-table td:nth-child(21){width:42ch;min-width:42ch;white-space:normal;word-break:break-word}
 @media (max-width: 640px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page{padding:10px}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-birthday">
@@ -335,10 +385,55 @@ $admin_toggle_fields = [
   <div class="teinvit-zone teinvit-admin-gifts">
     <h3>Lista de cadouri</h3>
     <?php if ( ! empty( $capabilities['can_manage_gifts'] ) ) : ?>
-      <p><em>Configurarea completă a cadourilor pentru Birthday se activează într-o fază următoare.</em></p>
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-birthday-gifts-form">
+        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+        <input type="hidden" name="action" value="teinvit_birthday_save_gifts">
+        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <label><input type="checkbox" name="show_gifts_section" value="1" id="teinvit-birthday-show-gifts-section" <?php checked( $show_gifts_section ); ?>> Activează secțiunea Cadouri pe pagina invitaților</label>
+        <div id="teinvit-birthday-gifts-editor" style="margin-top:10px;<?php echo $show_gifts_section ? '' : 'display:none;'; ?>">
+          <div class="teinvit-gifts-table-wrap">
+            <table class="teinvit-gifts-table" id="teinvit-birthday-gifts-table">
+              <thead><tr><th>Selectează</th><th>Denumire produs</th><th>Link produs</th><th>Adresă de livrare</th><th>Rezervat de</th></tr></thead>
+              <tbody id="teinvit-birthday-gifts-body"></tbody>
+            </table>
+          </div>
+          <div class="teinvit-gifts-actions">
+            <button type="button" class="button" id="teinvit-birthday-add-gift">Adaugă cadou</button>
+            <span id="teinvit-birthday-gifts-counter">Mai poți adăuga <?php echo (int) $gifts_remaining; ?> cadouri în listă</span>
+            <?php if ( ! empty( $capabilities['can_buy_extra_gifts'] ) ) : ?>
+              <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button" id="teinvit-birthday-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener"><?php echo esc_html( $buy_gifts_cta_label ); ?></a>
+            <?php endif; ?>
+          </div>
+          <p style="margin-top:10px;"><button type="submit" class="button button-primary" id="teinvit-birthday-save-gifts">Salvează lista</button></p>
+        </div>
+      </form>
     <?php else : ?>
       <p><em><?php echo esc_html( (string) ( $basic_copy['gifts_locked'] ?? 'Activarea listei de Cadouri pe pagina invitaților este disponibilă doar pentru pachetul Premium.' ) ); ?></em></p>
     <?php endif; ?>
+  </div>
+  <div class="teinvit-zone teinvit-admin-report">
+    <h3 style="text-align:center;margin-top:0;">Raport invitați</h3>
+    <div class="teinvit-report-grid">
+      <?php foreach ( $report_kpis as $metric => $value ) : ?>
+        <div class="teinvit-report-card"><strong><?php echo esc_html( (string) $metric ); ?>:</strong> <?php echo esc_html( (string) $value ); ?></div>
+      <?php endforeach; ?>
+    </div>
+    <div class="teinvit-report-toolbar">
+      <label><input type="radio" name="teinvit-birthday-report-view" value="unique" checked> Unic</label>
+      <label><input type="radio" name="teinvit-birthday-report-view" value="history"> Istoric</label>
+      <label><input type="checkbox" id="teinvit-birthday-filter-multi"> Doar confirmări multiple</label>
+      <label><input type="checkbox" id="teinvit-birthday-filter-party"> Doar Petrecere = DA</label>
+      <label><input type="checkbox" id="teinvit-birthday-filter-cazare"> Doar Cazare = DA</label>
+      <label><input type="checkbox" id="teinvit-birthday-filter-message"> Doar cu Mesaj completat</label>
+      <label><input type="checkbox" id="teinvit-birthday-filter-observations"> Doar cu Observații speciale</label>
+      <a href="<?php echo esc_url( $report_export_url ); ?>" class="button">Descarcă raportul (XLSX)</a>
+    </div>
+    <div class="teinvit-report-table-wrap">
+      <table class="teinvit-report-table" id="teinvit-birthday-report-table">
+        <thead><tr><th>Status</th><th>Nume</th><th>Prenume</th><th>Telefon</th><th>Email</th><th>Data/ora submit</th><th>Participă la petrecere</th><th>Persoane participante</th><th>Adulți</th><th>Copii</th><th>Câți copii</th><th>Meniu copii</th><th>Meniuri copii</th><th>Cazare</th><th>Cazare nr. persoane</th><th>Vegetarian</th><th>Meniuri vegetariene</th><th>Alergii</th><th>Detalii alergii</th><th>Mesaj către sărbătorit/sărbătoriți</th><th>Observații speciale</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </div>
 <script>
@@ -368,6 +463,10 @@ $admin_toggle_fields = [
   };
   let isHydratingWapf = true;
   let saveSubmitGuardInstalled = false;
+  const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
+  const giftsMaxSlots = <?php echo (int) $gifts_max_slots; ?>;
+  const reportUnique = <?php echo wp_json_encode( $report_unique ); ?>;
+  const reportHistory = <?php echo wp_json_encode( $report_history ); ?>;
 
   window.teinvitBirthdayPreviewConfig.adminClient = true;
   window.teinvitBirthdayPreviewConfig.deferInitialBuild = true;
@@ -376,6 +475,176 @@ $admin_toggle_fields = [
   function qsa(selector, root){
     return Array.prototype.slice.call((root || document).querySelectorAll(selector));
   }
+
+  function escapeHtml(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function yn(value){
+    return Number(value) === 1 ? 'DA' : 'NU';
+  }
+
+  const giftsBody = document.getElementById('teinvit-birthday-gifts-body');
+  const giftsEditor = document.getElementById('teinvit-birthday-gifts-editor');
+  const showGiftsCheckbox = document.getElementById('teinvit-birthday-show-gifts-section');
+  const addGiftBtn = document.getElementById('teinvit-birthday-add-gift');
+  const giftsCounter = document.getElementById('teinvit-birthday-gifts-counter');
+  const buyGiftsBtn = document.getElementById('teinvit-birthday-buy-gifts');
+  const giftsForm = document.getElementById('teinvit-birthday-gifts-form');
+
+  function birthdayGiftRowsCount(){
+    if (!giftsBody) return 0;
+    let used = 0;
+    qsa('tr[data-gift-row="1"]', giftsBody).forEach(function(row){
+      const name = (row.querySelector('input[data-field="gift_name"]')?.value || '').trim();
+      const link = (row.querySelector('input[data-field="gift_link"]')?.value || '').trim();
+      if (name || link) used++;
+    });
+    return used;
+  }
+
+  function refreshBirthdayGiftsCounter(){
+    const remaining = Math.max(0, giftsMaxSlots - birthdayGiftRowsCount());
+    if (giftsCounter) giftsCounter.textContent = 'Mai poți adăuga ' + remaining + ' cadouri în listă';
+    if (addGiftBtn) addGiftBtn.disabled = remaining === 0;
+    if (buyGiftsBtn) buyGiftsBtn.style.display = remaining === 0 ? 'inline-block' : 'none';
+  }
+
+  function createBirthdayGiftRow(item, index){
+    if (!giftsBody) return;
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-gift-row', '1');
+    const locked = Number(item.published_locked || 0) === 1;
+    const includeChecked = Number(item.include_in_public || 0) === 1;
+    const hasName = String(item.gift_name || '').trim() !== '';
+    const hasLink = String(item.gift_link || '').trim() !== '';
+    const hasAddress = String(item.gift_delivery_address || '').trim() !== '';
+
+    tr.innerHTML = `
+      <td>
+        <input type="hidden" name="gifts[${index}][gift_id]" value="${escapeHtml(item.gift_id || '')}">
+        <input type="checkbox" name="gifts[${index}][include_in_public]" value="1" ${includeChecked ? 'checked' : ''}>
+      </td>
+      <td><input type="text" data-field="gift_name" name="gifts[${index}][gift_name]" value="${escapeHtml(item.gift_name || '')}" ${(locked && hasName) ? 'readonly' : ''}></td>
+      <td><input type="url" data-field="gift_link" name="gifts[${index}][gift_link]" value="${escapeHtml(item.gift_link || '')}" ${(locked && hasLink) ? 'readonly' : ''}></td>
+      <td><textarea name="gifts[${index}][gift_delivery_address]" ${(locked && hasAddress) ? 'readonly' : ''}>${escapeHtml(item.gift_delivery_address || '')}</textarea></td>
+      <td>${escapeHtml(item.reserved_by || 'Disponibil')}</td>
+    `;
+
+    qsa('input[data-field="gift_name"], input[data-field="gift_link"]', tr).forEach(function(el){
+      el.addEventListener('input', refreshBirthdayGiftsCounter);
+    });
+    giftsBody.appendChild(tr);
+  }
+
+  function renderBirthdayGifts(){
+    if (!giftsBody) return;
+    giftsBody.innerHTML = '';
+    giftsInitial.forEach(function(item, index){
+      createBirthdayGiftRow(item, index);
+    });
+    if (!giftsInitial.length) {
+      createBirthdayGiftRow({ gift_id: '', gift_name: '', gift_link: '', gift_delivery_address: '', include_in_public: 1, published_locked: 0, reserved_by: 'Disponibil' }, 0);
+    }
+    refreshBirthdayGiftsCounter();
+  }
+
+  if (showGiftsCheckbox && giftsEditor) {
+    showGiftsCheckbox.addEventListener('change', function(){
+      const enabled = !!showGiftsCheckbox.checked;
+      giftsEditor.style.display = enabled ? '' : 'none';
+      if (!enabled && giftsForm) {
+        giftsForm.submit();
+      }
+    });
+  }
+
+  if (addGiftBtn) {
+    addGiftBtn.addEventListener('click', function(){
+      const idx = giftsBody ? qsa('tr[data-gift-row="1"]', giftsBody).length : 0;
+      createBirthdayGiftRow({ gift_id: '', gift_name: '', gift_link: '', gift_delivery_address: '', include_in_public: 1, published_locked: 0, reserved_by: 'Disponibil' }, idx);
+      refreshBirthdayGiftsCounter();
+    });
+  }
+
+  if (giftsForm) {
+    giftsForm.addEventListener('submit', function(e){
+      const shouldConfirm = !showGiftsCheckbox || !!showGiftsCheckbox.checked;
+      if (!shouldConfirm) return;
+      if (!window.confirm('După salvarea listei cadourile completate nu mai pot fi editate. Ești sigur că vrei să o salvezi?')) {
+        e.preventDefault();
+      }
+    });
+  }
+  renderBirthdayGifts();
+
+  const reportTableBody = document.querySelector('#teinvit-birthday-report-table tbody');
+  function mapBirthdayReportRow(r){
+    const adults = Math.max(0, Number(r.attending_people_count || 0));
+    const kids = Number(r.bringing_kids) === 1 ? Math.max(0, Number(r.kids_count || 0)) : 0;
+    const childMenuRequested = Number(r.child_menu_requested || 0) === 1;
+    const partyActive = Number(r.party_question_active_at_submit || 0) === 1;
+    const message = String(r.message_to_celebrants || '');
+    const observations = String(r.special_observations || '');
+    return {
+      is_multi: Number(r.is_multi || 0) === 1,
+      party_da: partyActive && Number(r.attending_party || 0) === 1,
+      cazare_da: Number(r.needs_accommodation || 0) === 1,
+      has_message: message.trim() !== '',
+      has_observations: observations.trim() !== '',
+      cells: [
+        r.multi_badge || '',
+        r.guest_last_name || '',
+        r.guest_first_name || '',
+        r.guest_phone || '',
+        r.guest_email || '',
+        r.created_at_display || '',
+        partyActive ? yn(r.attending_party) : 'N/A',
+        String(adults + kids),
+        String(adults),
+        yn(r.bringing_kids),
+        Number(r.bringing_kids) === 1 ? String(kids) : '-',
+        childMenuRequested ? 'DA' : 'NU',
+        childMenuRequested ? String(Math.max(0, Number(r.child_menu_count || 0))) : '-',
+        yn(r.needs_accommodation),
+        Number(r.needs_accommodation) === 1 ? String(r.accommodation_people_count || '-') : '-',
+        yn(r.vegetarian_requested),
+        Number(r.vegetarian_requested) === 1 ? String(r.vegetarian_menus_count || '-') : '-',
+        yn(r.has_allergies),
+        Number(r.has_allergies) === 1 ? (r.allergy_details || '-') : '-',
+        message.trim() !== '' ? message : '-',
+        observations.trim() !== '' ? observations : '-'
+      ]
+    };
+  }
+
+  function renderBirthdayReport(){
+    if (!reportTableBody) return;
+    const view = document.querySelector('input[name="teinvit-birthday-report-view"]:checked')?.value || 'unique';
+    const rows = (view === 'history' ? reportHistory : reportUnique)
+      .map(mapBirthdayReportRow)
+      .filter(function(r){ return !document.getElementById('teinvit-birthday-filter-multi')?.checked || r.is_multi; })
+      .filter(function(r){ return !document.getElementById('teinvit-birthday-filter-party')?.checked || r.party_da; })
+      .filter(function(r){ return !document.getElementById('teinvit-birthday-filter-cazare')?.checked || r.cazare_da; })
+      .filter(function(r){ return !document.getElementById('teinvit-birthday-filter-message')?.checked || r.has_message; })
+      .filter(function(r){ return !document.getElementById('teinvit-birthday-filter-observations')?.checked || r.has_observations; });
+    reportTableBody.innerHTML = '';
+    rows.forEach(function(r){
+      const tr = document.createElement('tr');
+      if (r.is_multi) tr.classList.add('teinvit-report-row-multi');
+      tr.innerHTML = r.cells.map(function(cell){ return '<td>' + escapeHtml(cell) + '</td>'; }).join('');
+      reportTableBody.appendChild(tr);
+    });
+  }
+
+  qsa('input[name="teinvit-birthday-report-view"], #teinvit-birthday-filter-multi, #teinvit-birthday-filter-party, #teinvit-birthday-filter-cazare, #teinvit-birthday-filter-message, #teinvit-birthday-filter-observations').forEach(function(el){
+    el.addEventListener('change', renderBirthdayReport);
+  });
+  renderBirthdayReport();
 
   function markCloneButtonsAsNonSubmit(){
     if (!saveForm) return;

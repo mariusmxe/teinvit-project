@@ -180,6 +180,517 @@ function teinvit_birthday_order_product_ids( WC_Order $order ) {
     return array_values( array_unique( array_filter( array_map( 'intval', $product_ids ) ) ) );
 }
 
+function teinvit_birthday_gifts_table_for_token( $token ) {
+    if ( function_exists( 'teinvit_gifts_table_for_token' ) ) {
+        return (string) teinvit_gifts_table_for_token( $token, 'birthday' );
+    }
+
+    if ( function_exists( 'teinvit_storage_tables_for_existing_token' ) ) {
+        $tables = teinvit_storage_tables_for_existing_token( $token, 'birthday' );
+        return (string) ( $tables['gifts'] ?? '' );
+    }
+
+    return '';
+}
+
+function teinvit_birthday_rsvp_table_for_token( $token ) {
+    if ( function_exists( 'teinvit_rsvp_table_for_token' ) ) {
+        return (string) teinvit_rsvp_table_for_token( $token, 'birthday' );
+    }
+
+    if ( function_exists( 'teinvit_storage_tables_for_existing_token' ) ) {
+        $tables = teinvit_storage_tables_for_existing_token( $token, 'birthday' );
+        return (string) ( $tables['rsvp'] ?? '' );
+    }
+
+    return '';
+}
+
+function teinvit_birthday_gifts_used_count_for_token( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return 0;
+    }
+
+    $gifts_table = teinvit_birthday_gifts_table_for_token( $token );
+    if ( $gifts_table === '' ) {
+        return 0;
+    }
+
+    $count = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$gifts_table} WHERE token=%s AND (gift_name<>'' OR gift_link<>'')",
+            $token
+        )
+    );
+
+    return max( 0, $count );
+}
+
+function teinvit_birthday_gifts_allocation_sort_key( array $allocation ) {
+    $kind = (string) ( $allocation['kind'] ?? '' );
+    $kind_rank = $kind === 'base' ? 0 : 1;
+    $order_id = (int) ( $allocation['order_id'] ?? 0 );
+    $item_id = (int) ( $allocation['item_id'] ?? 0 );
+    $created = (string) ( $allocation['applied_at'] ?? '' );
+    return sprintf( '%d|%s|%010d|%010d', $kind_rank, $created, $order_id, $item_id );
+}
+
+function teinvit_birthday_build_gifts_summary_for_token( $token, $config = null ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return [ 'base_slots' => 0, 'addon_slots' => 0, 'total_slots' => 0, 'used_slots' => 0, 'available_slots' => 0, 'allocations' => [] ];
+    }
+
+    if ( ! is_array( $config ) ) {
+        $inv = function_exists( 'teinvit_get_invitation_record' ) ? teinvit_get_invitation_record( $token, 'birthday' ) : null;
+        $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+    }
+
+    $allocations = isset( $config['gifts_allocations'] ) && is_array( $config['gifts_allocations'] ) ? $config['gifts_allocations'] : [];
+    $normalized = [];
+    foreach ( $allocations as $allocation ) {
+        if ( ! is_array( $allocation ) ) {
+            continue;
+        }
+
+        $slots_total = max( 0, (int) ( $allocation['slots_total'] ?? 0 ) );
+        if ( $slots_total <= 0 ) {
+            continue;
+        }
+
+        $allocation['status'] = (string) ( $allocation['status'] ?? 'applied' );
+        if ( $allocation['status'] !== 'applied' && $allocation['status'] !== 'reverted' ) {
+            $allocation['status'] = 'applied';
+        }
+        $allocation['kind'] = (string) ( $allocation['kind'] ?? 'addon' );
+        $allocation['slots_total'] = $slots_total;
+        $allocation['slots_remaining'] = max( 0, (int) ( $allocation['slots_remaining'] ?? $slots_total ) );
+        $allocation['allocation_key'] = sanitize_text_field( (string) ( $allocation['allocation_key'] ?? '' ) );
+        if ( $allocation['allocation_key'] === '' ) {
+            $allocation['allocation_key'] = ( $allocation['kind'] === 'base' ? 'base' : 'addon' ) . ':' . (int) ( $allocation['order_id'] ?? 0 ) . ':' . (int) ( $allocation['item_id'] ?? 0 );
+        }
+
+        $normalized[] = $allocation;
+    }
+
+    if ( empty( $normalized ) ) {
+        $base_slots = isset( $config['gifts_base_slots_applied'] ) ? max( 0, (int) $config['gifts_base_slots_applied'] ) : 20;
+        $addon_slots = isset( $config['gifts_extra_slots'] ) ? max( 0, (int) $config['gifts_extra_slots'] ) : 0;
+
+        if ( $base_slots > 0 ) {
+            $normalized[] = [
+                'allocation_key' => 'legacy-base',
+                'kind' => 'base',
+                'order_id' => 0,
+                'item_id' => 0,
+                'slots_total' => $base_slots,
+                'slots_remaining' => $base_slots,
+                'status' => 'applied',
+                'applied_at' => '',
+            ];
+        }
+        if ( $addon_slots > 0 ) {
+            $normalized[] = [
+                'allocation_key' => 'legacy-addon',
+                'kind' => 'addon',
+                'order_id' => 0,
+                'item_id' => 0,
+                'slots_total' => $addon_slots,
+                'slots_remaining' => $addon_slots,
+                'status' => 'applied',
+                'applied_at' => '',
+            ];
+        }
+    }
+
+    usort( $normalized, static function( $a, $b ) {
+        return strcmp( teinvit_birthday_gifts_allocation_sort_key( $a ), teinvit_birthday_gifts_allocation_sort_key( $b ) );
+    } );
+
+    $used = teinvit_birthday_gifts_used_count_for_token( $token );
+    $remaining_to_consume = $used;
+    $base_slots = 0;
+    $addon_slots = 0;
+    foreach ( $normalized as &$allocation ) {
+        if ( (string) $allocation['status'] !== 'applied' ) {
+            $allocation['slots_remaining'] = max( 0, (int) $allocation['slots_remaining'] );
+            continue;
+        }
+
+        $total = (int) $allocation['slots_total'];
+        $consume = min( $remaining_to_consume, $total );
+        $remaining_to_consume -= $consume;
+        $allocation['slots_remaining'] = max( 0, $total - $consume );
+        if ( (string) $allocation['kind'] === 'base' ) {
+            $base_slots += $total;
+        } else {
+            $addon_slots += $total;
+        }
+    }
+    unset( $allocation );
+
+    $total_slots = max( 0, $base_slots + $addon_slots );
+    $available = max( 0, $total_slots - $used );
+
+    return [
+        'base_slots' => $base_slots,
+        'addon_slots' => $addon_slots,
+        'total_slots' => $total_slots,
+        'used_slots' => $used,
+        'available_slots' => $available,
+        'allocations' => $normalized,
+    ];
+}
+
+function teinvit_birthday_token_total_gift_slots( $token, $config = null ) {
+    $summary = teinvit_birthday_build_gifts_summary_for_token( $token, $config );
+    return max( 0, (int) ( $summary['total_slots'] ?? 0 ) );
+}
+
+function teinvit_birthday_decode_extra_fields( $value ) {
+    if ( is_array( $value ) ) {
+        return $value;
+    }
+
+    $decoded = json_decode( (string) $value, true );
+    return is_array( $decoded ) ? $decoded : [];
+}
+
+function teinvit_birthday_normalize_phone_for_report( $phone ) {
+    $raw = trim( (string) $phone );
+    $digits = preg_replace( '/\D+/', '', $raw );
+    if ( $digits === '' ) {
+        return '';
+    }
+
+    if ( strpos( $digits, '0040' ) === 0 ) {
+        $local = substr( $digits, 4 );
+    } elseif ( strpos( $digits, '40' ) === 0 ) {
+        $local = substr( $digits, 2 );
+    } elseif ( strpos( $digits, '0' ) === 0 ) {
+        $local = substr( $digits, 1 );
+    } else {
+        $local = $digits;
+    }
+
+    if ( strpos( $local, '0' ) === 0 ) {
+        $local = substr( $local, 1 );
+    }
+
+    if ( preg_match( '/^7\d{8}$/', $local ) ) {
+        return '40' . $local;
+    }
+
+    return $digits;
+}
+
+function teinvit_birthday_format_report_datetime( $mysql_datetime ) {
+    $ts = strtotime( (string) $mysql_datetime );
+    if ( ! $ts ) {
+        return '';
+    }
+
+    return wp_date( 'd-m-Y H:i', $ts );
+}
+
+function teinvit_birthday_enrich_rsvp_report_row( array $row ) {
+    $extra = teinvit_birthday_decode_extra_fields( $row['extra_fields'] ?? '' );
+    $has_snapshot = isset( $extra['config_snapshot'] ) && is_array( $extra['config_snapshot'] );
+    $snapshot = $has_snapshot ? $extra['config_snapshot'] : [];
+    $party_active_at_submit = ! empty( $snapshot['show_attending_party'] ) ? 1 : 0;
+    if ( ! $has_snapshot && ! empty( $row['attending_party'] ) ) {
+        $party_active_at_submit = 1;
+    }
+
+    $row['birthday_extra_fields'] = $extra;
+    $row['created_at_display'] = teinvit_birthday_format_report_datetime( $row['created_at'] ?? '' );
+    $row['normalized_phone'] = teinvit_birthday_normalize_phone_for_report( (string) ( $row['guest_phone'] ?? '' ) );
+    $row['party_question_active_at_submit'] = $party_active_at_submit;
+    $row['message_to_celebrants'] = (string) ( $extra['message_to_celebrants'] ?? ( $row['message_to_couple'] ?? '' ) );
+    $row['special_observations'] = (string) ( $extra['special_observations'] ?? '' );
+    $row['child_menu_requested'] = ! empty( $extra['child_menu_requested'] ) ? 1 : 0;
+    $row['child_menu_count'] = max( 0, (int) ( $extra['child_menu_count'] ?? 0 ) );
+
+    return $row;
+}
+
+function teinvit_birthday_get_rsvp_rows_for_report( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return [];
+    }
+
+    $table = teinvit_birthday_rsvp_table_for_token( $token );
+    if ( $table === '' ) {
+        return [];
+    }
+
+    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE token=%s ORDER BY created_at ASC, id ASC", $token ), ARRAY_A );
+    if ( ! is_array( $rows ) ) {
+        return [];
+    }
+
+    return array_map( 'teinvit_birthday_enrich_rsvp_report_row', $rows );
+}
+
+function teinvit_birthday_build_rsvp_report_sets( $token ) {
+    $rows = teinvit_birthday_get_rsvp_rows_for_report( $token );
+    $history = [];
+    $by_phone = [];
+
+    foreach ( $rows as $row ) {
+        $phone = (string) ( $row['normalized_phone'] ?? '' );
+        if ( ! isset( $by_phone[ $phone ] ) ) {
+            $by_phone[ $phone ] = [];
+        }
+        $by_phone[ $phone ][] = $row;
+    }
+
+    foreach ( $by_phone as $list ) {
+        $n = count( $list );
+        foreach ( $list as $idx => $row ) {
+            $row['multi_badge'] = $n > 1 ? sprintf( 'MULTI #%d/%d', $idx + 1, $n ) : '';
+            $row['is_multi'] = $n > 1 ? 1 : 0;
+            $history[] = $row;
+        }
+    }
+
+    usort( $history, static function( $a, $b ) {
+        $cmp = strcmp( (string) ( $a['created_at'] ?? '' ), (string) ( $b['created_at'] ?? '' ) );
+        if ( $cmp !== 0 ) {
+            return $cmp;
+        }
+        return (int) ( $a['id'] ?? 0 ) <=> (int) ( $b['id'] ?? 0 );
+    } );
+
+    $unique = [];
+    foreach ( $by_phone as $list ) {
+        $last = end( $list );
+        if ( ! $last ) {
+            continue;
+        }
+
+        $last['multi_badge'] = count( $list ) > 1 ? sprintf( 'MULTI #%d/%d', count( $list ), count( $list ) ) : '';
+        $last['is_multi'] = count( $list ) > 1 ? 1 : 0;
+        $unique[] = $last;
+    }
+
+    usort( $unique, static function( $a, $b ) {
+        $cmp = strcmp( (string) ( $a['created_at'] ?? '' ), (string) ( $b['created_at'] ?? '' ) );
+        if ( $cmp !== 0 ) {
+            return $cmp;
+        }
+        return (int) ( $a['id'] ?? 0 ) <=> (int) ( $b['id'] ?? 0 );
+    } );
+
+    return [
+        'history' => $history,
+        'unique' => $unique,
+        'multiple_phones_count' => count( array_filter( $by_phone, static function( $list ) {
+            return count( $list ) > 1;
+        } ) ),
+        'unique_phones_count' => count( $by_phone ),
+        'submissions_count' => count( $rows ),
+        'messages_count_history' => count( array_filter( $rows, static function( $r ) {
+            return trim( (string) ( $r['message_to_celebrants'] ?? '' ) ) !== '';
+        } ) ),
+        'special_observations_count_history' => count( array_filter( $rows, static function( $r ) {
+            return trim( (string) ( $r['special_observations'] ?? '' ) ) !== '';
+        } ) ),
+    ];
+}
+
+function teinvit_birthday_report_row_counts_as_participant( array $row, $party_current_enabled ) {
+    if ( ! empty( $row['party_question_active_at_submit'] ) ) {
+        return ! empty( $row['attending_party'] );
+    }
+
+    return ! $party_current_enabled;
+}
+
+function teinvit_birthday_build_rsvp_report_kpis( $sets, array $config = [] ) {
+    $unique = is_array( $sets['unique'] ?? null ) ? $sets['unique'] : [];
+    $party_current_enabled = ! empty( $config['show_attending_party'] );
+
+    $people_participating = 0;
+    $party_yes = 0;
+    $adults_total = 0;
+    $kids_total = 0;
+    $child_menus_total = 0;
+    $veg_menus_total = 0;
+    $allergies_count = 0;
+    $accommodation_count = 0;
+    $accommodation_people = 0;
+
+    foreach ( $unique as $r ) {
+        $adults = max( 0, (int) ( $r['attending_people_count'] ?? 0 ) );
+        $kids = ! empty( $r['bringing_kids'] ) ? max( 0, (int) ( $r['kids_count'] ?? 0 ) ) : 0;
+
+        $adults_total += $adults;
+        $kids_total += $kids;
+
+        if ( teinvit_birthday_report_row_counts_as_participant( $r, $party_current_enabled ) ) {
+            $people_participating += $adults + $kids;
+        }
+
+        if ( $party_current_enabled && ! empty( $r['party_question_active_at_submit'] ) && ! empty( $r['attending_party'] ) ) {
+            $party_yes++;
+        }
+
+        if ( ! empty( $r['child_menu_requested'] ) ) {
+            $child_menus_total += max( 0, (int) ( $r['child_menu_count'] ?? 0 ) );
+        }
+
+        if ( ! empty( $r['vegetarian_requested'] ) ) {
+            $veg_menus_total += max( 0, (int) ( $r['vegetarian_menus_count'] ?? 0 ) );
+        }
+
+        if ( ! empty( $r['has_allergies'] ) ) {
+            $allergies_count++;
+        }
+
+        if ( ! empty( $r['needs_accommodation'] ) ) {
+            $accommodation_count++;
+            $accommodation_people += max( 0, (int) ( $r['accommodation_people_count'] ?? 0 ) );
+        }
+    }
+
+    return [
+        'Confirmări totale unice' => (string) (int) ( $sets['unique_phones_count'] ?? 0 ),
+        'Persoane participante' => (string) (int) $people_participating,
+        'Participă la petrecere' => $party_current_enabled ? (string) (int) $party_yes : 'N/A',
+        'Adulți' => (string) (int) $adults_total,
+        'Copii' => (string) (int) $kids_total,
+        'Meniuri copii' => (string) (int) $child_menus_total,
+        'Meniuri vegetariene' => (string) (int) $veg_menus_total,
+        'Alergii' => (string) (int) $allergies_count,
+        'Cazare DA / Persoane' => sprintf( '%d / %d', (int) $accommodation_count, (int) $accommodation_people ),
+        'Mesaje primite' => (string) max( 0, (int) ( $sets['messages_count_history'] ?? 0 ) ),
+        'Observații speciale' => (string) max( 0, (int) ( $sets['special_observations_count_history'] ?? 0 ) ),
+    ];
+}
+
+function teinvit_birthday_report_headers() {
+    return [ 'Status', 'Nume', 'Prenume', 'Telefon', 'Email', 'Data/ora submit', 'Participă la petrecere', 'Persoane participante', 'Adulți', 'Copii', 'Câți copii', 'Meniu copii', 'Meniuri copii', 'Cazare', 'Cazare nr. persoane', 'Vegetarian', 'Meniuri vegetariene', 'Alergii', 'Detalii alergii', 'Mesaj către sărbătorit/sărbătoriți', 'Observații speciale' ];
+}
+
+function teinvit_birthday_report_row_values( array $r ) {
+    $yn = static function( $v ) {
+        return (int) $v === 1 ? 'DA' : 'NU';
+    };
+    $party = ! empty( $r['party_question_active_at_submit'] ) ? $yn( $r['attending_party'] ?? 0 ) : 'N/A';
+    $adults = max( 0, (int) ( $r['attending_people_count'] ?? 0 ) );
+    $kids = ! empty( $r['bringing_kids'] ) ? max( 0, (int) ( $r['kids_count'] ?? 0 ) ) : 0;
+    $child_menu_requested = ! empty( $r['child_menu_requested'] );
+    $needs_accommodation = ! empty( $r['needs_accommodation'] );
+    $vegetarian_requested = ! empty( $r['vegetarian_requested'] );
+    $has_allergies = ! empty( $r['has_allergies'] );
+
+    return [
+        (string) ( $r['multi_badge'] ?? '' ),
+        (string) ( $r['guest_last_name'] ?? '' ),
+        (string) ( $r['guest_first_name'] ?? '' ),
+        (string) ( $r['guest_phone'] ?? '' ),
+        (string) ( $r['guest_email'] ?? '' ),
+        (string) ( $r['created_at_display'] ?? teinvit_birthday_format_report_datetime( $r['created_at'] ?? '' ) ),
+        $party,
+        (string) ( $adults + $kids ),
+        (string) $adults,
+        $yn( $r['bringing_kids'] ?? 0 ),
+        ! empty( $r['bringing_kids'] ) ? (string) $kids : '-',
+        $child_menu_requested ? 'DA' : 'NU',
+        $child_menu_requested ? (string) max( 0, (int) ( $r['child_menu_count'] ?? 0 ) ) : '-',
+        $yn( $r['needs_accommodation'] ?? 0 ),
+        $needs_accommodation ? (string) max( 0, (int) ( $r['accommodation_people_count'] ?? 0 ) ) : '-',
+        $yn( $r['vegetarian_requested'] ?? 0 ),
+        $vegetarian_requested ? (string) max( 0, (int) ( $r['vegetarian_menus_count'] ?? 0 ) ) : '-',
+        $yn( $r['has_allergies'] ?? 0 ),
+        $has_allergies ? (string) ( $r['allergy_details'] ?? '' ) : '-',
+        trim( (string) ( $r['message_to_celebrants'] ?? '' ) ) !== '' ? (string) $r['message_to_celebrants'] : '-',
+        trim( (string) ( $r['special_observations'] ?? '' ) ) !== '' ? (string) $r['special_observations'] : '-',
+    ];
+}
+
+function teinvit_birthday_xlsx_safe_text( $value ) {
+    if ( function_exists( 'teinvit_xlsx_safe_text' ) ) {
+        return teinvit_xlsx_safe_text( $value );
+    }
+
+    $text = wp_check_invalid_utf8( (string) $value, true );
+    if ( ! is_string( $text ) ) {
+        $text = '';
+    }
+
+    if ( function_exists( 'mb_convert_encoding' ) ) {
+        $text = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+    } elseif ( function_exists( 'iconv' ) ) {
+        $conv = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
+        if ( $conv !== false ) {
+            $text = $conv;
+        }
+    }
+
+    $clean = preg_replace( '/[^\x09\x0A\x0D\x20-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $text );
+    return $clean === null ? '' : $clean;
+}
+
+function teinvit_birthday_xlsx_sheet_xml( array $rows ) {
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+    $xml .= '<sheetData>';
+
+    foreach ( $rows as $ri => $cells ) {
+        $row_num = $ri + 1;
+        $xml .= '<row r="' . $row_num . '">';
+        foreach ( $cells as $ci => $value ) {
+            $col = '';
+            $n = $ci;
+            do {
+                $col = chr( 65 + ( $n % 26 ) ) . $col;
+                $n = intdiv( $n, 26 ) - 1;
+            } while ( $n >= 0 );
+
+            $ref = $col . $row_num;
+            $safe = teinvit_birthday_xlsx_safe_text( $value );
+            $val = htmlspecialchars( $safe, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8' );
+            $xml .= '<c r="' . $ref . '" t="inlineStr"><is><t>' . $val . '</t></is></c>';
+        }
+        $xml .= '</row>';
+    }
+
+    $xml .= '</sheetData>';
+    $xml .= '</worksheet>';
+    return $xml;
+}
+
+function teinvit_birthday_report_filename_label( $token ) {
+    $active = function_exists( 'teinvit_get_active_snapshot_for_token_from_storage' )
+        ? teinvit_get_active_snapshot_for_token_from_storage( $token, 'birthday' )
+        : null;
+    $payload = ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
+    $invitation = isset( $payload['invitation'] ) && is_array( $payload['invitation'] ) ? $payload['invitation'] : [];
+
+    $event_name = '';
+    if ( isset( $invitation['event_name'] ) && is_array( $invitation['event_name'] ) && ! empty( $invitation['event_name']['enabled'] ) ) {
+        $event_name = trim( (string) ( $invitation['event_name']['value'] ?? $invitation['event_name']['line'] ?? '' ) );
+    }
+    if ( $event_name !== '' ) {
+        return $event_name;
+    }
+
+    $celebrants = isset( $invitation['celebrants'] ) && is_array( $invitation['celebrants'] ) ? $invitation['celebrants'] : [];
+    $names = function_exists( 'teinvit_join_ro_names' ) ? teinvit_join_ro_names( $celebrants ) : implode( ' ', array_filter( array_map( static function( $value ) {
+        return trim( (string) $value );
+    }, $celebrants ) ) );
+
+    return trim( $names ) !== '' ? trim( $names ) : (string) $token;
+}
+
 add_action( 'admin_post_teinvit_birthday_save_invitation_info', function() {
     $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
     $ctx = teinvit_birthday_admin_post_guard( $token, 'can_save_invitation_info' );
@@ -200,6 +711,121 @@ add_action( 'admin_post_teinvit_birthday_save_rsvp_config', function() {
 
     teinvit_save_invitation_config_for_token( $token, [ 'config' => $config ], 'birthday' );
     teinvit_birthday_admin_redirect( $token, [ 'saved' => 'config' ] );
+} );
+
+add_action( 'admin_post_teinvit_birthday_save_gifts', function() {
+    global $wpdb;
+
+    $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
+    $ctx = teinvit_birthday_admin_post_guard( $token, 'can_manage_gifts' );
+    $inv = $ctx['invitation'];
+
+    $gifts_table = teinvit_birthday_gifts_table_for_token( $token );
+    if ( $gifts_table === '' ) {
+        teinvit_birthday_admin_redirect( $token, [ 'error' => 'storage' ] );
+    }
+
+    $config = teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] );
+    $config['show_gifts_section'] = isset( $_POST['show_gifts_section'] ) ? 1 : 0;
+    $max_slots = teinvit_birthday_token_total_gift_slots( $token, $config );
+
+    $existing_rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$gifts_table} WHERE token=%s ORDER BY id ASC", $token ), ARRAY_A );
+    $existing_rows = is_array( $existing_rows ) ? $existing_rows : [];
+    $existing_map = [];
+    foreach ( $existing_rows as $row ) {
+        $existing_map[ (string) ( $row['gift_id'] ?? '' ) ] = $row;
+    }
+
+    $rows = isset( $_POST['gifts'] ) && is_array( $_POST['gifts'] ) ? $_POST['gifts'] : [];
+    $entered_count = 0;
+    foreach ( $rows as $gift ) {
+        $name = sanitize_text_field( wp_unslash( $gift['gift_name'] ?? '' ) );
+        $link = esc_url_raw( wp_unslash( $gift['gift_link'] ?? '' ) );
+        if ( $name !== '' || $link !== '' ) {
+            $entered_count++;
+        }
+    }
+
+    if ( $entered_count > $max_slots ) {
+        teinvit_birthday_admin_redirect( $token, [ 'error' => 'gifts_limit' ] );
+    }
+
+    $posted_ids = [];
+    foreach ( $rows as $index => $gift ) {
+        $gift_id = sanitize_text_field( wp_unslash( $gift['gift_id'] ?? '' ) );
+        if ( $gift_id === '' ) {
+            $gift_id = 'gift-' . wp_generate_password( 10, false, false ) . '-' . (int) $index;
+        }
+        $posted_ids[] = $gift_id;
+
+        $include = ! empty( $gift['include_in_public'] ) ? 1 : 0;
+        $name = sanitize_text_field( wp_unslash( $gift['gift_name'] ?? '' ) );
+        $link = esc_url_raw( wp_unslash( $gift['gift_link'] ?? '' ) );
+        $address = sanitize_textarea_field( wp_unslash( $gift['gift_delivery_address'] ?? '' ) );
+        $is_complete = ( $name !== '' || $link !== '' );
+        $existing = isset( $existing_map[ $gift_id ] ) ? $existing_map[ $gift_id ] : null;
+
+        if ( $existing && ! empty( $existing['published_locked'] ) ) {
+            $update_data = [ 'include_in_public' => $include ];
+            $existing_name = trim( (string) ( $existing['gift_name'] ?? '' ) );
+            $existing_link = trim( (string) ( $existing['gift_link'] ?? '' ) );
+            $existing_address = trim( (string) ( $existing['gift_delivery_address'] ?? '' ) );
+
+            if ( $existing_name === '' && $name !== '' ) {
+                $update_data['gift_name'] = $name;
+            }
+            if ( $existing_link === '' && $link !== '' ) {
+                $update_data['gift_link'] = $link;
+            }
+            if ( $existing_address === '' && $address !== '' ) {
+                $update_data['gift_delivery_address'] = $address;
+            }
+
+            $wpdb->update( $gifts_table, $update_data, [ 'id' => (int) $existing['id'] ] );
+            continue;
+        }
+
+        $payload = [
+            'token' => $token,
+            'gift_id' => $gift_id,
+            'gift_name' => $name,
+            'gift_link' => $link,
+            'gift_delivery_address' => $address,
+            'include_in_public' => $include,
+            'published_locked' => ( $include && $is_complete ) ? 1 : 0,
+            'locked_at' => ( $include && $is_complete ) ? current_time( 'mysql' ) : null,
+            'status' => $existing ? (string) ( $existing['status'] ?? 'free' ) : 'free',
+            'reserved_by_rsvp_id' => $existing ? (int) ( $existing['reserved_by_rsvp_id'] ?? 0 ) : null,
+            'reserved_at' => $existing ? ( $existing['reserved_at'] ?? null ) : null,
+        ];
+
+        if ( $existing ) {
+            $wpdb->update( $gifts_table, $payload, [ 'id' => (int) $existing['id'] ] );
+        } else {
+            $wpdb->insert( $gifts_table, $payload );
+        }
+    }
+
+    foreach ( $existing_rows as $row ) {
+        if ( in_array( (string) ( $row['gift_id'] ?? '' ), $posted_ids, true ) ) {
+            continue;
+        }
+        if ( ! empty( $row['published_locked'] ) ) {
+            continue;
+        }
+        $wpdb->delete( $gifts_table, [ 'id' => (int) $row['id'] ] );
+    }
+
+    $summary_after = teinvit_birthday_build_gifts_summary_for_token( $token, $config );
+    $config['gifts_allocations'] = $summary_after['allocations'];
+    $config['gifts_base_slots_applied'] = (int) $summary_after['base_slots'];
+    $config['gifts_extra_slots'] = (int) $summary_after['addon_slots'];
+    $config['gifts_total_slots_applied'] = (int) $summary_after['total_slots'];
+    $config['gifts_slots_used'] = (int) $summary_after['used_slots'];
+    $config['gifts_slots_available'] = (int) $summary_after['available_slots'];
+
+    teinvit_save_invitation_config_for_token( $token, [ 'config' => $config ], 'birthday' );
+    teinvit_birthday_admin_redirect( $token, [ 'saved' => 'gifts' ] );
 } );
 
 add_action( 'admin_post_teinvit_birthday_set_active_version', function() {
@@ -335,3 +961,100 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
         'selected_version_id' => $version_id,
     ] );
 } );
+
+function teinvit_birthday_export_guest_report_handler() {
+    $token = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
+    $nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ?? '' ) );
+
+    if ( $token === '' || ! wp_verify_nonce( $nonce, 'teinvit_admin_' . $token ) ) {
+        wp_die( 'Nonce invalid' );
+    }
+
+    $ctx = function_exists( 'teinvit_token_access_context' ) ? teinvit_token_access_context( $token ) : new WP_Error( 'missing_guard' );
+    if ( is_wp_error( $ctx ) ) {
+        wp_die( esc_html( $ctx->get_error_message() ) );
+    }
+
+    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    if ( $vertical !== 'birthday' ) {
+        wp_die( 'Exportul Birthday este disponibil doar pentru tokenuri Birthday.' );
+    }
+
+    $inv = function_exists( 'teinvit_get_invitation_record' ) ? teinvit_get_invitation_record( $token, 'birthday' ) : null;
+    if ( ! is_array( $inv ) ) {
+        wp_die( 'Token invalid' );
+    }
+
+    if ( ! class_exists( 'ZipArchive' ) ) {
+        wp_die( 'ZipArchive lipsa pentru XLSX export.' );
+    }
+
+    $config = teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] );
+    $sets = teinvit_birthday_build_rsvp_report_sets( $token );
+    $unique = is_array( $sets['unique'] ?? null ) ? $sets['unique'] : [];
+    $history = is_array( $sets['history'] ?? null ) ? $sets['history'] : [];
+    $headers = teinvit_birthday_report_headers();
+    $rows_unique = array_map( 'teinvit_birthday_report_row_values', $unique );
+    $rows_history = array_map( 'teinvit_birthday_report_row_values', $history );
+    $kpis = teinvit_birthday_build_rsvp_report_kpis( $sets, $config );
+
+    $summary_rows = [ [ 'Metrică', 'Valoare' ] ];
+    foreach ( $kpis as $metric => $value ) {
+        $summary_rows[] = [ (string) $metric, (string) $value ];
+    }
+
+    $label = teinvit_birthday_report_filename_label( $token );
+    $filename = sanitize_file_name( 'Raport invitati Birthday ' . $label ) . '.xlsx';
+
+    $tmp = wp_tempnam( 'teinvit-birthday-report-' . $token . '.xlsx' );
+    if ( ! $tmp ) {
+        wp_die( 'Nu s-a putut crea fișierul temporar pentru export.' );
+    }
+
+    $zip = new ZipArchive();
+    if ( true !== $zip->open( $tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
+        @unlink( $tmp );
+        wp_die( 'Nu s-a putut inițializa exportul XLSX.' );
+    }
+    $zip->addFromString( '[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>' );
+    $zip->addFromString( '_rels/.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' );
+    $zip->addFromString( 'xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rezumat" sheetId="1" r:id="rId1"/><sheet name="Unic" sheetId="2" r:id="rId2"/><sheet name="Istoric" sheetId="3" r:id="rId3"/></sheets></workbook>' );
+    $zip->addFromString( 'xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/></Relationships>' );
+    $zip->addFromString( 'xl/worksheets/sheet1.xml', teinvit_birthday_xlsx_sheet_xml( $summary_rows ) );
+    $zip->addFromString( 'xl/worksheets/sheet2.xml', teinvit_birthday_xlsx_sheet_xml( array_merge( [ $headers ], $rows_unique ) ) );
+    $zip->addFromString( 'xl/worksheets/sheet3.xml', teinvit_birthday_xlsx_sheet_xml( array_merge( [ $headers ], $rows_history ) ) );
+    $zip->close();
+
+    if ( function_exists( 'teinvit_validate_generated_xlsx_xml' ) ) {
+        $xlsx_validation = teinvit_validate_generated_xlsx_xml( $tmp );
+        if ( is_wp_error( $xlsx_validation ) ) {
+            error_log( '[TeInvit Birthday] XLSX validation failed: ' . $xlsx_validation->get_error_message() );
+            @unlink( $tmp );
+            wp_die( 'Export XLSX invalid. Reincearca sau contacteaza suportul.' );
+        }
+    }
+
+    $xlsx_md5 = md5_file( $tmp );
+
+    if ( function_exists( 'ini_set' ) ) {
+        @ini_set( 'zlib.output_compression', 'Off' );
+    }
+    if ( function_exists( 'apache_setenv' ) ) {
+        @apache_setenv( 'no-gzip', '1' );
+    }
+
+    while ( ob_get_level() > 0 ) {
+        ob_end_clean();
+    }
+
+    nocache_headers();
+    header( 'Content-Description: File Transfer' );
+    header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+    header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+    header( 'Content-Transfer-Encoding: binary' );
+    header( 'X-TeInvit-XLSX-MD5: ' . $xlsx_md5 );
+    readfile( $tmp );
+    @unlink( $tmp );
+    exit;
+}
+add_action( 'admin_post_teinvit_birthday_export_guest_report', 'teinvit_birthday_export_guest_report_handler' );

@@ -70,9 +70,35 @@ foreach ( $rsvp_order as $question_key ) {
 $policy_url = function_exists( 'get_privacy_policy_url' ) ? get_privacy_policy_url() : '';
 $terms_page = get_page_by_path( 'termeni-si-conditii', OBJECT, 'page' );
 $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
+
+$show_gifts_section = ! empty( $config['show_gifts_section'] );
+$birthday_gift_title = 'Lista de cadouri';
+$birthday_gift_subtitle = 'Alege un cadou pe care dorești să îl rezervi pentru sărbătorit/sărbătoriți.';
+if ( function_exists( 'teinvit_vertical_gift_labels' ) ) {
+    $gift_labels = teinvit_vertical_gift_labels( 'birthday' );
+    if ( ! empty( $gift_labels['title'] ) ) {
+        $birthday_gift_title = (string) $gift_labels['title'];
+    }
+    if ( ! empty( $gift_labels['subtitle'] ) ) {
+        $birthday_gift_subtitle = (string) $gift_labels['subtitle'];
+    }
+}
+
+$gifts = [];
+if ( $show_gifts_section ) {
+    global $wpdb;
+    $gifts_table = function_exists( 'teinvit_birthday_gifts_table_for_token' )
+        ? teinvit_birthday_gifts_table_for_token( $token )
+        : ( function_exists( 'teinvit_gifts_table_for_token' ) ? teinvit_gifts_table_for_token( $token, 'birthday' ) : '' );
+
+    if ( $gifts_table !== '' ) {
+        $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link,gift_delivery_address,status FROM {$gifts_table} WHERE token=%s AND include_in_public=1 AND (gift_name<>'' OR gift_link<>'') ORDER BY id ASC", $token ), ARRAY_A );
+        $gifts = is_array( $gifts ) ? $gifts : [];
+    }
+}
 ?>
 <style>
-.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px}.teinvit-info-card{margin-top:16px}.teinvit-info-deadline-row{text-align:center;margin-bottom:10px}.teinvit-info-meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-info-meta-row .teinvit-info-pill{flex:1 1 240px;max-width:360px;text-align:center}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:0}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}
+.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px}.teinvit-info-card{margin-top:16px}.teinvit-info-deadline-row{text-align:center;margin-bottom:10px}.teinvit-info-meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-info-meta-row .teinvit-info-pill{flex:1 1 240px;max-width:360px;text-align:center}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:0}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}.teinvit-gifts-intro{text-align:center;margin-bottom:12px}.teinvit-gifts-intro h3{margin:0 0 6px}.teinvit-gifts-intro p{margin:0}.teinvit-gifts-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.teinvit-gifts-table{width:max-content;min-width:780px;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-gifts-table th{background:#fafafa}.teinvit-gift-status-reserved{color:#8a4b00;font-weight:600}.teinvit-gift-status-free{color:#176b2c;font-weight:600}
 @media (max-width: 768px){.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{grid-template-columns:1fr}.teinvit-surface-card{padding:14px}.teinvit-rsvp-dependent{margin-left:0}.teinvit-rsvp-dependent input{max-width:100%}}
 </style>
 <div class="teinvit-birthday-invitati">
@@ -205,6 +231,39 @@ $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
               </div>
             <?php endif; ?>
           <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ( $show_gifts_section && ! empty( $gifts ) ) : ?>
+        <hr class="teinvit-separator">
+        <div class="teinvit-gifts-intro">
+          <h3><?php echo esc_html( $birthday_gift_title ); ?></h3>
+          <p><?php echo esc_html( $birthday_gift_subtitle ); ?></p>
+        </div>
+        <div class="teinvit-gifts-table-wrap">
+          <table class="teinvit-gifts-table">
+            <thead>
+              <tr>
+                <th>Selectează</th>
+                <th>Denumire produs</th>
+                <th>Link produs</th>
+                <th>Adresă de livrare</th>
+                <th>Status produs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ( $gifts as $gift ) : ?>
+                <?php $is_reserved = ( (string) ( $gift['status'] ?? '' ) === 'reserved' ); ?>
+                <tr>
+                  <td><?php if ( ! $is_reserved ) : ?><input type="checkbox" name="gift_ids[]" value="<?php echo esc_attr( $gift['gift_id'] ); ?>"><?php endif; ?></td>
+                  <td><?php echo esc_html( $gift['gift_name'] ); ?></td>
+                  <td><?php if ( ! empty( $gift['gift_link'] ) ) : ?><a href="<?php echo esc_url( $gift['gift_link'] ); ?>" target="_blank" rel="noopener">Vezi produsul</a><?php endif; ?></td>
+                  <td><?php echo esc_html( $gift['gift_delivery_address'] ); ?></td>
+                  <td class="<?php echo $is_reserved ? 'teinvit-gift-status-reserved' : 'teinvit-gift-status-free'; ?>"><?php echo $is_reserved ? 'Rezervat' : 'Disponibil'; ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
         <?php endif; ?>
 
@@ -402,12 +461,20 @@ $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
 
     const fd = new FormData(form);
     const payload = {};
-    fd.forEach(function(value, key){ payload[key] = value; });
+    fd.forEach(function(value, key){
+      if (key === 'gift_ids[]') {
+        payload.gift_ids = payload.gift_ids || [];
+        payload.gift_ids.push(value);
+        return;
+      }
+      payload[key] = value;
+    });
     payload.gdpr_accepted = gdpr && gdpr.checked ? 1 : 0;
     payload.marketing_consent = byName('marketing_consent') && byName('marketing_consent').checked ? 1 : 0;
     ['attending_party','bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies'].forEach(function(key){
       if (form.querySelector('[name="' + key + '"]')) payload[key] = boolValue(key);
     });
+    const selectedGiftInputs = Array.prototype.slice.call(form.querySelectorAll('[name="gift_ids[]"]:checked'));
 
     try {
       const response = await fetch(endpoint, {
@@ -424,6 +491,16 @@ $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
         msg.textContent = 'Confirmarea a fost trimisă. Mulțumim!';
         msg.className = 'teinvit-rsvp-status is-ok';
       }
+      selectedGiftInputs.forEach(function(input){
+        input.checked = false;
+        input.disabled = true;
+        const row = input.closest('tr');
+        const statusCell = row ? row.querySelector('td:last-child') : null;
+        if (statusCell) {
+          statusCell.textContent = 'Rezervat';
+          statusCell.className = 'teinvit-gift-status-reserved';
+        }
+      });
       form.reset();
       ['bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies'].forEach(function(name){
         const no = form.querySelector('[name="' + name + '"][value="0"]');

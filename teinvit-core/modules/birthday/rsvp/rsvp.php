@@ -202,12 +202,47 @@ function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
         return new WP_Error( 'rsvp_storage_missing', 'Storage RSVP indisponibil.', [ 'status' => 500 ] );
     }
 
+    $selected_gift_ids = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) ( $p['gift_ids'] ?? [] ) ), static function( $gift_id ) {
+        return trim( (string) $gift_id ) !== '';
+    } ) ) );
+    $gifts_table = '';
+    if ( ! empty( $selected_gift_ids ) ) {
+        $gifts_table = function_exists( 'teinvit_birthday_gifts_table_for_token' )
+            ? teinvit_birthday_gifts_table_for_token( $token )
+            : ( function_exists( 'teinvit_gifts_table_for_token' ) ? teinvit_gifts_table_for_token( $token, 'birthday' ) : '' );
+
+        if ( $gifts_table === '' ) {
+            return new WP_Error( 'gifts_storage_missing', 'Storage cadouri indisponibil.', [ 'status' => 500 ] );
+        }
+    }
+
+    $wpdb->query( 'START TRANSACTION' );
+
     $inserted = $wpdb->insert( $table, $insert_data );
     if ( ! $inserted || ! $wpdb->insert_id ) {
+        $wpdb->query( 'ROLLBACK' );
         return new WP_Error( 'rsvp_failed', 'Nu s-a putut salva RSVP', [ 'status' => 500 ] );
     }
 
     $rsvp_id = (int) $wpdb->insert_id;
+
+    foreach ( $selected_gift_ids as $gift_id ) {
+        $updated = $wpdb->query( $wpdb->prepare(
+            "UPDATE {$gifts_table} SET status='reserved', reserved_by_rsvp_id=%d, reserved_at=%s WHERE token=%s AND gift_id=%s AND include_in_public=1 AND status='free'",
+            $rsvp_id,
+            current_time( 'mysql' ),
+            $token,
+            $gift_id
+        ) );
+
+        if ( $updated !== 1 ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'gift_conflict', 'Cadou deja rezervat între timp.', [ 'status' => 409 ] );
+        }
+    }
+
+    $wpdb->query( 'COMMIT' );
+
     if ( function_exists( 'teinvit_touch_invitation_activity_for_token' ) ) {
         teinvit_touch_invitation_activity_for_token( $token, 'birthday' );
     }
