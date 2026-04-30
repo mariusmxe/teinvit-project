@@ -170,6 +170,42 @@ $admin_toggle_fields = [
   </div>
   <?php endif; ?>
 
+  <div class="teinvit-zone teinvit-birthday-info-settings">
+    <h3 style="text-align:center;margin-top:0;">Informații publicate pe pagina invitaților</h3>
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-birthday-info-form" class="teinvit-info-form">
+      <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+      <input type="hidden" name="action" value="teinvit_birthday_save_invitation_info">
+      <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+
+      <label class="teinvit-info-deadline-toggle"><input type="checkbox" id="date_confirm" name="date_confirm" value="1" <?php checked( $show_deadline ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Doresc afișarea datei limită pentru confirmări</label>
+      <div id="selecteaza-data-wrap" style="<?php echo $show_deadline ? '' : 'display:none;'; ?>" class="acf-field acf-field-date-picker teinvit-info-date-wrap" data-name="selecteaza_data" data-type="date_picker">
+        <label for="selecteaza_data">Selectează data</label>
+        <div class="acf-input">
+          <div class="acf-date-picker acf-input-wrap" data-date_format="dd/mm/yy" data-display_format="dd/mm/yy" data-first_day="1">
+            <input type="text" id="selecteaza_data" name="selecteaza_data" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>" autocomplete="off" class="input" <?php disabled( ! $can_save_invitation_info ); ?>>
+          </div>
+        </div>
+      </div>
+
+      <div class="teinvit-info-free-text-grid">
+        <label class="teinvit-info-text-card">
+          <span><input type="checkbox" name="show_birthday_party_theme" value="1" <?php checked( ! empty( $config['show_birthday_party_theme'] ) ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Afișează tematica petrecerii</span>
+          <input type="text" name="birthday_party_theme_text" value="<?php echo esc_attr( (string) ( $config['birthday_party_theme_text'] ?? '' ) ); ?>" placeholder="Tematica petrecerii" aria-label="Tematica petrecerii" <?php disabled( ! $can_save_invitation_info ); ?>>
+        </label>
+        <label class="teinvit-info-text-card">
+          <span><input type="checkbox" name="show_birthday_dress_code" value="1" <?php checked( ! empty( $config['show_birthday_dress_code'] ) ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Afișează dress code / ținută recomandată</span>
+          <input type="text" name="birthday_dress_code_text" value="<?php echo esc_attr( (string) ( $config['birthday_dress_code_text'] ?? '' ) ); ?>" placeholder="Dress code" aria-label="Dress code" <?php disabled( ! $can_save_invitation_info ); ?>>
+        </label>
+      </div>
+
+      <?php if ( $can_save_invitation_info ) : ?>
+        <p class="teinvit-info-actions"><button type="submit" class="button">Salvează informațiile</button></p>
+      <?php else : ?>
+        <p class="teinvit-info-actions"><em><?php echo esc_html( (string) ( $basic_copy['deadline_locked'] ?? 'Informațiile pot fi publicate pe pagina invitaților doar după upgrade la Premium.' ) ); ?></em></p>
+      <?php endif; ?>
+    </form>
+  </div>
+
   <div class="teinvit-zone teinvit-two-col">
     <div>
       <div id="teinvit-vertical-product-preview" class="teinvit-admin-preview-block" data-product-id="<?php echo (int) $product_id; ?>">
@@ -224,42 +260,6 @@ $admin_toggle_fields = [
             <p><button type="submit" class="button">Publică selecțiile</button></p>
           <?php else : ?>
             <p><em><?php echo esc_html( (string) ( $basic_copy['rsvp_locked'] ?? 'Configurările RSVP avansate sunt disponibile după upgrade la Premium.' ) ); ?></em></p>
-          <?php endif; ?>
-        </form>
-      </div>
-
-      <div class="teinvit-zone teinvit-birthday-info-settings">
-        <h3 style="text-align:center;margin-top:0;">Informații publicate pe pagina invitaților</h3>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-birthday-info-form" class="teinvit-info-form">
-          <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
-          <input type="hidden" name="action" value="teinvit_birthday_save_invitation_info">
-          <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
-
-          <label class="teinvit-info-deadline-toggle"><input type="checkbox" id="date_confirm" name="date_confirm" value="1" <?php checked( $show_deadline ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Doresc afișarea datei limită pentru confirmări</label>
-          <div id="selecteaza-data-wrap" style="<?php echo $show_deadline ? '' : 'display:none;'; ?>" class="acf-field acf-field-date-picker teinvit-info-date-wrap" data-name="selecteaza_data" data-type="date_picker">
-            <label for="selecteaza_data">Selectează data</label>
-            <div class="acf-input">
-              <div class="acf-date-picker acf-input-wrap" data-date_format="dd/mm/yy" data-display_format="dd/mm/yy" data-first_day="1">
-                <input type="text" id="selecteaza_data" name="selecteaza_data" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>" autocomplete="off" class="input" <?php disabled( ! $can_save_invitation_info ); ?>>
-              </div>
-            </div>
-          </div>
-
-          <div class="teinvit-info-free-text-grid">
-            <label class="teinvit-info-text-card">
-              <span><input type="checkbox" name="show_birthday_party_theme" value="1" <?php checked( ! empty( $config['show_birthday_party_theme'] ) ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Afișează tematica petrecerii</span>
-              <input type="text" name="birthday_party_theme_text" value="<?php echo esc_attr( (string) ( $config['birthday_party_theme_text'] ?? '' ) ); ?>" placeholder="Tematica petrecerii" aria-label="Tematica petrecerii" <?php disabled( ! $can_save_invitation_info ); ?>>
-            </label>
-            <label class="teinvit-info-text-card">
-              <span><input type="checkbox" name="show_birthday_dress_code" value="1" <?php checked( ! empty( $config['show_birthday_dress_code'] ) ); ?> <?php disabled( ! $can_save_invitation_info ); ?>> Afișează dress code / ținută recomandată</span>
-              <input type="text" name="birthday_dress_code_text" value="<?php echo esc_attr( (string) ( $config['birthday_dress_code_text'] ?? '' ) ); ?>" placeholder="Dress code" aria-label="Dress code" <?php disabled( ! $can_save_invitation_info ); ?>>
-            </label>
-          </div>
-
-          <?php if ( $can_save_invitation_info ) : ?>
-            <p class="teinvit-info-actions"><button type="submit" class="button">Salvează informațiile</button></p>
-          <?php else : ?>
-            <p class="teinvit-info-actions"><em><?php echo esc_html( (string) ( $basic_copy['deadline_locked'] ?? 'Informațiile pot fi publicate pe pagina invitaților doar după upgrade la Premium.' ) ); ?></em></p>
           <?php endif; ?>
         </form>
       </div>
