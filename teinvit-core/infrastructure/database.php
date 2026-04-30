@@ -269,6 +269,7 @@ function teinvit_install_vertical_storage_tables() {
             has_allergies tinyint(1) NOT NULL DEFAULT 0,
             allergy_details text NULL,
             message_to_couple text NULL,
+            extra_fields longtext NULL,
             gdpr_accepted tinyint(1) NOT NULL DEFAULT 0,
             marketing_consent tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,
@@ -295,6 +296,32 @@ function teinvit_install_vertical_storage_tables() {
             UNIQUE KEY token_gift_id (token, gift_id),
             KEY token_status (token, status)
         ) $charset;" );
+    }
+
+    teinvit_ensure_vertical_rsvp_extra_fields_columns();
+}
+
+function teinvit_ensure_vertical_rsvp_extra_fields_columns() {
+    global $wpdb;
+
+    foreach ( teinvit_vertical_storage_keys() as $vertical_key ) {
+        if ( ! function_exists( 'teinvit_vertical_storage_family_map' ) ) {
+            continue;
+        }
+
+        $t = teinvit_vertical_storage_family_map( $vertical_key );
+        if ( empty( $t['rsvp'] ) ) {
+            continue;
+        }
+
+        $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$t['rsvp']}", 0 );
+        if ( ! is_array( $cols ) ) {
+            continue;
+        }
+
+        if ( ! in_array( 'extra_fields', $cols, true ) ) {
+            $wpdb->query( "ALTER TABLE {$t['rsvp']} ADD COLUMN extra_fields longtext NULL AFTER message_to_couple" );
+        }
     }
 }
 
@@ -408,59 +435,264 @@ function teinvit_ensure_versions_pdf_columns() {
     }
 }
 
-function teinvit_get_invitation( $token ) {
+function teinvit_storage_tables_for_vertical_safe( $vertical_key ) {
+    $vertical_key = sanitize_key( (string) $vertical_key );
+    if ( $vertical_key === '' ) {
+        $vertical_key = 'wedding';
+    }
+
+    if ( function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
+        $tables = teinvit_storage_tables_for_vertical( $vertical_key );
+        if ( is_array( $tables ) && ! empty( $tables['invitations'] ) ) {
+            return array_merge( teinvit_db_tables(), $tables );
+        }
+    }
+
+    return teinvit_db_tables();
+}
+
+function teinvit_storage_vertical_candidates_for_token( $token, $preferred_vertical = '' ) {
+    $token = sanitize_text_field( (string) $token );
+    $preferred_vertical = sanitize_key( (string) $preferred_vertical );
+    $candidates = [];
+
+    if ( $preferred_vertical !== '' ) {
+        $candidates[] = $preferred_vertical;
+    }
+
+    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    if ( $order_id > 0 ) {
+        $snapshot = sanitize_key( (string) get_post_meta( $order_id, '_teinvit_vertical_key_snapshot', true ) );
+        $meta_vertical = sanitize_key( (string) get_post_meta( $order_id, '_teinvit_vertical_key', true ) );
+        if ( $snapshot !== '' ) {
+            $candidates[] = $snapshot;
+        }
+        if ( $meta_vertical !== '' ) {
+            $candidates[] = $meta_vertical;
+        }
+        if ( function_exists( 'wc_get_order' ) && function_exists( 'teinvit_find_catalog_vertical_for_product_id' ) ) {
+            $order = wc_get_order( $order_id );
+            if ( class_exists( 'WC_Order' ) && $order instanceof WC_Order ) {
+                foreach ( $order->get_items( 'line_item' ) as $item ) {
+                    $product_vertical = teinvit_find_catalog_vertical_for_product_id( (int) $item->get_product_id() );
+                    if ( is_string( $product_vertical ) && $product_vertical !== '' ) {
+                        $candidates[] = sanitize_key( $product_vertical );
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    $known = function_exists( 'teinvit_vertical_keys' ) ? teinvit_vertical_keys() : [ 'wedding', 'baptism', 'birthday' ];
+    $candidates = array_merge( $candidates, [ 'wedding' ], $known );
+    $candidates = array_values( array_unique( array_map( static function( $vertical ) {
+        $vertical = sanitize_key( (string) $vertical );
+        return $vertical !== '' ? $vertical : 'wedding';
+    }, $candidates ) ) );
+
+    return $candidates;
+}
+
+function teinvit_find_invitation_storage_for_token( $token, $preferred_vertical = '' ) {
     global $wpdb;
-    $t = teinvit_db_tables();
-    $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['invitations']} WHERE token = %s", $token ), ARRAY_A );
-    if ( ! $row ) {
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
         return null;
     }
-    $row['config'] = json_decode( (string) $row['config'], true );
+
+    foreach ( teinvit_storage_vertical_candidates_for_token( $token, $preferred_vertical ) as $vertical_key ) {
+        $tables = teinvit_storage_tables_for_vertical_safe( $vertical_key );
+        if ( empty( $tables['invitations'] ) ) {
+            continue;
+        }
+
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$tables['invitations']} WHERE token = %s", $token ), ARRAY_A );
+        if ( ! $row ) {
+            continue;
+        }
+
+        $module_key = sanitize_key( (string) ( $row['module_key'] ?? $vertical_key ) );
+        if ( $module_key === '' ) {
+            $module_key = $vertical_key;
+        }
+
+        return [
+            'vertical' => $module_key,
+            'tables' => $tables,
+            'row' => $row,
+        ];
+    }
+
+    return null;
+}
+
+function teinvit_decode_invitation_config_row( array $row ) {
+    $row['config'] = json_decode( (string) ( $row['config'] ?? '' ), true );
     if ( ! is_array( $row['config'] ) ) {
         $row['config'] = [];
     }
     return $row;
 }
 
-function teinvit_save_invitation_config( $token, array $data ) {
+function teinvit_get_invitation_record( $token, $vertical_key = '' ) {
+    $storage = teinvit_find_invitation_storage_for_token( $token, $vertical_key );
+    if ( ! $storage || empty( $storage['row'] ) || ! is_array( $storage['row'] ) ) {
+        return null;
+    }
+
+    return teinvit_decode_invitation_config_row( $storage['row'] );
+}
+
+function teinvit_get_invitation( $token ) {
+    return teinvit_get_invitation_record( $token );
+}
+
+function teinvit_save_invitation_config_for_token( $token, array $data, $vertical_key = '' ) {
     global $wpdb;
-    $t = teinvit_db_tables();
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return false;
+    }
+
+    $storage = teinvit_find_invitation_storage_for_token( $token, $vertical_key );
+    if ( ! $storage || empty( $storage['tables']['invitations'] ) ) {
+        return false;
+    }
+
     $payload = $data;
     $payload['updated_at'] = current_time( 'mysql' );
     if ( isset( $payload['config'] ) && is_array( $payload['config'] ) ) {
         $payload['config'] = wp_json_encode( $payload['config'] );
     }
-    return $wpdb->update( $t['invitations'], $payload, [ 'token' => $token ] );
+
+    return $wpdb->update( $storage['tables']['invitations'], $payload, [ 'token' => $token ] );
+}
+
+function teinvit_save_invitation_config( $token, array $data ) {
+    return teinvit_save_invitation_config_for_token( $token, $data );
+}
+
+function teinvit_storage_tables_for_existing_token( $token, $vertical_key = '' ) {
+    $storage = teinvit_find_invitation_storage_for_token( $token, $vertical_key );
+    if ( $storage && ! empty( $storage['tables'] ) && is_array( $storage['tables'] ) ) {
+        return $storage['tables'];
+    }
+
+    $vertical_key = sanitize_key( (string) $vertical_key );
+    if ( $vertical_key !== '' ) {
+        return teinvit_storage_tables_for_vertical_safe( $vertical_key );
+    }
+
+    $candidates = teinvit_storage_vertical_candidates_for_token( $token );
+    if ( ! empty( $candidates[0] ) ) {
+        return teinvit_storage_tables_for_vertical_safe( $candidates[0] );
+    }
+
+    return teinvit_db_tables();
+}
+
+function teinvit_storage_table_for_token( $token, $family, $vertical_key = '' ) {
+    $family = sanitize_key( (string) $family );
+    $tables = teinvit_storage_tables_for_existing_token( $token, $vertical_key );
+    return isset( $tables[ $family ] ) ? (string) $tables[ $family ] : '';
+}
+
+function teinvit_rsvp_table_for_token( $token, $vertical_key = '' ) {
+    return teinvit_storage_table_for_token( $token, 'rsvp', $vertical_key );
+}
+
+function teinvit_gifts_table_for_token( $token, $vertical_key = '' ) {
+    return teinvit_storage_table_for_token( $token, 'gifts', $vertical_key );
+}
+
+function teinvit_rsvp_common_storage_columns() {
+    return [
+        'token',
+        'guest_first_name',
+        'guest_last_name',
+        'guest_email',
+        'guest_phone',
+        'attending_people_count',
+        'attending_civil',
+        'attending_religious',
+        'attending_party',
+        'bringing_kids',
+        'kids_count',
+        'needs_accommodation',
+        'accommodation_people_count',
+        'vegetarian_requested',
+        'vegetarian_menus_count',
+        'has_allergies',
+        'allergy_details',
+        'message_to_couple',
+        'gdpr_accepted',
+        'marketing_consent',
+        'created_at',
+    ];
+}
+
+function teinvit_prepare_hybrid_rsvp_insert_data( $vertical_key, array $common_fields, array $extra_fields = [] ) {
+    $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : sanitize_key( (string) $vertical_key );
+    $allowed = array_flip( teinvit_rsvp_common_storage_columns() );
+    $data = [];
+
+    foreach ( $common_fields as $key => $value ) {
+        $key = sanitize_key( (string) $key );
+        if ( isset( $allowed[ $key ] ) ) {
+            $data[ $key ] = $value;
+        }
+    }
+
+    if ( $vertical_key !== 'wedding' && ! empty( $extra_fields ) ) {
+        $data['extra_fields'] = wp_json_encode( $extra_fields );
+    }
+
+    return $data;
+}
+
+function teinvit_get_versions_for_token_from_storage( $token, $vertical_key = '' ) {
+    global $wpdb;
+    $tables = teinvit_storage_tables_for_existing_token( $token, $vertical_key );
+    if ( empty( $tables['versions'] ) ) {
+        return [];
+    }
+
+    return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$tables['versions']} WHERE token = %s ORDER BY id DESC", $token ), ARRAY_A );
 }
 
 function teinvit_get_versions_for_token( $token ) {
+    return teinvit_get_versions_for_token_from_storage( $token );
+}
+
+function teinvit_get_active_snapshot_for_token_from_storage( $token, $vertical_key = '' ) {
     global $wpdb;
-    $t = teinvit_db_tables();
-    if ( function_exists( 'teinvit_storage_tables_for_token' ) ) {
-        $candidate = teinvit_storage_tables_for_token( $token );
-        if ( is_array( $candidate ) && ! empty( $candidate['versions'] ) ) {
-            $t = array_merge( $t, $candidate );
-        }
+    $tables = teinvit_storage_tables_for_existing_token( $token, $vertical_key );
+    if ( empty( $tables['versions'] ) || empty( $tables['invitations'] ) ) {
+        return null;
     }
-    return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['versions']} WHERE token = %s ORDER BY id DESC", $token ), ARRAY_A );
+
+    return $wpdb->get_row( $wpdb->prepare( "SELECT v.* FROM {$tables['versions']} v INNER JOIN {$tables['invitations']} i ON i.active_version_id = v.id WHERE i.token = %s LIMIT 1", $token ), ARRAY_A );
 }
 
 function teinvit_get_active_snapshot( $token ) {
+    return teinvit_get_active_snapshot_for_token_from_storage( $token );
+}
+
+function teinvit_touch_invitation_activity_for_token( $token, $vertical_key = '' ) {
     global $wpdb;
-    $t = teinvit_db_tables();
-    if ( function_exists( 'teinvit_storage_tables_for_token' ) ) {
-        $candidate = teinvit_storage_tables_for_token( $token );
-        if ( is_array( $candidate ) && ! empty( $candidate['versions'] ) && ! empty( $candidate['invitations'] ) ) {
-            $t = array_merge( $t, $candidate );
-        }
+    $tables = teinvit_storage_tables_for_existing_token( $token, $vertical_key );
+    if ( empty( $tables['invitations'] ) ) {
+        return false;
     }
-    return $wpdb->get_row( $wpdb->prepare( "SELECT v.* FROM {$t['versions']} v INNER JOIN {$t['invitations']} i ON i.active_version_id = v.id WHERE i.token = %s LIMIT 1", $token ), ARRAY_A );
+
+    return $wpdb->update( $tables['invitations'], [ 'last_activity_at' => current_time( 'mysql' ) ], [ 'token' => $token ] );
 }
 
 function teinvit_touch_invitation_activity( $token ) {
-    global $wpdb;
-    $t = teinvit_db_tables();
-    $wpdb->update( $t['invitations'], [ 'last_activity_at' => current_time( 'mysql' ) ], [ 'token' => $token ] );
+    return teinvit_touch_invitation_activity_for_token( $token );
 }
 
 function teinvit_seed_invitation_if_missing( $token, $order_id ) {
@@ -542,7 +774,7 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         'event_date'        => null,
         'last_activity_at'  => current_time( 'mysql' ),
         'gifts_locked'      => 0,
-        'config'            => wp_json_encode( teinvit_default_rsvp_config() ),
+        'config'            => wp_json_encode( function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( $module_key ) : teinvit_default_rsvp_config() ),
         'created_at'        => current_time( 'mysql' ),
         'updated_at'        => current_time( 'mysql' ),
     ] );
@@ -561,6 +793,10 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
 }
 
 function teinvit_default_rsvp_config() {
+    if ( function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ) {
+        return teinvit_default_rsvp_config_for_vertical( 'wedding' );
+    }
+
     return [
         'show_attending_civil' => 1,
         'show_attending_religious' => 1,

@@ -101,6 +101,51 @@
   text-underline-offset: 0.12em;
 }
 
+@page {
+  size: 148mm 210mm;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    width: 148mm;
+    height: 210mm;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  body {
+    display: block !important;
+    justify-content: initial !important;
+  }
+
+  .teinvit-birthday,
+  .teinvit-birthday .teinvit-page,
+  .teinvit-birthday .teinvit-container {
+    width: 148mm;
+    height: 210mm;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .teinvit-birthday .teinvit-page {
+    display: block;
+  }
+
+  .teinvit-birthday .teinvit-preview {
+    width: 148mm;
+    height: 210mm;
+    max-width: none;
+    overflow: hidden;
+    font-size: 17.25px;
+  }
+}
+
 @media (max-width: 768px) {
   .teinvit-birthday {
     padding: 0;

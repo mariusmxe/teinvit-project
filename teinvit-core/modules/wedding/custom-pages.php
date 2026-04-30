@@ -124,7 +124,7 @@ function teinvit_migrate_legacy_active_to_modular( $token ) {
         return false;
     }
 
-    $t = teinvit_db_tables();
+    $t = function_exists( 'teinvit_storage_tables_for_existing_token' ) ? teinvit_storage_tables_for_existing_token( $token ) : teinvit_db_tables();
     $wpdb->insert( $t['versions'], [
         'token' => $token,
         'snapshot' => wp_json_encode( $snapshot ),
@@ -469,10 +469,13 @@ function teinvit_enqueue_wapf_assets_for_admin_client() {
     wp_enqueue_style( 'jquery-ui-base', 'https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css', [], '1.13.2' );
 }
 
-function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitation_post_id ) {
+function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitation_post_id, $vertical_key = '' ) {
     $GLOBALS['teinvit_tokenized_mode'] = (string) $mode;
     $GLOBALS['teinvit_tokenized_token'] = (string) $token;
     $GLOBALS['teinvit_tokenized_post_id'] = (int) $invitation_post_id;
+    $GLOBALS['teinvit_tokenized_vertical'] = $vertical_key !== '' && function_exists( 'teinvit_normalize_vertical_key' )
+        ? teinvit_normalize_vertical_key( $vertical_key )
+        : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
 
     add_filter( 'template_include', function( $template ) {
         if ( empty( $GLOBALS['teinvit_tokenized_mode'] ) || empty( $GLOBALS['teinvit_tokenized_token'] ) || empty( $GLOBALS['teinvit_tokenized_post_id'] ) ) {
@@ -492,6 +495,9 @@ function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitatio
         if ( ! empty( $GLOBALS['teinvit_tokenized_mode'] ) ) {
             $classes[] = 'teinvit-tokenized-route';
             $classes[] = 'teinvit-mode-' . sanitize_html_class( (string) $GLOBALS['teinvit_tokenized_mode'] );
+            if ( ! empty( $GLOBALS['teinvit_tokenized_vertical'] ) && (string) $GLOBALS['teinvit_tokenized_vertical'] !== 'wedding' ) {
+                $classes[] = 'teinvit-vertical-' . sanitize_html_class( (string) $GLOBALS['teinvit_tokenized_vertical'] );
+            }
         }
         return $classes;
     } );
@@ -542,13 +548,7 @@ add_action( 'template_redirect', function() {
         return;
     }
 
-    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
-        status_header( 404 );
-        get_header();
-        echo '<p>Invitația nu a fost găsită.</p>';
-        get_footer();
-        exit;
-    }
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
 
     if ( ! is_user_logged_in() ) {
         wp_safe_redirect( wp_login_url( home_url( '/admin-client/' . rawurlencode( $token ) ) ) );
@@ -567,6 +567,7 @@ add_action( 'template_redirect', function() {
     list( $order_id, $order ) = $ctx;
 
     teinvit_seed_invitation_if_missing( $token, $order_id );
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : $vertical_key;
     teinvit_enqueue_wapf_assets_for_admin_client();
     $invitation_post_id = teinvit_seed_invitation_post_if_missing( $token, $order_id );
     if ( ! $invitation_post_id ) {
@@ -577,7 +578,7 @@ add_action( 'template_redirect', function() {
         exit;
     }
 
-    teinvit_prepare_tokenized_invitation_request( 'admin-client', $token, $invitation_post_id );
+    teinvit_prepare_tokenized_invitation_request( 'admin-client', $token, $invitation_post_id, $vertical_key );
 }, 2 );
 
 add_action( 'template_redirect', function() {
@@ -586,13 +587,7 @@ add_action( 'template_redirect', function() {
         return;
     }
 
-    if ( function_exists( 'teinvit_is_legacy_wedding_token' ) && ! teinvit_is_legacy_wedding_token( $token ) ) {
-        status_header( 404 );
-        get_header();
-        echo '<p>Invitația nu a fost găsită.</p>';
-        get_footer();
-        exit;
-    }
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
 
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? teinvit_get_order_id_by_token( $token ) : 0;
     if ( ! $order_id ) {
@@ -604,6 +599,7 @@ add_action( 'template_redirect', function() {
     }
 
     teinvit_seed_invitation_if_missing( $token, $order_id );
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : $vertical_key;
     teinvit_touch_invitation_activity( $token );
     $invitation_post_id = teinvit_seed_invitation_post_if_missing( $token, $order_id );
     if ( ! $invitation_post_id ) {
@@ -614,7 +610,7 @@ add_action( 'template_redirect', function() {
         exit;
     }
 
-    teinvit_prepare_tokenized_invitation_request( 'invitati', $token, $invitation_post_id );
+    teinvit_prepare_tokenized_invitation_request( 'invitati', $token, $invitation_post_id, $vertical_key );
 }, 2 );
 
 
@@ -1168,6 +1164,11 @@ function teinvit_admin_post_guard( $token, $required_capability = null ) {
     }
     list( $order_id, $order ) = $ctx;
 
+    $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    if ( $vertical_key !== 'wedding' ) {
+        wp_die( 'Fluxul complet de administrare pentru această verticală este pregătit în infrastructură și va fi activat într-un pas ulterior.' );
+    }
+
     if ( $required_capability !== null && function_exists( 'teinvit_capabilities_for_token' ) ) {
         if ( ! teinvit_user_can_manage_all_tokens() ) {
             $caps = teinvit_capabilities_for_token( $token );
@@ -1252,7 +1253,7 @@ add_action( 'admin_post_teinvit_set_active_version', function() {
     teinvit_admin_post_guard( $token, 'can_set_active_version' );
 
     $version_id = (int) ( $_POST['active_version_id'] ?? 0 );
-    $t = teinvit_db_tables();
+    $t = function_exists( 'teinvit_storage_tables_for_existing_token' ) ? teinvit_storage_tables_for_existing_token( $token ) : teinvit_db_tables();
     $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['versions']} WHERE token=%s AND id=%d", $token, $version_id ) );
     if ( $exists ) {
         teinvit_save_invitation_config( $token, [ 'active_version_id' => $version_id ] );
@@ -1292,7 +1293,7 @@ add_action( 'admin_post_teinvit_download_variant_pdf', function() {
         exit;
     }
 
-    $t = teinvit_db_tables();
+    $t = function_exists( 'teinvit_storage_tables_for_existing_token' ) ? teinvit_storage_tables_for_existing_token( $token ) : teinvit_db_tables();
     $row = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT pdf_url, pdf_filename FROM {$t['versions']} WHERE token=%s AND id=%d LIMIT 1",
@@ -1389,11 +1390,12 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         'wapf_fields' => $wapf,
         'meta' => [ 'order_id' => (int) $order_id ],
     ];
+    $snapshot_json = wp_json_encode( $snapshot );
 
     $t = teinvit_db_tables();
     $wpdb->insert( $t['versions'], [
         'token' => $token,
-        'snapshot' => wp_json_encode( $snapshot ),
+        'snapshot' => $snapshot_json,
         'created_at' => current_time( 'mysql' ),
     ] );
     $version_id = (int) $wpdb->insert_id;
@@ -1401,6 +1403,7 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     $pdf_status = 'none';
     $pdf_url = '';
     $pdf_filename = '';
+    $version_index = 0;
     if ( $version_id > 0 && function_exists( 'teinvit_pdf_filename_for_version' ) && function_exists( 'teinvit_generate_pdf_for_version' ) ) {
         $version_index = max( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t['versions']} WHERE token = %s AND id <= %d", $token, $version_id ) ) - 1 );
         $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index );
@@ -1434,6 +1437,37 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     teinvit_save_invitation_config( $token, [
         'config' => $config,
     ] );
+
+    if ( $version_id > 0 ) {
+        $product_ids = [];
+        foreach ( $order->get_items( 'line_item' ) as $item ) {
+            $product_id = (int) $item->get_product_id();
+            $variation_id = (int) $item->get_variation_id();
+            if ( $product_id > 0 ) {
+                $product_ids[] = $product_id;
+            }
+            if ( $variation_id > 0 ) {
+                $product_ids[] = $variation_id;
+            }
+        }
+        $product_ids = array_values( array_unique( array_filter( array_map( 'intval', $product_ids ) ) ) );
+
+        do_action( 'teinvit_invitation_version_saved', $token, $version_id, [
+            'token' => $token,
+            'order_id' => (int) $order_id,
+            'vertical' => function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding',
+            'version_id' => $version_id,
+            'version_index' => $version_index,
+            'active_version_id' => (int) ( $inv['active_version_id'] ?? 0 ),
+            'pdf_status' => $pdf_status,
+            'pdf_url' => $pdf_url,
+            'pdf_filename' => $pdf_filename,
+            'admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
+            'invitati_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
+            'product_ids' => $product_ids,
+            'snapshot_hash' => hash( 'sha256', (string) $snapshot_json ),
+        ] );
+    }
 
     $redirect_url = add_query_arg( [
         'saved' => 'version',
@@ -1958,6 +1992,14 @@ add_action( 'rest_api_init', function() {
         'callback' => function( WP_REST_Request $request ) {
             global $wpdb;
             $token = sanitize_text_field( $request['token'] );
+            $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+            if ( $vertical_key === 'birthday' && function_exists( 'teinvit_birthday_handle_rsvp_rest' ) ) {
+                return teinvit_birthday_handle_rsvp_rest( $request );
+            }
+            if ( $vertical_key !== 'wedding' ) {
+                return new WP_Error( 'vertical_rsvp_pending', 'RSVP pentru această verticală va fi activat într-un pas ulterior.', [ 'status' => 501 ] );
+            }
+
             $inv = teinvit_get_invitation( $token );
             if ( ! $inv ) {
                 return new WP_Error( 'not_found', 'Token invalid', [ 'status' => 404 ] );

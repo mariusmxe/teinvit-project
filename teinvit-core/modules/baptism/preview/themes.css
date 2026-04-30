@@ -21,6 +21,7 @@
   --ba-color-primary: #3a2f2f;
   --ba-color-secondary: #6a5e5a;
   --ba-color-accent: #c8a96a;
+  --ba-color-caps: var(--ba-color-primary);
   --ba-color-link: #2b5a78;
   --ba-size-names: 2.22em;
   --ba-size-caps: 0.96em;
@@ -98,7 +99,7 @@
   --ba-color-secondary: #7d6b6d;
   --ba-color-accent: #d2b179;
   --ba-color-link: #48667e;
-  --ba-size-names: 2.08em;
+  --ba-size-names: 2.33em;
   --ba-size-caps: 0.95em;
   --ba-size-body: 0.95em;
   --ba-size-message: 1.05em;
@@ -136,7 +137,7 @@
   --ba-color-secondary: #6978a1;
   --ba-color-accent: #d4af37;
   --ba-color-link: #355c7d;
-  --ba-size-names: 2.22em;
+  --ba-size-names: 2.44em;
   --ba-size-caps: 0.96em;
   --ba-size-body: 0.96em;
   --ba-size-message: 1.08em;
@@ -174,7 +175,7 @@
   --ba-color-secondary: #68839b;
   --ba-color-accent: #e0be74;
   --ba-color-link: #4c7b92;
-  --ba-size-names: 2.14em;
+  --ba-size-names: 2.31em;
   --ba-size-caps: 0.95em;
   --ba-size-body: 0.95em;
   --ba-size-message: 1.06em;
@@ -325,18 +326,35 @@
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent) !important;
+  color: var(--ba-color-caps, var(--ba-color-primary)) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
   font-family: var(--ba-caps-font);
-  color: var(--ba-color-accent) !important;
+  color: var(--ba-color-caps, var(--ba-color-primary)) !important;
   font-size: var(--ba-size-caps);
   letter-spacing: .08em;
   text-transform: uppercase;
+  font-weight: 600;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider {
+  width: min(82%, 320px);
+  height: 40px;
+  margin: 0.36em auto 0.42em;
+  background: transparent;
+  opacity: 1;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .teinvit-baptism .inv-parent-col,

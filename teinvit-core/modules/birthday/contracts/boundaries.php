@@ -19,18 +19,18 @@ function teinvit_birthday_module_boundaries_contract() {
             'provider' => 'teinvit_birthday_renderer',
         ],
         'admin_client' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_birthday_admin_client_placeholder',
+            'status' => 'phase5_2_mvp',
+            'provider' => 'teinvit_birthday_admin_client_template',
             'acf_binding_phase' => 'phase5',
         ],
         'invitati' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_birthday_invitati_placeholder',
+            'status' => 'phase5_2_mvp',
+            'provider' => 'teinvit_birthday_invitati_template',
             'acf_binding_phase' => 'phase5',
         ],
         'rsvp' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_birthday_rsvp_placeholder',
+            'status' => 'phase5_2_mvp',
+            'provider' => 'teinvit_birthday_handle_rsvp_rest',
         ],
         'reports' => [
             'status' => 'scaffold',

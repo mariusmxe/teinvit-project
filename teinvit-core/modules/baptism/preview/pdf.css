@@ -1,3 +1,5 @@
+@import url('./themes.css');
+
 .teinvit-baptism,
 .teinvit-baptism * {
   box-sizing: border-box;
@@ -6,18 +8,70 @@
   text-rendering: geometricPrecision;
 }
 
-.teinvit-baptism {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 2.5em 0;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+@page {
+  size: 148mm 210mm;
+  margin: 0;
+}
+
+@media screen {
+  .teinvit-baptism {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 2.5em 0;
+  }
+
+  .teinvit-baptism .teinvit-page {
+    display: flex;
+    justify-content: center;
+  }
+
+  .teinvit-baptism .teinvit-container {
+    width: 100%;
+    max-width: 1200px;
+    padding: 40px 24px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    width: 559px;
+    height: 794px;
+    overflow: hidden;
+  }
+
+  body {
+    display: block !important;
+  }
+
+  .teinvit-baptism,
+  .teinvit-baptism .teinvit-page,
+  .teinvit-baptism .teinvit-container {
+    width: 559px;
+    height: 794px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    max-width: none;
+  }
+
+  .teinvit-baptism .teinvit-page {
+    display: block;
+  }
 }
 
 .teinvit-baptism .teinvit-preview {
   position: relative;
   width: 559px;
   height: 794px;
-  max-width: 100%;
   overflow: hidden;
   font-size: 17.25px;
 }
@@ -115,97 +169,4 @@
   margin-top: 0.2em;
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.12em;
-}
-
-@page {
-  size: 148mm 210mm;
-  margin: 0;
-}
-
-@media print {
-  html,
-  body {
-    width: 148mm;
-    height: 210mm;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: #ffffff;
-  }
-
-  body {
-    display: block !important;
-    justify-content: initial !important;
-  }
-
-  .teinvit-baptism,
-  .teinvit-baptism .teinvit-page,
-  .teinvit-baptism .teinvit-container {
-    width: 148mm;
-    height: 210mm;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .teinvit-baptism .teinvit-page {
-    display: block;
-  }
-
-  .teinvit-baptism .teinvit-preview {
-    width: 148mm;
-    height: 210mm;
-    max-width: none;
-    overflow: hidden;
-    font-size: 17.25px;
-  }
-}
-
-@media (max-width: 768px) {
-  .teinvit-baptism {
-    padding: 0;
-    justify-content: center;
-  }
-
-  .teinvit-baptism .teinvit-preview {
-    width: 100%;
-    max-width: 100%;
-    aspect-ratio: 148 / 210;
-    height: auto;
-    min-height: calc(100vw * 210 / 148);
-    max-height: 794px;
-    font-size: 14px;
-    margin: 0 auto;
-  }
-}
-
-@media (max-width: 420px) {
-  .teinvit-baptism .teinvit-preview {
-    width: 100%;
-    max-width: 100%;
-    aspect-ratio: 148 / 210;
-    min-height: calc(100vw * 210 / 148);
-    max-height: 794px;
-    font-size: 13px;
-  }
-}
-
-#teinvit-product-preview .teinvit-baptism {
-  padding: 0;
-  max-width: 100%;
-}
-
-#teinvit-product-preview .teinvit-baptism .teinvit-page,
-#teinvit-product-preview .teinvit-baptism .teinvit-container {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: visible;
-}
-
-#teinvit-product-preview .teinvit-baptism .teinvit-preview {
-  max-width: 100%;
-  margin: 0 auto;
 }
