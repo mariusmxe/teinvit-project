@@ -148,30 +148,147 @@
 
 @media (max-width: 768px) {
   .teinvit-birthday {
+    --teinvit-preview-scale: 1;
+    --teinvit-preview-scaled-width: 559px;
+    --teinvit-preview-scaled-height: 794px;
     padding: 0;
     justify-content: center;
+    max-width: 100%;
+    overflow-x: hidden;
+    container-type: inline-size;
   }
 
+  .teinvit-birthday .teinvit-page,
+  .teinvit-birthday .teinvit-container,
+  .teinvit-slot-preview .teinvit-birthday .teinvit-page,
+  .teinvit-slot-preview .teinvit-birthday .teinvit-container,
+  .teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-birthday .teinvit-page,
+  .teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-birthday .teinvit-container,
+  #teinvit-product-preview .teinvit-birthday .teinvit-page,
+  #teinvit-product-preview .teinvit-birthday .teinvit-container {
+    width: var(--teinvit-preview-scaled-width) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: var(--teinvit-preview-scaled-height) !important;
+    min-height: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .teinvit-birthday .teinvit-container .teinvit-preview,
+  .teinvit-slot-preview .teinvit-birthday .teinvit-container .teinvit-preview,
+  .teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-birthday .teinvit-container .teinvit-preview,
+  #teinvit-product-preview .teinvit-birthday .teinvit-container .teinvit-preview,
   .teinvit-birthday .teinvit-preview {
-    width: 100%;
-    max-width: 100%;
-    aspect-ratio: 148 / 210;
-    height: auto;
-    min-height: calc(100vw * 210 / 148);
-    max-height: 794px;
-    font-size: 14px;
-    margin: 0 auto;
+    width: 559px !important;
+    min-width: 559px !important;
+    max-width: none !important;
+    height: 794px !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    font-size: 17.25px !important;
+    margin: 0 !important;
+    transform: scale(var(--teinvit-preview-scale));
+    transform-origin: top left;
   }
 }
 
-@media (max-width: 420px) {
-  .teinvit-birthday .teinvit-preview {
-    width: 100%;
-    max-width: 100%;
-    aspect-ratio: 148 / 210;
-    min-height: calc(100vw * 210 / 148);
-    max-height: 794px;
-    font-size: 13px;
+@media (max-width: 640px) {
+  .teinvit-birthday {
+    --teinvit-preview-scale: 0.9;
+    --teinvit-preview-scaled-width: 503.1px;
+    --teinvit-preview-scaled-height: 714.6px;
+  }
+}
+
+@media (max-width: 560px) {
+  .teinvit-birthday {
+    --teinvit-preview-scale: 0.8;
+    --teinvit-preview-scaled-width: 447.2px;
+    --teinvit-preview-scaled-height: 635.2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .teinvit-birthday {
+    --teinvit-preview-scale: 0.7;
+    --teinvit-preview-scaled-width: 391.3px;
+    --teinvit-preview-scaled-height: 555.8px;
+  }
+}
+
+@media (max-width: 430px) {
+  .teinvit-birthday {
+    --teinvit-preview-scale: 0.62;
+    --teinvit-preview-scaled-width: 346.58px;
+    --teinvit-preview-scaled-height: 492.28px;
+  }
+}
+
+@media (max-width: 390px) {
+  .teinvit-birthday {
+    --teinvit-preview-scale: 0.56;
+    --teinvit-preview-scaled-width: 313.04px;
+    --teinvit-preview-scaled-height: 444.64px;
+  }
+}
+
+@media (max-width: 360px) {
+  .teinvit-birthday {
+    --teinvit-preview-scale: 0.52;
+    --teinvit-preview-scaled-width: 290.68px;
+    --teinvit-preview-scaled-height: 412.88px;
+  }
+}
+
+@container (max-width: 640px) {
+  .teinvit-birthday .teinvit-page {
+    --teinvit-preview-scale: 0.9;
+    --teinvit-preview-scaled-width: 503.1px;
+    --teinvit-preview-scaled-height: 714.6px;
+  }
+}
+
+@container (max-width: 560px) {
+  .teinvit-birthday .teinvit-page {
+    --teinvit-preview-scale: 0.8;
+    --teinvit-preview-scaled-width: 447.2px;
+    --teinvit-preview-scaled-height: 635.2px;
+  }
+}
+
+@container (max-width: 480px) {
+  .teinvit-birthday .teinvit-page {
+    --teinvit-preview-scale: 0.7;
+    --teinvit-preview-scaled-width: 391.3px;
+    --teinvit-preview-scaled-height: 555.8px;
+  }
+}
+
+@container (max-width: 430px) {
+  .teinvit-birthday .teinvit-page {
+    --teinvit-preview-scale: 0.62;
+    --teinvit-preview-scaled-width: 346.58px;
+    --teinvit-preview-scaled-height: 492.28px;
+  }
+}
+
+@container (max-width: 390px) {
+  .teinvit-birthday .teinvit-page {
+    --teinvit-preview-scale: 0.56;
+    --teinvit-preview-scaled-width: 313.04px;
+    --teinvit-preview-scaled-height: 444.64px;
+  }
+}
+
+@container (max-width: 360px) {
+  .teinvit-birthday .teinvit-page {
+    --teinvit-preview-scale: 0.52;
+    --teinvit-preview-scaled-width: 290.68px;
+    --teinvit-preview-scaled-height: 412.88px;
   }
 }
 
