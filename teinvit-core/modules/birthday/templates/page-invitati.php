@@ -14,6 +14,8 @@ if ( ! is_array( $inv ) ) {
 $config = function_exists( 'teinvit_birthday_config_with_defaults' )
     ? teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] )
     : wp_parse_args( is_array( $inv['config'] ?? null ) ? $inv['config'] : [], function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( 'birthday' ) : [] );
+$birthday_rsvp_mode = function_exists( 'teinvit_birthday_rsvp_mode_from_config' ) ? teinvit_birthday_rsvp_mode_from_config( $config ) : ( ( $config['birthday_rsvp_mode'] ?? 'adult' ) === 'child' ? 'child' : 'adult' );
+$is_child_rsvp = $birthday_rsvp_mode === 'child';
 
 $deadline_active = ! empty( $config['show_rsvp_deadline'] );
 $deadline_raw = (string) ( $config['rsvp_deadline_date'] ?? '' );
@@ -36,6 +38,13 @@ $show_vegetarian = ! empty( $config['show_vegetarian'] );
 $show_allergies = ! empty( $config['show_allergies'] );
 $show_message = isset( $config['show_message'] ) ? ! empty( $config['show_message'] ) : true;
 $show_special_observations = ! empty( $config['show_special_observations'] );
+$child_show_party = ! empty( $config['child_show_attending_party'] );
+$child_show_children_count = ! empty( $config['child_show_children_count'] );
+$child_show_accompanying_adults = ! empty( $config['child_show_accompanying_adults'] );
+$child_show_allergies = ! empty( $config['child_show_allergies'] );
+$child_show_vegetarian = ! empty( $config['child_show_vegetarian'] );
+$child_show_special_observations = ! empty( $config['child_show_special_observations'] );
+$child_show_message = ! empty( $config['child_show_message'] );
 $guest_count_question = 'Pentru câte persoane faceți confirmarea (exceptând copii)?';
 $rsvp_short_question_defs = [
     'show_attending_party' => 'party',
@@ -64,6 +73,31 @@ $rsvp_short_questions = [];
 foreach ( $rsvp_order as $question_key ) {
     if ( ! empty( $rsvp_enabled_lookup[ $question_key ] ) && isset( $rsvp_short_question_defs[ $question_key ] ) ) {
         $rsvp_short_questions[] = $rsvp_short_question_defs[ $question_key ];
+    }
+}
+$child_question_defs = [
+    'child_show_attending_party' => 'child_party',
+    'child_show_children_count' => 'child_count',
+    'child_show_accompanying_adults' => 'child_accompanying_adults',
+    'child_show_vegetarian' => 'child_vegetarian',
+    'child_show_allergies' => 'child_allergies',
+];
+$child_enabled_lookup = [
+    'child_show_attending_party' => $child_show_party,
+    'child_show_children_count' => $child_show_children_count,
+    'child_show_accompanying_adults' => $child_show_accompanying_adults,
+    'child_show_vegetarian' => $child_show_vegetarian,
+    'child_show_allergies' => $child_show_allergies,
+];
+$child_rsvp_order = isset( $config['child_rsvp_zone2_order'] ) && is_array( $config['child_rsvp_zone2_order'] ) ? $config['child_rsvp_zone2_order'] : array_keys( $child_question_defs );
+$child_rsvp_order = array_values( array_unique( array_filter( array_map( 'sanitize_key', $child_rsvp_order ), static function( $key ) use ( $child_question_defs ) {
+    return isset( $child_question_defs[ $key ] );
+} ) ) );
+$child_rsvp_order = array_values( array_unique( array_merge( $child_rsvp_order, array_keys( $child_question_defs ) ) ) );
+$child_short_questions = [];
+foreach ( $child_rsvp_order as $question_key ) {
+    if ( ! empty( $child_enabled_lookup[ $question_key ] ) && isset( $child_question_defs[ $question_key ] ) ) {
+        $child_short_questions[] = $child_question_defs[ $question_key ];
     }
 }
 
@@ -131,29 +165,84 @@ if ( $show_gifts_section ) {
 
         <div class="teinvit-rsvp-grid">
           <div class="teinvit-rsvp-field">
-            <label for="birthday-rsvp-last-name">Nume*</label>
+            <label for="birthday-rsvp-last-name"><?php echo $is_child_rsvp ? 'Nume părinte/tutore*' : 'Nume*'; ?></label>
             <input id="birthday-rsvp-last-name" name="guest_last_name" required>
           </div>
           <div class="teinvit-rsvp-field">
-            <label for="birthday-rsvp-first-name">Prenume*</label>
+            <label for="birthday-rsvp-first-name"><?php echo $is_child_rsvp ? 'Prenume părinte/tutore*' : 'Prenume*'; ?></label>
             <input id="birthday-rsvp-first-name" name="guest_first_name" required>
           </div>
           <div class="teinvit-rsvp-field">
-            <label for="birthday-rsvp-phone">Telefon*</label>
+            <label for="birthday-rsvp-phone"><?php echo $is_child_rsvp ? 'Telefon părinte/tutore*' : 'Telefon*'; ?></label>
             <input id="birthday-rsvp-phone" name="guest_phone" required>
           </div>
           <div class="teinvit-rsvp-field">
-            <label for="birthday-rsvp-email">Email</label>
+            <label for="birthday-rsvp-email"><?php echo $is_child_rsvp ? 'Email părinte/tutore' : 'Email'; ?></label>
             <input id="birthday-rsvp-email" name="guest_email" type="email">
           </div>
         </div>
-        <?php if ( ! $show_guest_count ) : ?>
+        <?php if ( ! $is_child_rsvp && ! $show_guest_count ) : ?>
           <input type="hidden" name="attending_people_count" value="<?php echo $show_party ? '0' : '1'; ?>">
         <?php endif; ?>
 
         <hr class="teinvit-separator">
 
-        <?php if ( ! empty( $rsvp_short_questions ) ) : ?>
+        <?php if ( $is_child_rsvp && ! empty( $child_short_questions ) ) : ?>
+        <div class="teinvit-rsvp-question-grid">
+          <?php foreach ( $child_short_questions as $question_type ) : ?>
+            <?php if ( $question_type === 'child_party' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Veți participa la petrecere?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="attending_party" value="1" required> DA</label>
+                  <label><input type="radio" name="attending_party" value="0"> NU</label>
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'child_count' ) : ?>
+              <div class="teinvit-rsvp-field teinvit-rsvp-question">
+                <label for="birthday-rsvp-child-count">Pentru câți copii faceți confirmarea?</label>
+                <input id="birthday-rsvp-child-count" name="child_participants_count" type="number" min="0" max="99">
+              </div>
+            <?php elseif ( $question_type === 'child_accompanying_adults' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Un părinte/adult însoțitor va rămâne la petrecere?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="child_accompanying_adult_stays" value="1"> DA</label>
+                  <label><input type="radio" name="child_accompanying_adult_stays" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-child-adults-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-child-adults-count">Câți adulți însoțitori vor rămâne?</label>
+                  <input id="birthday-rsvp-child-adults-count" name="child_accompanying_adults_count" type="number" min="1" max="99">
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'child_vegetarian' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Doriți meniu vegetarian?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="vegetarian_requested" value="1"> DA</label>
+                  <label><input type="radio" name="vegetarian_requested" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-vegetarian-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-vegetarian-count">Câte meniuri vegetariene sunt necesare?</label>
+                  <input id="birthday-rsvp-vegetarian-count" name="vegetarian_menus_count" type="number" min="1" max="99">
+                </div>
+              </div>
+            <?php elseif ( $question_type === 'child_allergies' ) : ?>
+              <div class="teinvit-rsvp-question">
+                <label>Există alergii sau restricții alimentare?</label>
+                <div class="teinvit-rsvp-choice-group">
+                  <label><input type="radio" name="has_allergies" value="1"> DA</label>
+                  <label><input type="radio" name="has_allergies" value="0" checked> NU</label>
+                </div>
+                <div id="birthday-rsvp-allergies-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                  <label for="birthday-rsvp-allergy-details">Vă rugăm să menționați alergiile/restricțiile</label>
+                  <textarea id="birthday-rsvp-allergy-details" name="allergy_details" rows="3"></textarea>
+                </div>
+              </div>
+            <?php endif; ?>
+          <?php endforeach; ?>
+        </div>
+        <?php elseif ( ! empty( $rsvp_short_questions ) ) : ?>
         <div class="teinvit-rsvp-question-grid">
           <?php foreach ( $rsvp_short_questions as $question_type ) : ?>
             <?php if ( $question_type === 'guest_count' ) : ?>
@@ -267,16 +356,31 @@ if ( $show_gifts_section ) {
         </div>
         <?php endif; ?>
 
-        <?php if ( $show_message || $show_special_observations ) : ?>
+        <?php if ( ( $is_child_rsvp && ( $child_show_message || $child_show_special_observations ) ) || ( ! $is_child_rsvp && ( $show_message || $show_special_observations ) ) ) : ?>
         <hr class="teinvit-separator">
         <div class="teinvit-rsvp-message-wrap">
-          <?php if ( $show_message ) : ?>
+          <?php if ( ( $is_child_rsvp && $child_show_message ) || ( ! $is_child_rsvp && $show_message ) ) : ?>
           <div class="teinvit-rsvp-field">
             <label for="birthday-rsvp-message">Doriți să transmiteți un mesaj sărbătoritului/sărbătoriților?</label>
             <textarea id="birthday-rsvp-message" name="message_to_celebrants" rows="5"></textarea>
           </div>
           <?php endif; ?>
-          <?php if ( $show_special_observations ) : ?>
+          <?php if ( $is_child_rsvp && $child_show_special_observations ) : ?>
+          <div class="teinvit-rsvp-field" style="margin-top:12px;">
+            <label>Aveți observații speciale pentru organizator?</label>
+            <div class="teinvit-rsvp-choice-group">
+              <label><input type="checkbox" name="child_special_observations_options[]" value="pickup_time"> Copilul trebuie preluat la o anumită oră.</label>
+              <label><input type="checkbox" name="child_special_observations_options[]" value="shy"> Copilul este mai timid.</label>
+              <label><input type="checkbox" name="child_special_observations_options[]" value="restricted_activities"> Copilul nu are voie anumite activități.</label>
+              <label><input type="checkbox" name="child_special_observations_options[]" value="accompanied_start_only"> Copilul va veni însoțit doar la început.</label>
+              <label><input type="checkbox" name="child_special_observations_options[]" value="other" id="birthday-rsvp-child-observations-other-check"> Alte observații.</label>
+            </div>
+            <div id="birthday-rsvp-child-observations-other-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+              <label for="birthday-rsvp-child-observations-other">Alte observații</label>
+              <textarea id="birthday-rsvp-child-observations-other" name="child_special_observations_other" rows="4"></textarea>
+            </div>
+          </div>
+          <?php elseif ( ! $is_child_rsvp && $show_special_observations ) : ?>
           <div class="teinvit-rsvp-field" style="margin-top:12px;">
             <label for="birthday-rsvp-observations">Aveți observații speciale pentru organizator?</label>
             <textarea id="birthday-rsvp-observations" name="special_observations" rows="4"></textarea>
@@ -322,6 +426,7 @@ if ( $show_gifts_section ) {
 <script>
 (function(){
   const endpoint = <?php echo wp_json_encode( esc_url_raw( rest_url( 'teinvit/v2/invitati/' . rawurlencode( $token ) . '/rsvp' ) ) ); ?>;
+  const rsvpMode = <?php echo wp_json_encode( $birthday_rsvp_mode ); ?>;
   const form = document.getElementById('teinvit-birthday-rsvp-form');
   const msg = document.getElementById('teinvit-birthday-rsvp-msg');
   if (!form) return;
@@ -385,6 +490,25 @@ if ( $show_gifts_section ) {
   bindConditional('needs_accommodation', 'birthday-rsvp-accommodation-wrap');
   bindConditional('vegetarian_requested', 'birthday-rsvp-vegetarian-wrap');
   bindConditional('has_allergies', 'birthday-rsvp-allergies-wrap');
+  bindConditional('child_accompanying_adult_stays', 'birthday-rsvp-child-adults-wrap');
+
+  function syncChildOtherObservations(){
+    const other = document.getElementById('birthday-rsvp-child-observations-other-check');
+    const target = document.getElementById('birthday-rsvp-child-observations-other-wrap');
+    if (!other || !target) return;
+    const refresh = function(){
+      target.style.display = other.checked ? '' : 'none';
+      if (!other.checked) {
+        target.querySelectorAll('textarea,input,select').forEach(function(el){
+          el.value = '';
+          clearFieldError(el);
+        });
+      }
+    };
+    other.addEventListener('change', refresh);
+    refresh();
+  }
+  syncChildOtherObservations();
 
   function syncPartyAdultsCount(){
     const field = byName('attending_people_count');
@@ -412,6 +536,41 @@ if ( $show_gifts_section ) {
     refresh();
   }
   syncPartyAdultsCount();
+
+  function syncChildPartyState(){
+    if (rsvpMode !== 'child') return;
+    const childCount = byName('child_participants_count');
+    const radios = form.querySelectorAll('[name="attending_party"]');
+    if (!radios.length) return;
+
+    const refresh = function(){
+      const party = checkedValue('attending_party');
+      if (party === '0') {
+        if (childCount) {
+          childCount.value = '0';
+          childCount.setAttribute('readonly', 'readonly');
+          clearFieldError(childCount);
+        }
+        ['child_accompanying_adult_stays','vegetarian_requested','has_allergies'].forEach(function(name){
+          const no = form.querySelector('[name="' + name + '"][value="0"]');
+          if (no) {
+            no.checked = true;
+            no.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+        return;
+      }
+
+      if (childCount) {
+        childCount.removeAttribute('readonly');
+        if (party === '1' && childCount.value === '0') childCount.value = '';
+      }
+    };
+
+    radios.forEach(function(r){ r.addEventListener('change', refresh); });
+    refresh();
+  }
+  syncChildPartyState();
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();
@@ -455,6 +614,62 @@ if ( $show_gifts_section ) {
       setFieldError(partyField, 'Alegeți DA sau NU.');
     }
 
+    if (rsvpMode === 'child') {
+      const childField = byName('child_participants_count');
+      const childRaw = childField ? String(childField.value || '').trim() : '';
+      let childCount = childField ? intValue('child_participants_count', 0) : (partyValue === '0' ? 0 : 1);
+      if (partyField && partyValue === '0') {
+        if (childCount !== 0) {
+          errors.push('Dacă nu participați la petrecere, numărul de copii trebuie să fie 0.');
+          setFieldError(childField, 'Trebuie să fie 0 pentru răspuns NU.');
+        } else if (childField) {
+          childField.value = '0';
+        }
+        childCount = 0;
+      } else if (childField && (!childRaw || childCount < 1 || childCount > 99)) {
+        errors.push('Completați numărul de copii participanți.');
+        setFieldError(childField, 'Completați un număr între 1 și 99.');
+      }
+
+      const adultStaysField = form.querySelector('[name="child_accompanying_adult_stays"]');
+      const adultCountField = byName('child_accompanying_adults_count');
+      const adultStays = adultStaysField ? boolValue('child_accompanying_adult_stays') : 0;
+      const adultRaw = adultCountField ? String(adultCountField.value || '').trim() : '';
+      const adultSubmitted = adultRaw === '' ? 0 : intValue('child_accompanying_adults_count', 0);
+      let adultCount = adultStays ? adultSubmitted : 0;
+      if (adultStays && (!adultRaw || adultCount < 1 || adultCount > 99)) {
+        errors.push('Completați numărul de adulți însoțitori.');
+        setFieldError(adultCountField, 'Completați un număr între 1 și 99.');
+      }
+      if (!adultStays && adultSubmitted !== 0) {
+        errors.push('Dacă adultul însoțitor nu rămâne, numărul adulților trebuie să fie 0.');
+        setFieldError(adultCountField, 'Trebuie să fie 0 pentru răspuns NU.');
+      }
+      if (partyField && partyValue === '0' && adultCount > 0) {
+        errors.push('Dacă nu participați la petrecere, adulții însoțitori trebuie să fie 0.');
+        setFieldError(adultCountField, 'Trebuie să fie 0 pentru răspuns NU.');
+      }
+
+      if (boolValue('vegetarian_requested')) {
+        const vegCount = intValue('vegetarian_menus_count', 0);
+        const knownTotal = Math.max(0, childCount + adultCount);
+        const vegMax = knownTotal > 0 ? knownTotal : 99;
+        if (vegCount < 1 || vegCount > vegMax) {
+          errors.push('Numărul de meniuri vegetariene este invalid.');
+          setFieldError(byName('vegetarian_menus_count'), 'Maxim: ' + vegMax);
+        }
+      }
+      if (boolValue('has_allergies') && !String((byName('allergy_details') && byName('allergy_details').value) || '').trim()) {
+        errors.push('Completați alergiile/restricțiile.');
+        setFieldError(byName('allergy_details'), 'Completați alergiile/restricțiile.');
+      }
+      const otherObs = document.getElementById('birthday-rsvp-child-observations-other-check');
+      const otherText = byName('child_special_observations_other');
+      if (otherObs && otherObs.checked && !String((otherText && otherText.value) || '').trim()) {
+        errors.push('Completați câmpul Alte observații.');
+        setFieldError(otherText, 'Completați alte observații.');
+      }
+    } else {
     const peopleField = byName('attending_people_count');
     const peopleRaw = peopleField ? String(peopleField.value || '').trim() : '';
     let peopleCount = 0;
@@ -503,6 +718,8 @@ if ( $show_gifts_section ) {
       setFieldError(byName('allergy_details'), 'Completați alergiile.');
     }
 
+    }
+
     if (errors.length) {
       const firstInvalid = form.querySelector('.teinvit-field-error');
       if (firstInvalid && typeof firstInvalid.focus === 'function') firstInvalid.focus();
@@ -518,11 +735,17 @@ if ( $show_gifts_section ) {
         payload.gift_ids.push(value);
         return;
       }
+      if (key === 'child_special_observations_options[]') {
+        payload.child_special_observations_options = payload.child_special_observations_options || [];
+        payload.child_special_observations_options.push(value);
+        return;
+      }
       payload[key] = value;
     });
+    payload.birthday_rsvp_mode = rsvpMode;
     payload.gdpr_accepted = gdpr && gdpr.checked ? 1 : 0;
     payload.marketing_consent = byName('marketing_consent') && byName('marketing_consent').checked ? 1 : 0;
-    ['attending_party','bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies'].forEach(function(key){
+    ['attending_party','bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies','child_accompanying_adult_stays'].forEach(function(key){
       if (form.querySelector('[name="' + key + '"]')) payload[key] = boolValue(key);
     });
     const selectedGiftInputs = Array.prototype.slice.call(form.querySelectorAll('[name="gift_ids[]"]:checked'));
@@ -553,13 +776,15 @@ if ( $show_gifts_section ) {
         }
       });
       form.reset();
-      ['bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies'].forEach(function(name){
+      ['bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies','child_accompanying_adult_stays'].forEach(function(name){
         const no = form.querySelector('[name="' + name + '"][value="0"]');
         if (no) no.checked = true;
       });
-      ['bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies'].forEach(function(name){
+      ['bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies','child_accompanying_adult_stays','attending_party'].forEach(function(name){
         form.querySelectorAll('[name="' + name + '"]').forEach(function(r){ r.dispatchEvent(new Event('change', { bubbles: true })); });
       });
+      const otherObsReset = document.getElementById('birthday-rsvp-child-observations-other-check');
+      if (otherObsReset) otherObsReset.dispatchEvent(new Event('change', { bubbles: true }));
     } catch (err) {
       if (msg) {
         msg.textContent = err && err.message ? err.message : 'Nu s-a putut salva confirmarea.';

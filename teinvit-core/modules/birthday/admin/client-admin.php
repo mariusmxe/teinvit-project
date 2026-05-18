@@ -40,12 +40,37 @@ function teinvit_birthday_read_checkbox( array $source, $key ) {
     return isset( $source[ $key ] ) && ! empty( $source[ $key ] ) ? 1 : 0;
 }
 
+function teinvit_birthday_rsvp_mode_from_config( array $config ) {
+    $mode = sanitize_key( (string) ( $config['birthday_rsvp_mode'] ?? 'adult' ) );
+    return $mode === 'child' ? 'child' : 'adult';
+}
+
+function teinvit_birthday_child_rsvp_config_defaults() {
+    return [
+        'child_show_attending_party' => 1,
+        'child_show_children_count' => 1,
+        'child_show_accompanying_adults' => 1,
+        'child_show_allergies' => 0,
+        'child_show_vegetarian' => 0,
+        'child_show_special_observations' => 0,
+        'child_show_message' => 1,
+    ];
+}
+
+function teinvit_birthday_child_rsvp_config_keys() {
+    return array_keys( teinvit_birthday_child_rsvp_config_defaults() );
+}
+
 function teinvit_birthday_config_with_defaults( array $config = [] ) {
     $defaults = function_exists( 'teinvit_default_rsvp_config_for_vertical' )
         ? teinvit_default_rsvp_config_for_vertical( 'birthday' )
         : [];
 
+    $defaults['birthday_rsvp_mode'] = 'adult';
+    $defaults = array_merge( $defaults, teinvit_birthday_child_rsvp_config_defaults() );
+
     $config = wp_parse_args( $config, $defaults );
+    $config['birthday_rsvp_mode'] = teinvit_birthday_rsvp_mode_from_config( $config );
 
     if ( isset( $config['birthday_show_party_theme'] ) && ! isset( $config['show_birthday_party_theme'] ) ) {
         $config['show_birthday_party_theme'] = ! empty( $config['birthday_show_party_theme'] ) ? 1 : 0;
@@ -127,6 +152,9 @@ function teinvit_birthday_merge_invitation_info_from_post( array $config, array 
 
 function teinvit_birthday_merge_rsvp_config_from_post( array $config, array $source ) {
     $config = teinvit_birthday_config_with_defaults( $config );
+    $mode = sanitize_key( (string) wp_unslash( $source['birthday_rsvp_mode'] ?? 'adult' ) );
+    $mode = $mode === 'child' ? 'child' : 'adult';
+    $config['birthday_rsvp_mode'] = $mode;
 
     $map = [
         'show_attending_party',
@@ -139,6 +167,21 @@ function teinvit_birthday_merge_rsvp_config_from_post( array $config, array $sou
         'show_message',
         'show_special_observations',
     ];
+
+    if ( $mode === 'child' ) {
+        $child_map = teinvit_birthday_child_rsvp_config_keys();
+        $published_order = [];
+        foreach ( $child_map as $config_key ) {
+            $enabled = teinvit_birthday_read_checkbox( $source, $config_key );
+            $config[ $config_key ] = $enabled;
+            if ( $enabled ) {
+                $published_order[] = $config_key;
+            }
+        }
+
+        $config['child_rsvp_zone2_order'] = $published_order;
+        return $config;
+    }
 
     $published_order = [];
     foreach ( $map as $config_key ) {
@@ -400,12 +443,16 @@ function teinvit_birthday_enrich_rsvp_report_row( array $row ) {
     $extra = teinvit_birthday_decode_extra_fields( $row['extra_fields'] ?? '' );
     $has_snapshot = isset( $extra['config_snapshot'] ) && is_array( $extra['config_snapshot'] );
     $snapshot = $has_snapshot ? $extra['config_snapshot'] : [];
-    $party_active_at_submit = ! empty( $snapshot['show_attending_party'] ) ? 1 : 0;
+    $mode = sanitize_key( (string) ( $extra['birthday_rsvp_mode'] ?? ( $snapshot['birthday_rsvp_mode'] ?? 'adult' ) ) );
+    $mode = $mode === 'child' ? 'child' : 'adult';
+    $party_key = $mode === 'child' ? 'child_show_attending_party' : 'show_attending_party';
+    $party_active_at_submit = ! empty( $snapshot[ $party_key ] ) ? 1 : 0;
     if ( ! $has_snapshot && ! empty( $row['attending_party'] ) ) {
         $party_active_at_submit = 1;
     }
 
     $row['birthday_extra_fields'] = $extra;
+    $row['birthday_rsvp_mode'] = $mode;
     $row['created_at_display'] = teinvit_birthday_format_report_datetime( $row['created_at'] ?? '' );
     $row['normalized_phone'] = teinvit_birthday_normalize_phone_for_report( (string) ( $row['guest_phone'] ?? '' ) );
     $row['party_question_active_at_submit'] = $party_active_at_submit;
@@ -413,6 +460,11 @@ function teinvit_birthday_enrich_rsvp_report_row( array $row ) {
     $row['special_observations'] = (string) ( $extra['special_observations'] ?? '' );
     $row['child_menu_requested'] = ! empty( $extra['child_menu_requested'] ) ? 1 : 0;
     $row['child_menu_count'] = max( 0, (int) ( $extra['child_menu_count'] ?? 0 ) );
+    $row['child_participants_count'] = max( 0, (int) ( $extra['child_participants_count'] ?? ( $mode === 'child' ? ( $row['kids_count'] ?? 0 ) : 0 ) ) );
+    $row['child_accompanying_adult_stays'] = ! empty( $extra['child_accompanying_adult_stays'] ) ? 1 : 0;
+    $row['child_accompanying_adults_count'] = max( 0, (int) ( $extra['child_accompanying_adults_count'] ?? ( $mode === 'child' ? ( $row['attending_people_count'] ?? 0 ) : 0 ) ) );
+    $row['child_special_observations_options'] = isset( $extra['child_special_observations_options'] ) && is_array( $extra['child_special_observations_options'] ) ? $extra['child_special_observations_options'] : [];
+    $row['child_special_observations_other'] = (string) ( $extra['child_special_observations_other'] ?? '' );
 
     return $row;
 }
@@ -515,6 +567,63 @@ function teinvit_birthday_report_row_counts_as_participant( array $row, $party_c
 
 function teinvit_birthday_build_rsvp_report_kpis( $sets, array $config = [] ) {
     $unique = is_array( $sets['unique'] ?? null ) ? $sets['unique'] : [];
+    $mode = teinvit_birthday_rsvp_mode_from_config( $config );
+    $unique = array_values( array_filter( $unique, static function( $row ) use ( $mode ) {
+        return (string) ( $row['birthday_rsvp_mode'] ?? 'adult' ) === $mode;
+    } ) );
+
+    if ( $mode === 'child' ) {
+        $history = is_array( $sets['history'] ?? null ) ? $sets['history'] : [];
+        $history = array_values( array_filter( $history, static function( $row ) {
+            return (string) ( $row['birthday_rsvp_mode'] ?? 'adult' ) === 'child';
+        } ) );
+
+        $children_total = 0;
+        $adults_total = 0;
+        $veg_menus_total = 0;
+        $allergies_count = 0;
+        $party_current_enabled = ! empty( $config['child_show_attending_party'] );
+
+        foreach ( $unique as $r ) {
+            if ( teinvit_birthday_report_row_counts_as_participant( $r, $party_current_enabled ) ) {
+                $children_total += max( 0, (int) ( $r['child_participants_count'] ?? 0 ) );
+                $adults_total += max( 0, (int) ( $r['child_accompanying_adults_count'] ?? 0 ) );
+            }
+
+            if ( ! empty( $r['vegetarian_requested'] ) ) {
+                $veg_menus_total += max( 0, (int) ( $r['vegetarian_menus_count'] ?? 0 ) );
+            }
+
+            if ( ! empty( $r['has_allergies'] ) ) {
+                $allergies_count++;
+            }
+        }
+
+        return [
+            'Confirmari unice' => (string) count( $unique ),
+            'Copii participanti' => (string) (int) $children_total,
+            'Adulti insotitori care raman' => (string) (int) $adults_total,
+            'Meniuri vegetariene' => (string) (int) $veg_menus_total,
+            'Raspunsuri cu alergii/restrictii' => (string) (int) $allergies_count,
+            'Mesaje primite' => (string) count( array_filter( $history, static function( $r ) {
+                return trim( (string) ( $r['message_to_celebrants'] ?? '' ) ) !== '';
+            } ) ),
+            'Observatii speciale' => (string) count( array_filter( $history, static function( $r ) {
+                return trim( (string) ( $r['special_observations'] ?? '' ) ) !== '';
+            } ) ),
+        ];
+    }
+
+    $sets['unique_phones_count'] = count( $unique );
+    $adult_history = array_values( array_filter( is_array( $sets['history'] ?? null ) ? $sets['history'] : [], static function( $row ) {
+        return (string) ( $row['birthday_rsvp_mode'] ?? 'adult' ) === 'adult';
+    } ) );
+    $sets['messages_count_history'] = count( array_filter( $adult_history, static function( $row ) {
+        return trim( (string) ( $row['message_to_celebrants'] ?? '' ) ) !== '';
+    } ) );
+    $sets['special_observations_count_history'] = count( array_filter( $adult_history, static function( $row ) {
+        return trim( (string) ( $row['special_observations'] ?? '' ) ) !== '';
+    } ) );
     $party_current_enabled = ! empty( $config['show_attending_party'] );
 
     $people_participating = 0;
@@ -575,23 +684,41 @@ function teinvit_birthday_build_rsvp_report_kpis( $sets, array $config = [] ) {
     ];
 }
 
-function teinvit_birthday_report_headers() {
+function teinvit_birthday_report_sets_include_mode( $sets ) {
+    foreach ( [ 'unique', 'history' ] as $key ) {
+        $rows = is_array( $sets[ $key ] ?? null ) ? $sets[ $key ] : [];
+        foreach ( $rows as $row ) {
+            if ( (string) ( $row['birthday_rsvp_mode'] ?? 'adult' ) === 'child' ) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function teinvit_birthday_report_headers( $include_mode = false ) {
+    if ( $include_mode ) {
+        return [ 'Status', 'Mod RSVP', 'Nume', 'Prenume', 'Telefon', 'Email', 'Data/ora submit', 'Participa la petrecere', 'Persoane participante', 'Adulti / adulti insotitori', 'Copii', 'Cati copii', 'Meniu copii', 'Adult insotitor ramane', 'Numar adulti insotitori', 'Meniuri copii', 'Cazare', 'Cazare nr. persoane', 'Vegetarian', 'Meniuri vegetariene', 'Alergii/restrictii', 'Detalii alergii/restrictii', 'Mesaj catre sarbatorit/sarbatoriti', 'Observatii speciale' ];
+    }
+
     return [ 'Status', 'Nume', 'Prenume', 'Telefon', 'Email', 'Data/ora submit', 'Participă la petrecere', 'Persoane participante', 'Adulți', 'Copii', 'Câți copii', 'Meniu copii', 'Meniuri copii', 'Cazare', 'Cazare nr. persoane', 'Vegetarian', 'Meniuri vegetariene', 'Alergii', 'Detalii alergii', 'Mesaj către sărbătorit/sărbătoriți', 'Observații speciale' ];
 }
 
-function teinvit_birthday_report_row_values( array $r ) {
+function teinvit_birthday_report_row_values( array $r, $include_mode = false ) {
     $yn = static function( $v ) {
         return (int) $v === 1 ? 'DA' : 'NU';
     };
+    $mode = (string) ( $r['birthday_rsvp_mode'] ?? 'adult' ) === 'child' ? 'child' : 'adult';
     $party = ! empty( $r['party_question_active_at_submit'] ) ? $yn( $r['attending_party'] ?? 0 ) : 'N/A';
-    $adults = max( 0, (int) ( $r['attending_people_count'] ?? 0 ) );
-    $kids = ! empty( $r['bringing_kids'] ) ? max( 0, (int) ( $r['kids_count'] ?? 0 ) ) : 0;
+    $adults = $mode === 'child' ? max( 0, (int) ( $r['child_accompanying_adults_count'] ?? 0 ) ) : max( 0, (int) ( $r['attending_people_count'] ?? 0 ) );
+    $kids = $mode === 'child' ? max( 0, (int) ( $r['child_participants_count'] ?? 0 ) ) : ( ! empty( $r['bringing_kids'] ) ? max( 0, (int) ( $r['kids_count'] ?? 0 ) ) : 0 );
     $child_menu_requested = ! empty( $r['child_menu_requested'] );
     $needs_accommodation = ! empty( $r['needs_accommodation'] );
     $vegetarian_requested = ! empty( $r['vegetarian_requested'] );
     $has_allergies = ! empty( $r['has_allergies'] );
 
-    return [
+    $values = [
         (string) ( $r['multi_badge'] ?? '' ),
         (string) ( $r['guest_last_name'] ?? '' ),
         (string) ( $r['guest_first_name'] ?? '' ),
@@ -601,8 +728,8 @@ function teinvit_birthday_report_row_values( array $r ) {
         $party,
         (string) ( $adults + $kids ),
         (string) $adults,
-        $yn( $r['bringing_kids'] ?? 0 ),
-        ! empty( $r['bringing_kids'] ) ? (string) $kids : '-',
+        $mode === 'child' ? ( $kids > 0 ? 'DA' : 'NU' ) : $yn( $r['bringing_kids'] ?? 0 ),
+        ( $mode === 'child' || ! empty( $r['bringing_kids'] ) ) ? (string) $kids : '-',
         $child_menu_requested ? 'DA' : 'NU',
         $child_menu_requested ? (string) max( 0, (int) ( $r['child_menu_count'] ?? 0 ) ) : '-',
         $yn( $r['needs_accommodation'] ?? 0 ),
@@ -614,6 +741,16 @@ function teinvit_birthday_report_row_values( array $r ) {
         trim( (string) ( $r['message_to_celebrants'] ?? '' ) ) !== '' ? (string) $r['message_to_celebrants'] : '-',
         trim( (string) ( $r['special_observations'] ?? '' ) ) !== '' ? (string) $r['special_observations'] : '-',
     ];
+
+    if ( $include_mode ) {
+        array_splice( $values, 1, 0, [ $mode === 'child' ? 'Copil/Copii' : 'Adult/Adulti' ] );
+        array_splice( $values, 13, 0, [
+            $mode === 'child' ? $yn( $r['child_accompanying_adult_stays'] ?? 0 ) : '-',
+            $mode === 'child' ? (string) $adults : '-',
+        ] );
+    }
+
+    return $values;
 }
 
 function teinvit_birthday_xlsx_safe_text( $value ) {
@@ -993,9 +1130,14 @@ function teinvit_birthday_export_guest_report_handler() {
     $sets = teinvit_birthday_build_rsvp_report_sets( $token );
     $unique = is_array( $sets['unique'] ?? null ) ? $sets['unique'] : [];
     $history = is_array( $sets['history'] ?? null ) ? $sets['history'] : [];
-    $headers = teinvit_birthday_report_headers();
-    $rows_unique = array_map( 'teinvit_birthday_report_row_values', $unique );
-    $rows_history = array_map( 'teinvit_birthday_report_row_values', $history );
+    $include_mode_column = teinvit_birthday_report_sets_include_mode( $sets );
+    $headers = teinvit_birthday_report_headers( $include_mode_column );
+    $rows_unique = array_map( static function( $row ) use ( $include_mode_column ) {
+        return teinvit_birthday_report_row_values( $row, $include_mode_column );
+    }, $unique );
+    $rows_history = array_map( static function( $row ) use ( $include_mode_column ) {
+        return teinvit_birthday_report_row_values( $row, $include_mode_column );
+    }, $history );
     $kpis = teinvit_birthday_build_rsvp_report_kpis( $sets, $config );
 
     $summary_rows = [ [ 'Metrică', 'Valoare' ] ];

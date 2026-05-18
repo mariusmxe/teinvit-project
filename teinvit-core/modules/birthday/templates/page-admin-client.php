@@ -101,6 +101,7 @@ $ui_selected_version_id = (int) ( $current['id'] ?? $active_id );
 $config = function_exists( 'teinvit_birthday_config_with_defaults' )
     ? teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] )
     : wp_parse_args( is_array( $inv['config'] ?? null ) ? $inv['config'] : [], function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( 'birthday' ) : [] );
+$birthday_rsvp_mode = function_exists( 'teinvit_birthday_rsvp_mode_from_config' ) ? teinvit_birthday_rsvp_mode_from_config( $config ) : ( ( $config['birthday_rsvp_mode'] ?? 'adult' ) === 'child' ? 'child' : 'adult' );
 
 $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
 $edits_paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
@@ -156,6 +157,8 @@ $report_sets = function_exists( 'teinvit_birthday_build_rsvp_report_sets' ) ? te
 $report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
 $report_history = is_array( $report_sets['history'] ?? null ) ? $report_sets['history'] : [];
 $report_kpis = function_exists( 'teinvit_birthday_build_rsvp_report_kpis' ) ? teinvit_birthday_build_rsvp_report_kpis( $report_sets, $config ) : [];
+$report_include_mode = function_exists( 'teinvit_birthday_report_sets_include_mode' ) ? teinvit_birthday_report_sets_include_mode( $report_sets ) : false;
+$report_headers = function_exists( 'teinvit_birthday_report_headers' ) ? teinvit_birthday_report_headers( $report_include_mode ) : [];
 $report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_birthday_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
 $basic_copy = function_exists( 'teinvit_vertical_basic_copy' ) ? teinvit_vertical_basic_copy( 'birthday' ) : [];
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
@@ -194,6 +197,15 @@ $admin_toggle_fields = [
     'show_message' => 'Permite trimiterea unui mesaj către sărbătorit/sărbătoriți',
     'show_special_observations' => 'Permite completarea observațiilor speciale',
 ];
+$admin_child_toggle_fields = [
+    'child_show_attending_party' => 'Permite confirmarea participării la petrecere',
+    'child_show_children_count' => 'Permite completarea numărului de copii participanți',
+    'child_show_accompanying_adults' => 'Permite completarea numărului de adulți însoțitori care rămân la petrecere',
+    'child_show_allergies' => 'Permite menționarea alergiilor sau restricțiilor alimentare',
+    'child_show_vegetarian' => 'Permite selectarea meniului vegetarian',
+    'child_show_special_observations' => 'Permite completarea observațiilor speciale pentru organizator',
+    'child_show_message' => 'Permite trimiterea unui mesaj către sărbătorit/sărbătoriți',
+];
 ?>
 <style>
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page-birthday,.teinvit-admin-page-birthday *{box-sizing:border-box}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}
@@ -202,8 +214,8 @@ $admin_toggle_fields = [
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
 .teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}
 .teinvit-admin-page-birthday .teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle;flex-wrap:wrap;max-width:100%}.teinvit-admin-page-birthday .teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}
-.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
-.teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-table td:nth-child(20),.teinvit-report-table td:nth-child(21){width:42ch;min-width:42ch;white-space:normal;word-break:break-word}
+.teinvit-rsvp-mode-choice{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}.teinvit-rsvp-mode-choice label{display:inline-flex;align-items:center;gap:6px}.teinvit-rsvp-mode-panel[hidden]{display:none!important}.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
+.teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-table td:nth-last-child(1),.teinvit-report-table td:nth-last-child(2){width:42ch;min-width:42ch;white-space:normal;word-break:break-word}
 @media (max-width: 1024px){.teinvit-admin-page-birthday .teinvit-two-col{grid-template-columns:minmax(0,1fr)!important}}
 @media (max-width: 768px){.teinvit-admin-page-birthday{padding:10px;max-width:100%;overflow-x:hidden}.teinvit-admin-page-birthday .teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-admin-page-birthday .teinvit-two-col>div,.teinvit-admin-page-birthday .teinvit-zone,.teinvit-admin-page-birthday .teinvit-apf-col,.teinvit-admin-page-birthday #teinvit-save-form,.teinvit-admin-page-birthday .teinvit-admin-preview-block,.teinvit-admin-page-birthday .teinvit-share-card,.teinvit-admin-page-birthday .teinvit-admin-rsvp-settings{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-preview-block{display:block!important;order:1;overflow:hidden}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-container,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-wedding{display:block!important}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-preview{aspect-ratio:148/210!important;height:auto!important;min-height:0!important;overflow:hidden}.teinvit-admin-page-birthday .teinvit-apf-col .wapf-wrapper,.teinvit-admin-page-birthday .teinvit-apf-col .wapf,.teinvit-admin-page-birthday .teinvit-apf-col form.cart,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field-container,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-repeatable,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field-row,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-input,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-input-wrap{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-apf-col input:not([type=checkbox]):not([type=radio]),.teinvit-admin-page-birthday .teinvit-apf-col select,.teinvit-admin-page-birthday .teinvit-apf-col textarea{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-variant-pdf-actions{display:flex;margin:6px 0 0 0}.teinvit-admin-page-birthday .teinvit-share-actions,.teinvit-admin-page-birthday .teinvit-share-row,.teinvit-admin-page-birthday .teinvit-gifts-actions,.teinvit-admin-page-birthday .teinvit-report-toolbar{max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-share-quick{width:100%;max-width:100%}.teinvit-admin-page-birthday .teinvit-report-grid{grid-template-columns:1fr}}
 @media (max-width: 640px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page{padding:10px}}
@@ -301,13 +313,29 @@ $admin_toggle_fields = [
           <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
           <input type="hidden" name="action" value="teinvit_birthday_save_rsvp_config">
           <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
-          <div class="teinvit-rsvp-toggle-grid">
-            <?php foreach ( $admin_toggle_fields as $config_key => $label ) : ?>
-              <label>
-                <input type="checkbox" name="<?php echo esc_attr( $config_key ); ?>" value="1" <?php checked( ! empty( $config[ $config_key ] ) ); ?>>
-                <?php echo esc_html( $label ); ?>
-              </label>
-            <?php endforeach; ?>
+          <div class="teinvit-rsvp-mode-choice" role="radiogroup" aria-label="Tip formular RSVP Birthday">
+            <label><input type="radio" name="birthday_rsvp_mode" value="adult" <?php checked( $birthday_rsvp_mode, 'adult' ); ?>> Zi de naștere Adult/Adulți</label>
+            <label><input type="radio" name="birthday_rsvp_mode" value="child" <?php checked( $birthday_rsvp_mode, 'child' ); ?>> Zi de naștere Copil/Copii</label>
+          </div>
+          <div class="teinvit-rsvp-mode-panel" data-rsvp-mode-panel="adult" <?php echo $birthday_rsvp_mode === 'adult' ? '' : 'hidden'; ?>>
+            <div class="teinvit-rsvp-toggle-grid">
+              <?php foreach ( $admin_toggle_fields as $config_key => $label ) : ?>
+                <label>
+                  <input type="checkbox" name="<?php echo esc_attr( $config_key ); ?>" value="1" <?php checked( ! empty( $config[ $config_key ] ) ); ?>>
+                  <?php echo esc_html( $label ); ?>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <div class="teinvit-rsvp-mode-panel" data-rsvp-mode-panel="child" <?php echo $birthday_rsvp_mode === 'child' ? '' : 'hidden'; ?>>
+            <div class="teinvit-rsvp-toggle-grid">
+              <?php foreach ( $admin_child_toggle_fields as $config_key => $label ) : ?>
+                <label>
+                  <input type="checkbox" name="<?php echo esc_attr( $config_key ); ?>" value="1" <?php checked( ! empty( $config[ $config_key ] ) ); ?>>
+                  <?php echo esc_html( $label ); ?>
+                </label>
+              <?php endforeach; ?>
+            </div>
           </div>
           <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
             <p><button type="submit" class="button">Publică selecțiile</button></p>
@@ -433,7 +461,7 @@ $admin_toggle_fields = [
     </div>
     <div class="teinvit-report-table-wrap">
       <table class="teinvit-report-table" id="teinvit-birthday-report-table">
-        <thead><tr><th>Status</th><th>Nume</th><th>Prenume</th><th>Telefon</th><th>Email</th><th>Data/ora submit</th><th>Participă la petrecere</th><th>Persoane participante</th><th>Adulți</th><th>Copii</th><th>Câți copii</th><th>Meniu copii</th><th>Meniuri copii</th><th>Cazare</th><th>Cazare nr. persoane</th><th>Vegetarian</th><th>Meniuri vegetariene</th><th>Alergii</th><th>Detalii alergii</th><th>Mesaj către sărbătorit/sărbătoriți</th><th>Observații speciale</th></tr></thead>
+        <thead><tr><?php foreach ( $report_headers as $header ) : ?><th><?php echo esc_html( (string) $header ); ?></th><?php endforeach; ?></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -470,6 +498,7 @@ $admin_toggle_fields = [
   const giftsMaxSlots = <?php echo (int) $gifts_max_slots; ?>;
   const reportUnique = <?php echo wp_json_encode( $report_unique ); ?>;
   const reportHistory = <?php echo wp_json_encode( $report_history ); ?>;
+  const reportIncludeMode = <?php echo $report_include_mode ? 'true' : 'false'; ?>;
 
   window.teinvitBirthdayPreviewConfig.adminClient = true;
   window.teinvitBirthdayPreviewConfig.deferInitialBuild = true;
@@ -490,6 +519,18 @@ $admin_toggle_fields = [
   function yn(value){
     return Number(value) === 1 ? 'DA' : 'NU';
   }
+
+  function refreshRsvpModePanels(){
+    const selected = document.querySelector('input[name="birthday_rsvp_mode"]:checked')?.value || 'adult';
+    qsa('[data-rsvp-mode-panel]').forEach(function(panel){
+      panel.hidden = panel.getAttribute('data-rsvp-mode-panel') !== selected;
+    });
+  }
+
+  qsa('input[name="birthday_rsvp_mode"]').forEach(function(radio){
+    radio.addEventListener('change', refreshRsvpModePanels);
+  });
+  refreshRsvpModePanels();
 
   const giftsBody = document.getElementById('teinvit-birthday-gifts-body');
   const giftsEditor = document.getElementById('teinvit-birthday-gifts-editor');
@@ -587,41 +628,47 @@ $admin_toggle_fields = [
 
   const reportTableBody = document.querySelector('#teinvit-birthday-report-table tbody');
   function mapBirthdayReportRow(r){
-    const adults = Math.max(0, Number(r.attending_people_count || 0));
-    const kids = Number(r.bringing_kids) === 1 ? Math.max(0, Number(r.kids_count || 0)) : 0;
+    const mode = String(r.birthday_rsvp_mode || 'adult') === 'child' ? 'child' : 'adult';
+    const adults = mode === 'child' ? Math.max(0, Number(r.child_accompanying_adults_count || 0)) : Math.max(0, Number(r.attending_people_count || 0));
+    const kids = mode === 'child' ? Math.max(0, Number(r.child_participants_count || 0)) : (Number(r.bringing_kids) === 1 ? Math.max(0, Number(r.kids_count || 0)) : 0);
     const childMenuRequested = Number(r.child_menu_requested || 0) === 1;
     const partyActive = Number(r.party_question_active_at_submit || 0) === 1;
     const message = String(r.message_to_celebrants || '');
     const observations = String(r.special_observations || '');
+    const cells = [
+      r.multi_badge || '',
+      r.guest_last_name || '',
+      r.guest_first_name || '',
+      r.guest_phone || '',
+      r.guest_email || '',
+      r.created_at_display || '',
+      partyActive ? yn(r.attending_party) : 'N/A',
+      String(adults + kids),
+      String(adults),
+      mode === 'child' ? (kids > 0 ? 'DA' : 'NU') : yn(r.bringing_kids),
+      (mode === 'child' || Number(r.bringing_kids) === 1) ? String(kids) : '-',
+      childMenuRequested ? 'DA' : 'NU',
+      childMenuRequested ? String(Math.max(0, Number(r.child_menu_count || 0))) : '-',
+      yn(r.needs_accommodation),
+      Number(r.needs_accommodation) === 1 ? String(r.accommodation_people_count || '-') : '-',
+      yn(r.vegetarian_requested),
+      Number(r.vegetarian_requested) === 1 ? String(r.vegetarian_menus_count || '-') : '-',
+      yn(r.has_allergies),
+      Number(r.has_allergies) === 1 ? (r.allergy_details || '-') : '-',
+      message.trim() !== '' ? message : '-',
+      observations.trim() !== '' ? observations : '-'
+    ];
+    if (reportIncludeMode) {
+      cells.splice(1, 0, mode === 'child' ? 'Copil/Copii' : 'Adult/Adulti');
+      cells.splice(13, 0, mode === 'child' ? yn(r.child_accompanying_adult_stays) : '-', mode === 'child' ? String(adults) : '-');
+    }
     return {
       is_multi: Number(r.is_multi || 0) === 1,
       party_da: partyActive && Number(r.attending_party || 0) === 1,
       cazare_da: Number(r.needs_accommodation || 0) === 1,
       has_message: message.trim() !== '',
       has_observations: observations.trim() !== '',
-      cells: [
-        r.multi_badge || '',
-        r.guest_last_name || '',
-        r.guest_first_name || '',
-        r.guest_phone || '',
-        r.guest_email || '',
-        r.created_at_display || '',
-        partyActive ? yn(r.attending_party) : 'N/A',
-        String(adults + kids),
-        String(adults),
-        yn(r.bringing_kids),
-        Number(r.bringing_kids) === 1 ? String(kids) : '-',
-        childMenuRequested ? 'DA' : 'NU',
-        childMenuRequested ? String(Math.max(0, Number(r.child_menu_count || 0))) : '-',
-        yn(r.needs_accommodation),
-        Number(r.needs_accommodation) === 1 ? String(r.accommodation_people_count || '-') : '-',
-        yn(r.vegetarian_requested),
-        Number(r.vegetarian_requested) === 1 ? String(r.vegetarian_menus_count || '-') : '-',
-        yn(r.has_allergies),
-        Number(r.has_allergies) === 1 ? (r.allergy_details || '-') : '-',
-        message.trim() !== '' ? message : '-',
-        observations.trim() !== '' ? observations : '-'
-      ]
+      cells: cells
     };
   }
 

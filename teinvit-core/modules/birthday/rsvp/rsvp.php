@@ -32,6 +32,236 @@ function teinvit_birthday_rsvp_config_enabled( array $config, $key, $fallback_ke
     return false;
 }
 
+function teinvit_birthday_child_special_observations_labels() {
+    return [
+        'pickup_time' => 'Copilul trebuie preluat la o anumită oră.',
+        'shy' => 'Copilul este mai timid.',
+        'restricted_activities' => 'Copilul nu are voie anumite activități.',
+        'accompanied_start_only' => 'Copilul va veni însoțit doar la început.',
+        'other' => 'Alte observații.',
+    ];
+}
+
+function teinvit_birthday_handle_child_rsvp_submit( $token, array $config, array $p, $first_name, $last_name, $phone, $email ) {
+    global $wpdb;
+
+    $show_party = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_attending_party' );
+    $show_children_count = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_children_count' );
+    $show_accompanying_adults = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_accompanying_adults' );
+    $show_vegetarian = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_vegetarian' );
+    $show_allergies = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_allergies' );
+    $show_message = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_message' );
+    $show_special_observations = teinvit_birthday_rsvp_config_enabled( $config, 'child_show_special_observations' );
+
+    $attending_party = $show_party ? teinvit_birthday_rsvp_bool( $p, 'attending_party' ) : 1;
+
+    $children_raw = isset( $p['child_participants_count'] ) ? trim( (string) $p['child_participants_count'] ) : '';
+    $children_submitted = $children_raw === '' ? null : (int) $p['child_participants_count'];
+    if ( ! $attending_party ) {
+        if ( $children_submitted !== null && $children_submitted !== 0 ) {
+            return new WP_Error( 'child_count_party_no_invalid', 'Dacă nu participați la petrecere, numărul de copii trebuie să fie 0.', [ 'status' => 400, 'field' => 'child_participants_count' ] );
+        }
+        $child_participants_count = 0;
+    } elseif ( $show_children_count ) {
+        if ( $children_submitted === null || $children_submitted < 1 || $children_submitted > 99 ) {
+            return new WP_Error( 'child_count_invalid', 'Completați numărul de copii participanți, între 1 și 99.', [ 'status' => 400, 'field' => 'child_participants_count' ] );
+        }
+        $child_participants_count = $children_submitted;
+    } else {
+        $child_participants_count = 1;
+    }
+
+    if ( $child_participants_count > 99 ) {
+        return new WP_Error( 'child_count_invalid', 'Numărul de copii participanți este prea mare.', [ 'status' => 400, 'field' => 'child_participants_count' ] );
+    }
+
+    $adult_stays = $show_accompanying_adults ? teinvit_birthday_rsvp_bool( $p, 'child_accompanying_adult_stays' ) : 0;
+    $adult_raw = isset( $p['child_accompanying_adults_count'] ) ? trim( (string) $p['child_accompanying_adults_count'] ) : '';
+    $adult_submitted = $adult_raw === '' ? null : (int) $p['child_accompanying_adults_count'];
+    if ( ! $attending_party && $adult_submitted !== null && $adult_submitted !== 0 ) {
+        return new WP_Error( 'child_adults_party_no_invalid', 'Dacă nu participați la petrecere, numărul adulților însoțitori trebuie să fie 0.', [ 'status' => 400, 'field' => 'child_accompanying_adults_count' ] );
+    }
+    if ( $adult_stays ) {
+        if ( $adult_submitted === null || $adult_submitted < 1 || $adult_submitted > 99 ) {
+            return new WP_Error( 'child_adults_count_invalid', 'Completați numărul de adulți însoțitori, între 1 și 99.', [ 'status' => 400, 'field' => 'child_accompanying_adults_count' ] );
+        }
+        $child_accompanying_adults_count = $adult_submitted;
+    } else {
+        if ( $adult_submitted !== null && $adult_submitted !== 0 ) {
+            return new WP_Error( 'child_adults_count_no_invalid', 'Dacă adultul însoțitor nu rămâne, numărul adulților trebuie să fie 0.', [ 'status' => 400, 'field' => 'child_accompanying_adults_count' ] );
+        }
+        $child_accompanying_adults_count = 0;
+    }
+
+    $vegetarian_requested = $show_vegetarian ? teinvit_birthday_rsvp_bool( $p, 'vegetarian_requested' ) : 0;
+    $vegetarian_menus_count = $vegetarian_requested ? max( 0, teinvit_birthday_rsvp_int( $p, 'vegetarian_menus_count', 0 ) ) : 0;
+    if ( $vegetarian_requested ) {
+        $max_vegetarian_menus = $child_participants_count + $child_accompanying_adults_count;
+        if ( $max_vegetarian_menus <= 0 ) {
+            return new WP_Error( 'vegetarian_party_no_invalid', 'Meniul vegetarian poate fi solicitat doar pentru participanți.', [ 'status' => 400, 'field' => 'vegetarian_menus_count' ] );
+        }
+        if ( $vegetarian_menus_count < 1 || $vegetarian_menus_count > $max_vegetarian_menus ) {
+            return new WP_Error( 'vegetarian_menus_invalid', 'Numărul de meniuri vegetariene nu poate depăși totalul copiilor și adulților însoțitori.', [
+                'status' => 400,
+                'field' => 'vegetarian_menus_count',
+                'max' => $max_vegetarian_menus,
+            ] );
+        }
+    }
+
+    $has_allergies = $show_allergies ? teinvit_birthday_rsvp_bool( $p, 'has_allergies' ) : 0;
+    $allergy_details = $has_allergies ? sanitize_textarea_field( (string) ( $p['allergy_details'] ?? '' ) ) : '';
+    if ( $has_allergies && trim( $allergy_details ) === '' ) {
+        return new WP_Error( 'allergy_details_required', 'Completați alergiile sau restricțiile alimentare.', [ 'status' => 400, 'field' => 'allergy_details' ] );
+    }
+
+    $message_to_celebrants = $show_message ? sanitize_textarea_field( (string) ( $p['message_to_celebrants'] ?? '' ) ) : '';
+
+    $allowed_observation_labels = teinvit_birthday_child_special_observations_labels();
+    $child_special_options = [];
+    $child_special_other = '';
+    $special_observations = '';
+    if ( $show_special_observations ) {
+        $raw_options = isset( $p['child_special_observations_options'] ) && is_array( $p['child_special_observations_options'] ) ? $p['child_special_observations_options'] : [];
+        foreach ( $raw_options as $option ) {
+            $key = sanitize_key( (string) $option );
+            if ( isset( $allowed_observation_labels[ $key ] ) && ! in_array( $key, $child_special_options, true ) ) {
+                $child_special_options[] = $key;
+            }
+        }
+
+        $child_special_other = sanitize_textarea_field( (string) ( $p['child_special_observations_other'] ?? '' ) );
+        if ( in_array( 'other', $child_special_options, true ) && trim( $child_special_other ) === '' ) {
+            return new WP_Error( 'child_special_observations_other_required', 'Completați câmpul Alte observații.', [ 'status' => 400, 'field' => 'child_special_observations_other' ] );
+        }
+
+        $parts = [];
+        foreach ( $child_special_options as $option ) {
+            if ( $option === 'other' ) {
+                continue;
+            }
+            $parts[] = $allowed_observation_labels[ $option ];
+        }
+        if ( in_array( 'other', $child_special_options, true ) && trim( $child_special_other ) !== '' ) {
+            $parts[] = 'Alte observații: ' . trim( $child_special_other );
+        }
+        $special_observations = implode( "\n", $parts );
+    }
+
+    $common = [
+        'token' => $token,
+        'guest_first_name' => $first_name,
+        'guest_last_name' => $last_name,
+        'guest_email' => $email,
+        'guest_phone' => $phone,
+        'attending_people_count' => $child_accompanying_adults_count,
+        'attending_civil' => 0,
+        'attending_religious' => 0,
+        'attending_party' => $attending_party,
+        'bringing_kids' => $child_participants_count > 0 ? 1 : 0,
+        'kids_count' => $child_participants_count,
+        'needs_accommodation' => 0,
+        'accommodation_people_count' => 0,
+        'vegetarian_requested' => $vegetarian_requested,
+        'vegetarian_menus_count' => $vegetarian_menus_count,
+        'has_allergies' => $has_allergies,
+        'allergy_details' => $allergy_details,
+        'message_to_couple' => $message_to_celebrants,
+        'gdpr_accepted' => 1,
+        'marketing_consent' => teinvit_birthday_rsvp_bool( $p, 'marketing_consent' ),
+        'created_at' => current_time( 'mysql' ),
+    ];
+
+    $extra = [
+        'vertical' => 'birthday',
+        'birthday_rsvp_mode' => 'child',
+        'attending_party' => $attending_party,
+        'child_participants_count' => $child_participants_count,
+        'child_accompanying_adult_stays' => $adult_stays,
+        'child_accompanying_adults_count' => $child_accompanying_adults_count,
+        'child_special_observations_options' => $child_special_options,
+        'child_special_observations_other' => $child_special_other,
+        'special_observations' => $special_observations,
+        'message_to_celebrants' => $message_to_celebrants,
+        'config_snapshot' => [
+            'birthday_rsvp_mode' => 'child',
+            'child_show_attending_party' => $show_party ? 1 : 0,
+            'child_show_children_count' => $show_children_count ? 1 : 0,
+            'child_show_accompanying_adults' => $show_accompanying_adults ? 1 : 0,
+            'child_show_allergies' => $show_allergies ? 1 : 0,
+            'child_show_vegetarian' => $show_vegetarian ? 1 : 0,
+            'child_show_special_observations' => $show_special_observations ? 1 : 0,
+            'child_show_message' => $show_message ? 1 : 0,
+        ],
+    ];
+
+    $insert_data = function_exists( 'teinvit_prepare_hybrid_rsvp_insert_data' )
+        ? teinvit_prepare_hybrid_rsvp_insert_data( 'birthday', $common, $extra )
+        : array_merge( $common, [ 'extra_fields' => wp_json_encode( $extra ) ] );
+
+    $table = function_exists( 'teinvit_rsvp_table_for_token' ) ? teinvit_rsvp_table_for_token( $token, 'birthday' ) : '';
+    if ( $table === '' ) {
+        return new WP_Error( 'rsvp_storage_missing', 'Storage RSVP indisponibil.', [ 'status' => 500 ] );
+    }
+
+    $selected_gift_ids = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) ( $p['gift_ids'] ?? [] ) ), static function( $gift_id ) {
+        return trim( (string) $gift_id ) !== '';
+    } ) ) );
+    $gifts_table = '';
+    if ( ! empty( $selected_gift_ids ) ) {
+        $gifts_table = function_exists( 'teinvit_birthday_gifts_table_for_token' )
+            ? teinvit_birthday_gifts_table_for_token( $token )
+            : ( function_exists( 'teinvit_gifts_table_for_token' ) ? teinvit_gifts_table_for_token( $token, 'birthday' ) : '' );
+
+        if ( $gifts_table === '' ) {
+            return new WP_Error( 'gifts_storage_missing', 'Storage cadouri indisponibil.', [ 'status' => 500 ] );
+        }
+    }
+
+    $wpdb->query( 'START TRANSACTION' );
+
+    $inserted = $wpdb->insert( $table, $insert_data );
+    if ( ! $inserted || ! $wpdb->insert_id ) {
+        $wpdb->query( 'ROLLBACK' );
+        return new WP_Error( 'rsvp_failed', 'Nu s-a putut salva RSVP', [ 'status' => 500 ] );
+    }
+
+    $rsvp_id = (int) $wpdb->insert_id;
+
+    foreach ( $selected_gift_ids as $gift_id ) {
+        $updated = $wpdb->query( $wpdb->prepare(
+            "UPDATE {$gifts_table} SET status='reserved', reserved_by_rsvp_id=%d, reserved_at=%s WHERE token=%s AND gift_id=%s AND include_in_public=1 AND status='free'",
+            $rsvp_id,
+            current_time( 'mysql' ),
+            $token,
+            $gift_id
+        ) );
+
+        if ( $updated !== 1 ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'gift_conflict', 'Cadou deja rezervat între timp.', [ 'status' => 409 ] );
+        }
+    }
+
+    $wpdb->query( 'COMMIT' );
+
+    if ( function_exists( 'teinvit_touch_invitation_activity_for_token' ) ) {
+        teinvit_touch_invitation_activity_for_token( $token, 'birthday' );
+    }
+
+    $rsvp_payload = array_merge( $common, [
+        'vertical' => 'birthday',
+        'rsvp_id' => $rsvp_id,
+        'extra_fields' => $extra,
+    ] );
+    do_action( 'teinvit_rsvp_saved', $token, $rsvp_id, $rsvp_payload );
+
+    return rest_ensure_response( [
+        'ok' => true,
+        'rsvp_id' => $rsvp_id,
+    ] );
+}
+
 function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
     global $wpdb;
 
@@ -83,6 +313,11 @@ function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
 
     if ( empty( $p['gdpr_accepted'] ) ) {
         return new WP_Error( 'gdpr_required', 'GDPR este obligatoriu', [ 'status' => 400, 'field' => 'gdpr_accepted' ] );
+    }
+
+    $rsvp_mode = function_exists( 'teinvit_birthday_rsvp_mode_from_config' ) ? teinvit_birthday_rsvp_mode_from_config( $config ) : ( ( $config['birthday_rsvp_mode'] ?? 'adult' ) === 'child' ? 'child' : 'adult' );
+    if ( $rsvp_mode === 'child' ) {
+        return teinvit_birthday_handle_child_rsvp_submit( $token, $config, $p, $first_name, $last_name, $phone, $email );
     }
 
     $show_party = teinvit_birthday_rsvp_config_enabled( $config, 'show_attending_party' );
@@ -191,6 +426,7 @@ function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
 
     $extra = [
         'vertical' => 'birthday',
+        'birthday_rsvp_mode' => 'adult',
         'attending_party' => $attending_party,
         'show_guest_count' => $show_guest_count ? 1 : 0,
         'child_menu_requested' => $child_menu_requested,
@@ -198,6 +434,7 @@ function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
         'message_to_celebrants' => $message_to_celebrants,
         'special_observations' => $special_observations,
         'config_snapshot' => [
+            'birthday_rsvp_mode' => 'adult',
             'show_attending_party' => $show_party ? 1 : 0,
             'show_guest_count' => $show_guest_count ? 1 : 0,
             'show_kids' => $show_kids ? 1 : 0,
