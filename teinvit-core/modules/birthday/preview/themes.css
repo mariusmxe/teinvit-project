@@ -386,8 +386,6 @@
 }
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-divider {
-<<<<<<< ours
-<<<<<<< ours
   width: min(82%, 320px);
   height: 40px;
   margin: 0.36em auto 0.42em;
@@ -400,18 +398,6 @@
   width: 100%;
   height: 100%;
   overflow: visible;
-=======
-=======
->>>>>>> theirs
-  width: 96px;
-  height: 1px;
-  margin: 0.28em auto 0.34em;
-  background: var(--b-color-accent);
-  opacity: .55;
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
 }
 
 .teinvit-birthday .teinvit-canvas[class*="theme-birthday-"] .inv-events .inv-event .inv-weekday {
