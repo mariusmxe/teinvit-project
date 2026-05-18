@@ -4,8 +4,6 @@
     var MESSAGE_MAX = 255;
     var BUILD_DEBOUNCE_MS = 140;
     var buildTimer = null;
-<<<<<<< ours
-<<<<<<< ours
     var buildSeq = 0;
     var lastAppliedSeq = 0;
     var inFlightController = null;
@@ -20,14 +18,6 @@
     var lastPreviewBoxSignature = '';
     var pendingPreviewLayoutCanvas = null;
     var pendingPdfLayoutCanvas = null;
-=======
-    var pdfReadyCheckTimer = null;
-    var pdfReadyCheckAttempts = 0;
->>>>>>> theirs
-=======
-    var pdfReadyCheckTimer = null;
-    var pdfReadyCheckAttempts = 0;
->>>>>>> theirs
 
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -249,8 +239,6 @@
         canvas.classList.add(vertical);
     }
 
-<<<<<<< ours
-<<<<<<< ours
     var DIVIDER_SVG = {
         'little-princess': '<line stroke="#C8A96A" stroke-dasharray="6 5" stroke-linecap="round" stroke-width="1.8" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#C8A96A" stroke-dasharray="6 5" stroke-linecap="round" stroke-width="1.8" x1="202" x2="308" y1="35" y2="35"></line><circle cx="160" cy="35" fill="white" opacity="0.55" r="16" stroke="#2B5A78" stroke-width="1.4"></circle><text fill="#6A5E5A" font-size="12" style="font-family: Noto Sans Symbols 2, Noto Sans Symbols, Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">✧</text><text fill="#6A5E5A" font-size="12" style="font-family: Noto Sans Symbols 2, Noto Sans Symbols, Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">✧</text><text fill="#C77D8C" font-size="22" style="font-family: Noto Sans Symbols 2, Noto Sans Symbols, Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">∞</text>',
         'blush-angel': '<line stroke="#DCC38A" stroke-linecap="round" stroke-width="2.0" x1="12" x2="118" y1="35" y2="35"></line><line stroke="#DCC38A" stroke-linecap="round" stroke-width="2.0" x1="202" x2="308" y1="35" y2="35"></line><text fill="#8C7E80" font-size="12" style="font-family: Noto Sans Symbols 2, Noto Sans Symbols, Georgia, Times New Roman, serif;" text-anchor="middle" x="126" y="38">✦</text><text fill="#8C7E80" font-size="12" style="font-family: Noto Sans Symbols 2, Noto Sans Symbols, Georgia, Times New Roman, serif;" text-anchor="middle" x="194" y="38">✦</text><text fill="#E3A8B9" font-size="22" style="font-family: Noto Sans Symbols 2, Noto Sans Symbols, Georgia, Times New Roman, serif;" text-anchor="middle" x="160" y="42">✧</text>',
@@ -314,10 +302,6 @@
         });
     }
 
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     function invitationLayoutSignature(inv) {
         if (!inv || typeof inv !== 'object') return '';
         return JSON.stringify({
@@ -348,14 +332,8 @@
 
         applyTheme(canvas, inv.theme || 'little-princess');
         window.__TEINVIT_LAYOUT_SIG__ = invitationLayoutSignature(inv);
-<<<<<<< ours
-<<<<<<< ours
         window.__TEINVIT_AUTOFIT_DONE__ = false;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
         if (window.__TEINVIT_PDF_MODE__) {
             window.TEINVIT_RENDER_READY = false;
@@ -435,8 +413,6 @@
 
     function hasOverflow(el) { return engine() ? engine().hasOverflow(el) : (el && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)); }
 
-<<<<<<< ours
-<<<<<<< ours
     function schedulePdfReadyCheck(canvas) {
         if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
         pendingPdfLayoutCanvas = canvas;
@@ -586,17 +562,6 @@
         if (hasOverflow(canvas)) {
             fitBaptismNameText(canvas, true);
             distributeVerticalSpace(canvas);
-=======
-=======
->>>>>>> theirs
-        if (window.__TEINVIT_PDF_MODE__) {
-            schedulePdfReadyCheck(canvas);
-        } else {
-            window.TEINVIT_RENDER_READY = true;
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
         }
         protectNameSection(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
@@ -627,46 +592,6 @@
         window.__TEINVIT_FINAL_PASS_DONE__ = true;
     }
 
-    function schedulePdfReadyCheck(canvas) {
-        if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
-        if (pdfReadyCheckTimer) clearTimeout(pdfReadyCheckTimer);
-        pdfReadyCheckTimer = setTimeout(function () {
-            requestAnimationFrame(function () {
-                requestAnimationFrame(function () {
-                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 4) {
-                        pdfReadyCheckAttempts++;
-                        window.__TEINVIT_AUTOFIT_DONE__ = false;
-                        applyAutoFit(canvas);
-                        schedulePdfReadyCheck(canvas);
-                        return;
-                    }
-                    window.TEINVIT_RENDER_READY = true;
-                    window.__TEINVIT_PDF_READY__ = true;
-                });
-            });
-        }, 40);
-    }
-
-    function schedulePdfReadyCheck(canvas) {
-        if (!window.__TEINVIT_PDF_MODE__ || !canvas) return;
-        if (pdfReadyCheckTimer) clearTimeout(pdfReadyCheckTimer);
-        pdfReadyCheckTimer = setTimeout(function () {
-            requestAnimationFrame(function () {
-                requestAnimationFrame(function () {
-                    if (hasOverflow(canvas) && pdfReadyCheckAttempts < 4) {
-                        pdfReadyCheckAttempts++;
-                        window.__TEINVIT_AUTOFIT_DONE__ = false;
-                        applyAutoFit(canvas);
-                        schedulePdfReadyCheck(canvas);
-                        return;
-                    }
-                    window.TEINVIT_RENDER_READY = true;
-                    window.__TEINVIT_PDF_READY__ = true;
-                });
-            });
-        }, 40);
-    }
-
     function applyAutoFit(canvas) {
         if (!canvas) return;
         var currentSig = window.__TEINVIT_LAYOUT_SIG__ || '';
@@ -678,20 +603,6 @@
             currentSig === lastSig
         ) {
             return;
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
-        }
-        if (engine() && typeof engine().autoFit === 'function') {
-            engine().autoFit(canvas, { min: 0.58, step: 0.02, maxLoops: 60 });
-        }
-        if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
-            window.__TEINVIT_AUTOFIT_DONE__ = true;
-            window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
-<<<<<<< ours
->>>>>>> theirs
         }
         fitBaptismNameText(canvas, false);
         distributeVerticalSpace(canvas);
@@ -707,8 +618,6 @@
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
             window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
-=======
->>>>>>> theirs
         }
     }
 
@@ -916,38 +825,17 @@
         window.__TEINVIT_AUTOFIT_DONE__ = false;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
         pdfReadyCheckAttempts = 0;
-<<<<<<< ours
-<<<<<<< ours
         finalizedProductSignature = '';
         lastStableProductSignature = '';
         lastAppliedSeq = 0;
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     });
 
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(function () {
-<<<<<<< ours
-<<<<<<< ours
             pdfFontsReady = true;
             if (pendingPdfLayoutCanvas) schedulePdfReadyCheck(pendingPdfLayoutCanvas);
             if (pendingPreviewLayoutCanvas) schedulePreviewFinalLayout(pendingPreviewLayoutCanvas);
         }).catch(function () {});
     }
 
-=======
-=======
->>>>>>> theirs
-            window.__TEINVIT_AUTOFIT_DONE__ = false;
-            window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
-            var data = window.TEINVIT_INVITATION_DATA;
-            if (data) renderInvitation(data);
-        }).catch(function () {});
-    }
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
 })();
