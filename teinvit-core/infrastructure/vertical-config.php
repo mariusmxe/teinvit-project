@@ -300,6 +300,14 @@ function teinvit_vertical_share_payload( $vertical_key, array $invitation = [], 
 function teinvit_render_vertical_admin_client_foundation( $token, $vertical_key, $order = null ) {
     $token = sanitize_text_field( (string) $token );
     $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
+    if ( $vertical_key === 'baptism' && function_exists( 'teinvit_baptism_admin_client_template' ) ) {
+        echo teinvit_baptism_admin_client_template( [ // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            'token' => $token,
+            'order' => $order,
+        ] );
+        return;
+    }
+
     $semantics = teinvit_vertical_semantics( $vertical_key );
     $label = (string) ( $semantics['label'] ?? ucfirst( $vertical_key ) );
     $copy = teinvit_vertical_basic_copy( $vertical_key );
@@ -355,6 +363,16 @@ function teinvit_render_vertical_admin_client_foundation( $token, $vertical_key,
 function teinvit_render_vertical_invitati_foundation( $token, $vertical_key, $order = null, array $invitation = [], $preview_html = '' ) {
     $token = sanitize_text_field( (string) $token );
     $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
+    if ( $vertical_key === 'baptism' && function_exists( 'teinvit_baptism_invitati_template' ) ) {
+        echo teinvit_baptism_invitati_template( [ // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            'token' => $token,
+            'order' => $order,
+            'invitation' => $invitation,
+            'preview_html' => $preview_html,
+        ] );
+        return;
+    }
+
     $semantics = teinvit_vertical_semantics( $vertical_key );
     $label = (string) ( $semantics['label'] ?? ucfirst( $vertical_key ) );
 

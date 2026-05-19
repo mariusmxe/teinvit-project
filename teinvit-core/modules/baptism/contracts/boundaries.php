@@ -19,26 +19,26 @@ function teinvit_baptism_module_boundaries_contract() {
             'provider' => 'teinvit_baptism_renderer',
         ],
         'admin_client' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_admin_client_placeholder',
+            'status' => 'phase5_ready',
+            'provider' => 'teinvit_baptism_admin_client_template',
             'acf_binding_phase' => 'phase5',
         ],
         'invitati' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_invitati_placeholder',
+            'status' => 'phase5_ready',
+            'provider' => 'teinvit_baptism_invitati_template',
             'acf_binding_phase' => 'phase5',
         ],
         'rsvp' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_rsvp_placeholder',
+            'status' => 'phase5_ready',
+            'provider' => 'teinvit_baptism_handle_rsvp_rest',
         ],
         'reports' => [
-            'status' => 'scaffold',
-            'provider' => 'teinvit_baptism_reports_placeholder',
+            'status' => 'phase5_ready',
+            'provider' => 'teinvit_baptism_build_rsvp_report_sets',
         ],
         'gifts' => [
-            'status' => 'shared_engine_ready',
-            'provider' => 'teinvit_baptism_gifts_placeholder',
+            'status' => 'phase5_ready',
+            'provider' => 'teinvit_baptism_build_gifts_summary_for_token',
             'engine' => 'shared_wedding_gifts_engine',
         ],
         'email_semantics' => [
