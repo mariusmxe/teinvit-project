@@ -120,6 +120,8 @@ function teinvit_birthday_handle_child_rsvp_submit( $token, array $config, array
     $allowed_observation_labels = teinvit_birthday_child_special_observations_labels();
     $child_special_options = [];
     $child_special_other = '';
+    $child_pickup_time = '';
+    $child_restricted_activities = '';
     $special_observations = '';
     if ( $show_special_observations ) {
         $raw_options = isset( $p['child_special_observations_options'] ) && is_array( $p['child_special_observations_options'] ) ? $p['child_special_observations_options'] : [];
@@ -135,9 +137,33 @@ function teinvit_birthday_handle_child_rsvp_submit( $token, array $config, array
             return new WP_Error( 'child_special_observations_other_required', 'Completați câmpul Alte observații.', [ 'status' => 400, 'field' => 'child_special_observations_other' ] );
         }
 
+        $child_pickup_time = sanitize_text_field( (string) ( $p['child_pickup_time'] ?? '' ) );
+        if ( in_array( 'pickup_time', $child_special_options, true ) && trim( $child_pickup_time ) === '' ) {
+            return new WP_Error( 'child_pickup_time_required', 'Completați ora la care copilul trebuie preluat.', [ 'status' => 400, 'field' => 'child_pickup_time' ] );
+        }
+        if ( ! in_array( 'pickup_time', $child_special_options, true ) ) {
+            $child_pickup_time = '';
+        }
+
+        $child_restricted_activities = sanitize_textarea_field( (string) ( $p['child_restricted_activities'] ?? '' ) );
+        if ( in_array( 'restricted_activities', $child_special_options, true ) && trim( $child_restricted_activities ) === '' ) {
+            return new WP_Error( 'child_restricted_activities_required', 'Completați activitățile care trebuie evitate.', [ 'status' => 400, 'field' => 'child_restricted_activities' ] );
+        }
+        if ( ! in_array( 'restricted_activities', $child_special_options, true ) ) {
+            $child_restricted_activities = '';
+        }
+
         $parts = [];
         foreach ( $child_special_options as $option ) {
             if ( $option === 'other' ) {
+                continue;
+            }
+            if ( $option === 'pickup_time' ) {
+                $parts[] = rtrim( $allowed_observation_labels[ $option ], ". \t\n\r\0\x0B" ) . ': ' . trim( $child_pickup_time );
+                continue;
+            }
+            if ( $option === 'restricted_activities' ) {
+                $parts[] = rtrim( $allowed_observation_labels[ $option ], ". \t\n\r\0\x0B" ) . ': ' . trim( $child_restricted_activities );
                 continue;
             }
             $parts[] = $allowed_observation_labels[ $option ];
@@ -180,6 +206,8 @@ function teinvit_birthday_handle_child_rsvp_submit( $token, array $config, array
         'child_accompanying_adult_stays' => $adult_stays,
         'child_accompanying_adults_count' => $child_accompanying_adults_count,
         'child_special_observations_options' => $child_special_options,
+        'child_pickup_time' => $child_pickup_time,
+        'child_restricted_activities' => $child_restricted_activities,
         'child_special_observations_other' => $child_special_other,
         'special_observations' => $special_observations,
         'message_to_celebrants' => $message_to_celebrants,

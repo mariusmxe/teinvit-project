@@ -133,6 +133,7 @@ if ( $show_gifts_section ) {
 ?>
 <style>
 .teinvit-slot-preview{display:block!important;visibility:visible!important;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:10px;margin:0 auto 16px;max-width:980px;overflow:hidden}.teinvit-slot-preview,.teinvit-slot-preview *{box-sizing:border-box}.teinvit-slot-preview>.teinvit-wedding,.teinvit-slot-preview .teinvit-page,.teinvit-slot-preview .teinvit-container{width:100%;max-width:100%;min-width:0;margin-left:auto;margin-right:auto}.teinvit-slot-preview .teinvit-preview{width:min(100%,559px)!important;max-width:100%!important;aspect-ratio:148/210!important;height:auto!important;min-height:0!important;margin:0 auto!important;overflow:hidden!important}.teinvit-birthday-invitati{max-width:980px;margin:0 auto}.teinvit-birthday-invitati *{box-sizing:border-box}.teinvit-surface-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:18px}.teinvit-rsvp-card{margin-top:16px;max-width:100%;min-width:0}.teinvit-info-card{margin-top:16px}.teinvit-info-deadline-row{text-align:center;margin-bottom:10px}.teinvit-info-meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.teinvit-info-pill{border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:10px;background:#fafafa}.teinvit-info-meta-row .teinvit-info-pill{flex:1 1 240px;max-width:360px;text-align:center}.teinvit-birthday-invitati form,.teinvit-birthday-invitati fieldset{max-width:100%;min-width:0;min-inline-size:0}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}.teinvit-rsvp-field label,.teinvit-rsvp-field input,.teinvit-rsvp-field textarea{display:block;width:100%}.teinvit-rsvp-question{margin-bottom:0}.teinvit-rsvp-choice-group{margin-top:6px}.teinvit-rsvp-choice-group label{display:block;margin-bottom:4px}.teinvit-rsvp-dependent{margin-top:8px;margin-left:16px}.teinvit-rsvp-dependent input{max-width:220px}.teinvit-separator{border:0;height:1px;background:linear-gradient(90deg,transparent,rgba(176,146,97,.7),transparent);margin:20px 0}.teinvit-rsvp-message-wrap textarea{width:100%;min-height:130px;resize:vertical}.teinvit-rsvp-submit-wrap{text-align:center;margin-top:14px}.teinvit-rsvp-submit-wrap button{min-width:170px}.teinvit-inline-error{display:block;color:#a00000;margin-top:4px}.teinvit-field-error{border-color:#a00000!important}.teinvit-rsvp-status{text-align:center;margin-top:10px}.teinvit-rsvp-status.is-ok{color:#176b2c}.teinvit-rsvp-status.is-error{color:#a00000}.teinvit-gifts-intro{text-align:center;margin-bottom:12px}.teinvit-gifts-intro h3{margin:0 0 6px}.teinvit-gifts-intro p{margin:0}.teinvit-gifts-table-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x}.teinvit-gifts-table{width:max-content;min-width:960px;max-width:none;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td{padding:8px;border:1px solid rgba(0,0,0,.14);vertical-align:top}.teinvit-gifts-table th{background:#fafafa;white-space:nowrap}.teinvit-gifts-table th:nth-child(1),.teinvit-gifts-table td:nth-child(1){width:10ch;min-width:10ch;text-align:center}.teinvit-gifts-table th:nth-child(2),.teinvit-gifts-table td:nth-child(2){width:30ch;min-width:30ch}.teinvit-gifts-table th:nth-child(3),.teinvit-gifts-table td:nth-child(3){width:18ch;min-width:18ch;white-space:nowrap}.teinvit-gifts-table th:nth-child(4),.teinvit-gifts-table td:nth-child(4){width:48ch;min-width:48ch}.teinvit-gifts-table th:nth-child(5),.teinvit-gifts-table td:nth-child(5){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-gift-status-reserved{color:#8a4b00;font-weight:600}.teinvit-gift-status-free{color:#176b2c;font-weight:600}
+.teinvit-child-observations .teinvit-child-observation-option{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;line-height:1.35}.teinvit-child-observations .teinvit-child-observation-option input[type=checkbox]{flex:0 0 auto;width:auto;margin:2px 0 0}.teinvit-child-observations .teinvit-rsvp-dependent{margin-left:28px}.teinvit-child-observations .teinvit-rsvp-dependent input,.teinvit-child-observations .teinvit-rsvp-dependent textarea{width:100%;max-width:360px}
 @media (max-width: 768px){.teinvit-slot-preview{padding:8px;margin-bottom:12px}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{grid-template-columns:1fr}.teinvit-surface-card{padding:14px}.teinvit-rsvp-dependent{margin-left:0}.teinvit-rsvp-dependent input{max-width:100%}}
 </style>
 <div class="teinvit-birthday-invitati">
@@ -368,12 +369,20 @@ if ( $show_gifts_section ) {
           <?php if ( $is_child_rsvp && $child_show_special_observations ) : ?>
           <div class="teinvit-rsvp-field" style="margin-top:12px;">
             <label>Aveți observații speciale pentru organizator?</label>
-            <div class="teinvit-rsvp-choice-group">
-              <label><input type="checkbox" name="child_special_observations_options[]" value="pickup_time"> Copilul trebuie preluat la o anumită oră.</label>
-              <label><input type="checkbox" name="child_special_observations_options[]" value="shy"> Copilul este mai timid.</label>
-              <label><input type="checkbox" name="child_special_observations_options[]" value="restricted_activities"> Copilul nu are voie anumite activități.</label>
-              <label><input type="checkbox" name="child_special_observations_options[]" value="accompanied_start_only"> Copilul va veni însoțit doar la început.</label>
-              <label><input type="checkbox" name="child_special_observations_options[]" value="other" id="birthday-rsvp-child-observations-other-check"> Alte observații.</label>
+            <div class="teinvit-rsvp-choice-group teinvit-child-observations">
+              <label class="teinvit-child-observation-option"><input type="checkbox" name="child_special_observations_options[]" value="pickup_time" id="birthday-rsvp-child-pickup-check"><span>Copilul trebuie preluat la o anumită oră.</span></label>
+              <div id="birthday-rsvp-child-pickup-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                <label for="birthday-rsvp-child-pickup-time">La ce oră trebuie preluat copilul?</label>
+                <input id="birthday-rsvp-child-pickup-time" name="child_pickup_time" type="text" placeholder="ex. 18:30">
+              </div>
+              <label class="teinvit-child-observation-option"><input type="checkbox" name="child_special_observations_options[]" value="shy"><span>Copilul este mai timid.</span></label>
+              <label class="teinvit-child-observation-option"><input type="checkbox" name="child_special_observations_options[]" value="restricted_activities" id="birthday-rsvp-child-restricted-check"><span>Copilul nu are voie anumite activități.</span></label>
+              <div id="birthday-rsvp-child-restricted-wrap" class="teinvit-rsvp-dependent" style="display:none;">
+                <label for="birthday-rsvp-child-restricted-activities">Ce activități trebuie evitate?</label>
+                <textarea id="birthday-rsvp-child-restricted-activities" name="child_restricted_activities" rows="3"></textarea>
+              </div>
+              <label class="teinvit-child-observation-option"><input type="checkbox" name="child_special_observations_options[]" value="accompanied_start_only"><span>Copilul va veni însoțit doar la început.</span></label>
+              <label class="teinvit-child-observation-option"><input type="checkbox" name="child_special_observations_options[]" value="other" id="birthday-rsvp-child-observations-other-check"><span>Alte observații.</span></label>
             </div>
             <div id="birthday-rsvp-child-observations-other-wrap" class="teinvit-rsvp-dependent" style="display:none;">
               <label for="birthday-rsvp-child-observations-other">Alte observații</label>
@@ -492,21 +501,26 @@ if ( $show_gifts_section ) {
   bindConditional('has_allergies', 'birthday-rsvp-allergies-wrap');
   bindConditional('child_accompanying_adult_stays', 'birthday-rsvp-child-adults-wrap');
 
-  function syncChildOtherObservations(){
-    const other = document.getElementById('birthday-rsvp-child-observations-other-check');
-    const target = document.getElementById('birthday-rsvp-child-observations-other-wrap');
-    if (!other || !target) return;
+  function syncChildObservationDependent(checkId, targetId){
+    const checkbox = document.getElementById(checkId);
+    const target = document.getElementById(targetId);
+    if (!checkbox || !target) return;
     const refresh = function(){
-      target.style.display = other.checked ? '' : 'none';
-      if (!other.checked) {
+      target.style.display = checkbox.checked ? '' : 'none';
+      if (!checkbox.checked) {
         target.querySelectorAll('textarea,input,select').forEach(function(el){
           el.value = '';
           clearFieldError(el);
         });
       }
     };
-    other.addEventListener('change', refresh);
+    checkbox.addEventListener('change', refresh);
     refresh();
+  }
+  function syncChildOtherObservations(){
+    syncChildObservationDependent('birthday-rsvp-child-pickup-check', 'birthday-rsvp-child-pickup-wrap');
+    syncChildObservationDependent('birthday-rsvp-child-restricted-check', 'birthday-rsvp-child-restricted-wrap');
+    syncChildObservationDependent('birthday-rsvp-child-observations-other-check', 'birthday-rsvp-child-observations-other-wrap');
   }
   syncChildOtherObservations();
 
@@ -663,6 +677,18 @@ if ( $show_gifts_section ) {
         errors.push('Completați alergiile/restricțiile.');
         setFieldError(byName('allergy_details'), 'Completați alergiile/restricțiile.');
       }
+      const pickupObs = document.getElementById('birthday-rsvp-child-pickup-check');
+      const pickupTime = byName('child_pickup_time');
+      if (pickupObs && pickupObs.checked && !String((pickupTime && pickupTime.value) || '').trim()) {
+        errors.push('Completați ora la care copilul trebuie preluat.');
+        setFieldError(pickupTime, 'Completați ora de preluare.');
+      }
+      const restrictedObs = document.getElementById('birthday-rsvp-child-restricted-check');
+      const restrictedText = byName('child_restricted_activities');
+      if (restrictedObs && restrictedObs.checked && !String((restrictedText && restrictedText.value) || '').trim()) {
+        errors.push('Completați activitățile care trebuie evitate.');
+        setFieldError(restrictedText, 'Completați activitățile de evitat.');
+      }
       const otherObs = document.getElementById('birthday-rsvp-child-observations-other-check');
       const otherText = byName('child_special_observations_other');
       if (otherObs && otherObs.checked && !String((otherText && otherText.value) || '').trim()) {
@@ -783,8 +809,10 @@ if ( $show_gifts_section ) {
       ['bringing_kids','child_menu_requested','needs_accommodation','vegetarian_requested','has_allergies','child_accompanying_adult_stays','attending_party'].forEach(function(name){
         form.querySelectorAll('[name="' + name + '"]').forEach(function(r){ r.dispatchEvent(new Event('change', { bubbles: true })); });
       });
-      const otherObsReset = document.getElementById('birthday-rsvp-child-observations-other-check');
-      if (otherObsReset) otherObsReset.dispatchEvent(new Event('change', { bubbles: true }));
+      ['birthday-rsvp-child-pickup-check','birthday-rsvp-child-restricted-check','birthday-rsvp-child-observations-other-check'].forEach(function(id){
+        const checkbox = document.getElementById(id);
+        if (checkbox) checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      });
     } catch (err) {
       if (msg) {
         msg.textContent = err && err.message ? err.message : 'Nu s-a putut salva confirmarea.';
