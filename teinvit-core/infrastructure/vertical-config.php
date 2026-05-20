@@ -276,24 +276,32 @@ function teinvit_vertical_share_payload( $vertical_key, array $invitation = [], 
     if ( $vertical_key === 'baptism' ) {
         $children = isset( $invitation['children'] ) && is_array( $invitation['children'] ) ? $invitation['children'] : [];
         $joined_children = teinvit_join_ro_names( $children );
+        $baptism_url = $url !== ''
+            ? ( function_exists( 'set_url_scheme' ) ? set_url_scheme( $url, 'https' ) : preg_replace( '/^http:/i', 'https:', $url ) )
+            : '';
+        $children_title_len = function_exists( 'mb_strlen' ) ? mb_strlen( $joined_children ) : strlen( $joined_children );
+        $use_children_in_title = $joined_children !== '' && $children_title_len <= 70;
         $baptism_short_text = $joined_children !== ''
             ? html_entity_decode( 'Te invit&#259;m cu drag la botez, al&#259;turi de ', ENT_QUOTES, 'UTF-8' ) . $joined_children
             : (string) ( $share['fallback_message'] ?? html_entity_decode( 'Te invit&#259;m cu drag la botez', ENT_QUOTES, 'UTF-8' ) );
         $baptism_description = $joined_children !== ''
             ? html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez, al&#259;turi de ', ENT_QUOTES, 'UTF-8' ) . $joined_children . '.'
             : html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez.', ENT_QUOTES, 'UTF-8' );
-        $baptism_title = $joined_children !== ''
+        $baptism_title = $use_children_in_title
             ? html_entity_decode( 'Te invit&#259;m la botezul lui ', ENT_QUOTES, 'UTF-8' ) . $joined_children
             : (string) ( $share['title'] ?? html_entity_decode( 'Te invit&#259;m la botez', ENT_QUOTES, 'UTF-8' ) );
         $baptism_image = defined( 'TEINVIT_BAPTISM_MODULE_URL' )
             ? esc_url_raw( TEINVIT_BAPTISM_MODULE_URL . 'preview/social-preview.png' )
             : '';
+        if ( $baptism_image !== '' ) {
+            $baptism_image = function_exists( 'set_url_scheme' ) ? set_url_scheme( $baptism_image, 'https' ) : preg_replace( '/^http:/i', 'https:', $baptism_image );
+        }
 
         return [
             'title' => $baptism_title,
-            'message' => trim( $baptism_short_text . ( $url !== '' ? "\n" . $url : '' ) ),
+            'message' => trim( $baptism_short_text . ( $baptism_url !== '' ? "\n" . $baptism_url : '' ) ),
             'text' => $baptism_description,
-            'url' => $url,
+            'url' => $baptism_url,
             'image' => $baptism_image,
             'image_width' => 1200,
             'image_height' => 630,

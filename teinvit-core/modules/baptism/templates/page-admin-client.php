@@ -166,10 +166,11 @@ $report_headers = function_exists( 'teinvit_baptism_report_headers' ) ? teinvit_
 $report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_baptism_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
 
 $guest_page_url = home_url( '/invitati/' . rawurlencode( $token ) );
+$guest_page_url = function_exists( 'set_url_scheme' ) ? set_url_scheme( $guest_page_url, 'https' ) : preg_replace( '/^http:/i', 'https:', $guest_page_url );
 $share_payload = function_exists( 'teinvit_vertical_share_payload' ) ? teinvit_vertical_share_payload( 'baptism', $current_invitation, $guest_page_url ) : [
     'title' => 'Te invităm la botez',
     'text' => 'Te invităm cu drag la botez',
-    'message' => 'Te invităm cu drag la botez ' . $guest_page_url,
+    'message' => "Te invităm cu drag la botez\n" . $guest_page_url,
     'url' => $guest_page_url,
 ];
 $share_icon_base = defined( 'TEINVIT_WEDDING_MODULE_URL' ) ? trailingslashit( TEINVIT_WEDDING_MODULE_URL . 'assets/icons/social' ) : '';
@@ -201,7 +202,7 @@ $admin_toggle_fields = [
 ];
 ?>
 <style>
-.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page-baptism,.teinvit-admin-page-baptism *{box-sizing:border-box}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}.teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-toggle-grid,.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;width:100%;max-width:840px}.teinvit-info-toggle-grid label,.teinvit-rsvp-toggle-grid label{display:block}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-baptism .teinvit-apf-col #teinvit-save-form{display:block;width:100%;max-width:100%;margin:0}.teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}.teinvit-share-card h3{margin-top:0}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}.teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle;flex-wrap:wrap;max-width:100%}.teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}.teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-view[hidden]{display:none!important}
+.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page-baptism,.teinvit-admin-page-baptism *{box-sizing:border-box}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}.teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-toggle-grid,.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;width:100%;max-width:840px}.teinvit-info-toggle-grid label,.teinvit-rsvp-toggle-grid label{display:block}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-baptism .teinvit-apf-col #teinvit-save-form{display:block;width:100%;max-width:100%;margin:0}.teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}.teinvit-share-card h3{margin-top:0}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}.teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle;flex-wrap:wrap;max-width:100%}.teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}.teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-gifts-save-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 0}.teinvit-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-view[hidden]{display:none!important}
 @media (max-width:1024px){.teinvit-admin-page-baptism .teinvit-two-col{grid-template-columns:minmax(0,1fr)!important}.teinvit-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:768px){.teinvit-admin-page-baptism{padding:10px;max-width:100%;overflow-x:hidden}.teinvit-admin-page-baptism .teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-admin-page-baptism .teinvit-two-col>div,.teinvit-admin-page-baptism .teinvit-zone,.teinvit-admin-page-baptism .teinvit-apf-col,.teinvit-admin-page-baptism #teinvit-save-form,.teinvit-admin-page-baptism .teinvit-admin-preview-block,.teinvit-admin-page-baptism .teinvit-share-card{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-baptism .teinvit-info-toggle-grid,.teinvit-admin-page-baptism .teinvit-rsvp-toggle-grid,.teinvit-admin-page-baptism .teinvit-report-grid{grid-template-columns:1fr}.teinvit-admin-page-baptism .teinvit-admin-preview-block{display:block!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{aspect-ratio:148/210!important;height:auto!important;min-height:0!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col .wapf-wrapper,.teinvit-admin-page-baptism .teinvit-apf-col .wapf,.teinvit-admin-page-baptism .teinvit-apf-col form.cart,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field-container,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-repeatable,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field-row,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-input,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-input-wrap{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-apf-col input:not([type=checkbox]):not([type=radio]),.teinvit-admin-page-baptism .teinvit-apf-col select,.teinvit-admin-page-baptism .teinvit-apf-col textarea{width:100%;max-width:100%;min-width:0}.teinvit-variant-pdf-actions{display:flex;margin:6px 0 0 0}.teinvit-share-quick{width:100%;max-width:100%}}
 @media (max-width:768px){.teinvit-admin-page-baptism .teinvit-two-col{display:flex!important;flex-direction:column!important}.teinvit-admin-page-baptism .teinvit-admin-main-col{display:contents}.teinvit-admin-page-baptism .teinvit-admin-preview-block{order:1;display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col{order:2}.teinvit-admin-page-baptism .teinvit-admin-controls-col{order:3;width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container{width:var(--teinvit-preview-scaled-width,559px)!important;height:var(--teinvit-preview-scaled-height,794px)!important;max-width:100%!important;min-width:0!important;min-height:0!important;margin-left:auto!important;margin-right:auto!important;overflow:visible!important;padding:0!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:559px!important;min-width:559px!important;max-width:none!important;height:794px!important;max-height:none!important;aspect-ratio:auto!important;font-size:17.25px!important;margin:0!important;transform:scale(var(--teinvit-preview-scale,1));transform-origin:top left;overflow:hidden!important}}
@@ -383,7 +384,7 @@ $admin_toggle_fields = [
               <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button" id="teinvit-baptism-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener"><?php echo esc_html( $buy_gifts_cta_label ); ?></a>
             <?php endif; ?>
           </div>
-          <p><button type="submit" class="button button-primary">Salvează lista</button></p>
+          <p class="teinvit-gifts-save-row"><button type="submit" class="button button-primary" id="teinvit-baptism-save-gifts">Salvează lista</button></p>
         </div>
       </form>
     <?php else : ?>
@@ -441,6 +442,7 @@ $admin_toggle_fields = [
   const saveForm = document.getElementById('teinvit-save-form');
   const parentBooleanIds = ['3ec4ca5','1f32dd0','1eceab7','b4fca64'];
   const repeatableFieldIds = ['2d8d1ce'];
+  const repeatableMaxById = { '2d8d1ce': 3 };
   const parentChildFallbacks = {
     '3ec4ca5': { value: '1', children: ['080362c','23feecb'] },
     '1f32dd0': { value: '1', children: ['7cff5b7','5c0ffa4'] },
@@ -449,6 +451,7 @@ $admin_toggle_fields = [
   };
   let isHydratingWapf = true;
   let saveSubmitGuardInstalled = false;
+  let repeatableClickGuardInstalled = false;
 
   window.teinvitBaptismPreviewConfig.deferInitialBuild = true;
   window.__TEINVIT_BAPTISM_WAPF_READY__ = false;
@@ -565,10 +568,57 @@ $admin_toggle_fields = [
       .filter(function(el){ return !isSkippableInput(el) && fieldIdFromName(el.name) === id && el.type !== 'checkbox' && el.type !== 'radio'; })
       .sort(function(a, b){ return cloneIndex(a) - cloneIndex(b); });
   }
+  function repeatableMax(id){
+    const max = parseInt(repeatableMaxById[id] || 0, 10);
+    return Number.isFinite(max) && max > 0 ? max : 0;
+  }
   function repeatableQtyInput(id){ return saveForm ? saveForm.querySelector('#field_' + id + '_qty, [name="wapf[field_' + id + '_qty]"]') : null; }
   function syncRepeatableQty(id){
     const qty = repeatableQtyInput(id);
     if (qty) qty.value = String(Math.max(0, repeatableInputs(id).length - 1));
+  }
+  function repeatableControlText(control){
+    return lower((control && control.getAttribute ? control.getAttribute('class') : '') + ' ' + (control && control.getAttribute ? control.getAttribute('data-action') : '') + ' ' + (control && control.value ? control.value : '') + ' ' + (control && control.textContent ? control.textContent : ''));
+  }
+  function repeatableControls(id){
+    if (!saveForm) return [];
+    const scopes = qsa('.cloner-' + id + ', .field-' + id + ', [data-field-id="' + id + '"]', saveForm);
+    const seen = [];
+    const controls = [];
+    scopes.forEach(function(scope){
+      qsa('button,a,[role="button"],input[type="button"]', scope).forEach(function(control){
+        if (seen.indexOf(control) !== -1) return;
+        seen.push(control);
+        controls.push(control);
+      });
+    });
+    return controls;
+  }
+  function isRepeatableAddControl(control){
+    const text = repeatableControlText(control);
+    return (text.indexOf('add') !== -1 || text.indexOf('clone') !== -1 || text.indexOf('repeat') !== -1 || text.indexOf('adauga') !== -1 || text.indexOf('adaugă') !== -1 || text.indexOf('adaug') !== -1 || text === '+') && text.indexOf('delete') === -1 && text.indexOf('remove') === -1 && text.indexOf('sterge') === -1 && text.indexOf('șterge') === -1;
+  }
+  function isRepeatableRemoveControl(control){
+    const text = repeatableControlText(control);
+    return text.indexOf('delete') !== -1 || text.indexOf('remove') !== -1 || text.indexOf('unrepeat') !== -1 || text.indexOf('sterge') !== -1 || text.indexOf('șterge') !== -1 || text.indexOf('del') !== -1 || text === '-';
+  }
+  function setRepeatableControlState(control, visible, disabled){
+    if (!control) return;
+    control.style.display = visible ? '' : 'none';
+    if ('disabled' in control) control.disabled = !!disabled;
+    if (disabled) control.setAttribute('aria-disabled', 'true');
+    else control.removeAttribute('aria-disabled');
+  }
+  function syncRepeatableControls(id){
+    const max = repeatableMax(id);
+    const count = repeatableInputs(id).length;
+    repeatableControls(id).forEach(function(control){
+      if (isRepeatableAddControl(control)) {
+        setRepeatableControlState(control, !max || count < max, !!max && count >= max);
+      } else if (isRepeatableRemoveControl(control)) {
+        setRepeatableControlState(control, count > 1, count <= 1);
+      }
+    });
   }
   function wapfWrapper(){
     if (!window.jQuery || !saveForm) return null;
@@ -581,12 +631,29 @@ $admin_toggle_fields = [
   }
   function markCloneButtonsAsNonSubmit(){
     if (!saveForm) return;
-    qsa('.wapf-add-clone, .wapf-del-clone', saveForm).forEach(function(btn){
+    qsa('.wapf-add-clone, .wapf-del-clone, .wapf-repeatable-add, .wapf-repeatable-remove, .wapf-clone-add, .wapf-clone-remove', saveForm).forEach(function(btn){
       if (btn && btn.tagName === 'BUTTON') btn.setAttribute('type', 'button');
     });
   }
+  function clearNewRepeatableClone(node, id){
+    if (!node) return [];
+    const changed = [];
+    qsa('[name^="wapf[field_' + id + '_"]', node).forEach(function(el){
+      if (isSkippableInput(el)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+      else el.value = '';
+      changed.push(el);
+    });
+    if (changed.length) triggerFieldEvents(changed);
+    return changed;
+  }
   function createRepeatableClone(id){
     markCloneButtonsAsNonSubmit();
+    const max = repeatableMax(id);
+    if (max && repeatableInputs(id).length >= max) {
+      syncRepeatableControls(id);
+      return false;
+    }
     const $wrapper = wapfWrapper();
     const $field = repeatableFieldElement(id);
     if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.repeat === 'function' && $wrapper && $field && $field.length) {
@@ -598,6 +665,7 @@ $admin_toggle_fields = [
       }
       markCloneButtonsAsNonSubmit();
       syncRepeatableQty(id);
+      syncRepeatableControls(id);
       return true;
     }
     return false;
@@ -613,6 +681,7 @@ $admin_toggle_fields = [
         if ($cloner && $cloner.length && $target && $target.length) $cloner.appendTo($target);
         window.WAPF.Util.unrepeat($wrapper, $field, 1);
         syncRepeatableQty(id);
+        syncRepeatableControls(id);
         return true;
       } catch (e) {}
     }
@@ -622,6 +691,7 @@ $admin_toggle_fields = [
     if (row && inputs.length > 1) {
       row.parentNode.removeChild(row);
       syncRepeatableQty(id);
+      syncRepeatableControls(id);
       return true;
     }
     return false;
@@ -629,7 +699,8 @@ $admin_toggle_fields = [
   function ensureRepeatableInputs(id, values){
     let inputs = repeatableInputs(id);
     let guard = 0;
-    const targetCount = Math.max(1, values.length || 1);
+    const max = repeatableMax(id);
+    const targetCount = max ? Math.min(max, Math.max(1, values.length || 1)) : Math.max(1, values.length || 1);
     while (inputs.length < targetCount && guard < targetCount + 3) {
       if (!createRepeatableClone(id)) break;
       inputs = repeatableInputs(id);
@@ -642,10 +713,52 @@ $admin_toggle_fields = [
       guard += 1;
     }
     syncRepeatableQty(id);
+    syncRepeatableControls(id);
     return inputs;
   }
+  function bindManualRepeatableCloneReset(){
+    if (!window.jQuery || !saveForm) return;
+    window.jQuery(document).off('wapf/cloned.teinvitBaptismAdmin').on('wapf/cloned.teinvitBaptismAdmin', function(e, fieldId, cloneNumber, clone){
+      const id = normalizeFieldId(fieldId);
+      if (repeatableFieldIds.indexOf(id) === -1) return;
+      if (isHydratingWapf) {
+        syncRepeatableQty(id);
+        syncRepeatableControls(id);
+        return;
+      }
+      const node = clone && clone[0] ? clone[0] : clone;
+      clearNewRepeatableClone(node, id);
+      syncRepeatableQty(id);
+      syncRepeatableControls(id);
+    });
+  }
+  function installRepeatableClickGuard(){
+    if (!saveForm || repeatableClickGuardInstalled) return;
+    repeatableClickGuardInstalled = true;
+    saveForm.addEventListener('click', function(e){
+      const control = e.target && e.target.closest ? e.target.closest('button,a,[role="button"],input[type="button"]') : null;
+      if (!control) return;
+      repeatableFieldIds.forEach(function(id){
+        const controls = repeatableControls(id);
+        if (controls.indexOf(control) === -1) return;
+        if (isRepeatableAddControl(control)) {
+          const max = repeatableMax(id);
+          if (max && repeatableInputs(id).length >= max) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            syncRepeatableControls(id);
+          } else {
+            window.setTimeout(function(){ syncRepeatableQty(id); syncRepeatableControls(id); }, 80);
+          }
+        } else if (isRepeatableRemoveControl(control)) {
+          window.setTimeout(function(){ syncRepeatableQty(id); syncRepeatableControls(id); }, 80);
+        }
+      });
+    }, true);
+  }
   function applyRepeatableField(id, raw){
-    const values = splitSelected(raw).slice(0, 4);
+    const max = repeatableMax(id);
+    const values = splitSelected(raw).slice(0, max || 4);
     const inputs = ensureRepeatableInputs(id, values.length ? values : ['']);
     if (!inputs.length) return [];
     if (values.length > 1 && inputs.length < values.length) {
@@ -769,6 +882,7 @@ $admin_toggle_fields = [
       setWapfValues(map || {}, { phase: 'children', triggerEvents: false });
       flushWapfDependencies();
       serializeParentCheckedState();
+      repeatableFieldIds.forEach(syncRepeatableControls);
       isHydratingWapf = false;
       window.__TEINVIT_BAPTISM_WAPF_READY__ = true;
       document.dispatchEvent(new CustomEvent('teinvit:baptism-wapf-hydrated', { detail: { initial: !!opts.initial } }));
@@ -792,8 +906,12 @@ $admin_toggle_fields = [
   }
   markCloneButtonsAsNonSubmit();
   installSaveSubmitGuard();
+  bindManualRepeatableCloneReset();
+  installRepeatableClickGuard();
   document.addEventListener('DOMContentLoaded', function(){
     markCloneButtonsAsNonSubmit();
+    bindManualRepeatableCloneReset();
+    installRepeatableClickGuard();
     if (saveForm) {
       serializeParentCheckedState();
       saveForm.addEventListener('input', serializeParentCheckedState);
@@ -844,6 +962,7 @@ $admin_toggle_fields = [
   });
 
   const giftsBody = document.getElementById('teinvit-baptism-gifts-body');
+  const giftsForm = document.getElementById('teinvit-baptism-gifts-form');
   const showGiftsCheckbox = document.getElementById('teinvit-baptism-show-gifts-section');
   const giftsEditor = document.getElementById('teinvit-baptism-gifts-editor');
   const addGiftBtn = document.getElementById('teinvit-baptism-add-gift');
@@ -892,6 +1011,15 @@ $admin_toggle_fields = [
   }
   if (showGiftsCheckbox && giftsEditor) showGiftsCheckbox.addEventListener('change', function(){ giftsEditor.style.display = showGiftsCheckbox.checked ? '' : 'none'; });
   if (addGiftBtn) addGiftBtn.addEventListener('click', function(){ createGiftRow({ gift_id:'', gift_name:'', gift_link:'', gift_delivery_address:'', include_in_public:1, published_locked:0, reserved_by:'Disponibil' }, qsa('tr[data-gift-row="1"]', giftsBody).length); refreshGiftsCounter(); });
+  if (giftsForm) {
+    giftsForm.addEventListener('submit', function(e){
+      const shouldConfirm = !showGiftsCheckbox || !!showGiftsCheckbox.checked;
+      if (!shouldConfirm) return;
+      if (!window.confirm('După salvarea listei cadourile completate nu mai pot fi editate. Ești sigur că vrei să o salvezi?')) {
+        e.preventDefault();
+      }
+    });
+  }
   renderGifts();
 
   function refreshReport(){

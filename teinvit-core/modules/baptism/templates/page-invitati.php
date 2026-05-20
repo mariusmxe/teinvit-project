@@ -24,13 +24,15 @@ $active = function_exists( 'teinvit_get_active_snapshot_for_token_from_storage' 
     : null;
 $payload = ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
 $invitation = isset( $payload['invitation'] ) && is_array( $payload['invitation'] ) ? $payload['invitation'] : [];
-$using_context_preview = false;
+$use_context_preview = ( $context_preview_html !== '' && ! empty( $context_invitation ) );
 if ( empty( $invitation ) && ! empty( $context_invitation ) ) {
     $invitation = $context_invitation;
-    $using_context_preview = $context_preview_html !== '';
 }
 $preview_html = '';
-if ( $using_context_preview ) {
+if ( $use_context_preview ) {
+    if ( empty( $invitation ) ) {
+        $invitation = $context_invitation;
+    }
     $preview_html = $context_preview_html;
 }
 if ( ! empty( $invitation ) && function_exists( 'teinvit_render_invitation_html_for_vertical' ) ) {

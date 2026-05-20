@@ -147,8 +147,12 @@ if ( $mode === 'invitati' ) {
     $meta_image_override = '';
     $meta_image_width = 0;
     $meta_image_height = 0;
+    $share_meta_url = home_url( '/invitati/' . rawurlencode( $token ) );
+    if ( $vertical_key === 'baptism' ) {
+        $share_meta_url = function_exists( 'set_url_scheme' ) ? set_url_scheme( $share_meta_url, 'https' ) : preg_replace( '/^http:/i', 'https:', $share_meta_url );
+    }
     if ( $vertical_key !== 'wedding' && function_exists( 'teinvit_vertical_share_payload' ) ) {
-        $share_payload = teinvit_vertical_share_payload( $vertical_key, $preview_invitation_data, home_url( '/invitati/' . rawurlencode( $token ) ) );
+        $share_payload = teinvit_vertical_share_payload( $vertical_key, $preview_invitation_data, $share_meta_url );
         $meta_title = (string) ( $share_payload['title'] ?? $meta_title );
         $meta_desc = (string) ( $share_payload['text'] ?? $meta_desc );
         if ( $vertical_key === 'baptism' && ! empty( $share_payload['image'] ) ) {
@@ -158,7 +162,7 @@ if ( $mode === 'invitati' ) {
         }
     }
     $meta_desc  = function_exists( 'wp_trim_words' ) ? wp_trim_words( $meta_desc, 30, '…' ) : $meta_desc;
-    $meta_url   = home_url( '/invitati/' . rawurlencode( $token ) );
+    $meta_url   = $share_meta_url;
     $logo_id = (int) get_theme_mod( 'custom_logo' );
     $logo_url = $logo_id > 0 ? wp_get_attachment_image_url( $logo_id, 'full' ) : '';
     $meta_image = $logo_url ? $logo_url : ( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' );
