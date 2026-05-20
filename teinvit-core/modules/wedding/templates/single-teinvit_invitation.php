@@ -144,16 +144,27 @@ if ( $mode === 'invitati' ) {
 
     $meta_title = $names !== '' ? ( 'Invitație ' . $names ) : 'Invitație | Te Invit';
     $meta_desc  = $message !== '' ? $message : ( $names !== '' ? ( 'Te invităm cu drag la evenimentul nostru, ' . $names . '.' ) : 'Te invităm cu drag la evenimentul nostru.' );
+    $meta_image_override = '';
+    $meta_image_width = 0;
+    $meta_image_height = 0;
     if ( $vertical_key !== 'wedding' && function_exists( 'teinvit_vertical_share_payload' ) ) {
         $share_payload = teinvit_vertical_share_payload( $vertical_key, $preview_invitation_data, home_url( '/invitati/' . rawurlencode( $token ) ) );
         $meta_title = (string) ( $share_payload['title'] ?? $meta_title );
         $meta_desc = (string) ( $share_payload['text'] ?? $meta_desc );
+        if ( $vertical_key === 'baptism' && ! empty( $share_payload['image'] ) ) {
+            $meta_image_override = esc_url_raw( (string) $share_payload['image'] );
+            $meta_image_width = max( 0, (int) ( $share_payload['image_width'] ?? 0 ) );
+            $meta_image_height = max( 0, (int) ( $share_payload['image_height'] ?? 0 ) );
+        }
     }
     $meta_desc  = function_exists( 'wp_trim_words' ) ? wp_trim_words( $meta_desc, 30, '…' ) : $meta_desc;
     $meta_url   = home_url( '/invitati/' . rawurlencode( $token ) );
     $logo_id = (int) get_theme_mod( 'custom_logo' );
     $logo_url = $logo_id > 0 ? wp_get_attachment_image_url( $logo_id, 'full' ) : '';
     $meta_image = $logo_url ? $logo_url : ( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' );
+    if ( $meta_image_override !== '' ) {
+        $meta_image = $meta_image_override;
+    }
     $site_name  = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
     // Keep runtime queried-object title aligned with invitation metadata to avoid generic token title fallbacks.
@@ -173,7 +184,7 @@ if ( $mode === 'invitati' ) {
     add_filter( 'wp_title', fn() => $meta_title, 999 );
     add_filter( 'single_post_title', fn() => $meta_title, 999 );
 
-    add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $site_name ) {
+    add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $meta_image_width, $meta_image_height, $site_name ) {
         echo "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
         echo '<meta name="description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
         echo '<meta property="og:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
@@ -182,6 +193,11 @@ if ( $mode === 'invitati' ) {
         echo '<meta property="og:type" content="website" />' . "\n";
         echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
         echo '<meta property="og:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
+        if ( $meta_image_width > 0 && $meta_image_height > 0 ) {
+            echo '<meta property="og:image:secure_url" content="' . esc_url( $meta_image ) . '" />' . "\n";
+            echo '<meta property="og:image:width" content="' . esc_attr( (string) $meta_image_width ) . '" />' . "\n";
+            echo '<meta property="og:image:height" content="' . esc_attr( (string) $meta_image_height ) . '" />' . "\n";
+        }
         echo '<meta name="twitter:card" content="summary_large_image" />' . "\n";
         echo '<meta name="twitter:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
         echo '<meta name="twitter:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";

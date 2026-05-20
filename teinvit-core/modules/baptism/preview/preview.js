@@ -1,6 +1,12 @@
 (function () {
     var REPEATABLE_ID = '2d8d1ce';
     var MESSAGE_ID = '4c3baec';
+    var PARENT_CHILD_FALLBACKS = {
+        '3ec4ca5': { value: '1', children: ['080362c', '23feecb'] },
+        '1f32dd0': { value: '1', children: ['7cff5b7', '5c0ffa4'] },
+        '1eceab7': { value: '1', children: ['2f1dbe2', '10adb6f', '4c5ae13', '40ec33f'] },
+        b4fca64: { value: '1', children: ['3f4cc5a', 'c1aaf27', 'da5f0dc', 'c95ca58'] }
+    };
     var MESSAGE_MAX = 255;
     var BUILD_DEBOUNCE_MS = 140;
     var buildTimer = null;
@@ -25,13 +31,38 @@
     function getRoot() { return qs('#teinvit-vertical-product-preview') || document; }
     function getCanvas() { return qs('.teinvit-canvas', getRoot()) || qs('.teinvit-canvas'); }
     function isProductPreviewContext() { return !!qs('#teinvit-vertical-product-preview[data-product-id]'); }
+    function isDeferredAdminPreviewContext() {
+        var cfg = window.teinvitBaptismPreviewConfig || {};
+        return isProductPreviewContext() && !!(cfg.adminClient || cfg.deferInitialBuild);
+    }
+    function canScheduleWapfBuild() {
+        return !(isDeferredAdminPreviewContext() && !window.__TEINVIT_BAPTISM_WAPF_READY__);
+    }
     function engine() { return window.TEINVIT_PREVIEW_LAYOUT_ENGINE || null; }
 
     function parseFieldId(name) {
         var raw = String(name || '').trim();
         var m = raw.match(/field_([a-z0-9_\-]+)/i);
         if (!m) return '';
-        return String(m[1] || '').replace(/_\d+$/, '').replace(/^clone_/, '').trim();
+        return String(m[1] || '').replace(/_(?:clone_)?\d+$/, '').replace(/^clone_/, '').trim();
+    }
+
+    function truthyRaw(value) {
+        var raw = String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        return raw !== '' && raw !== '0' && raw !== 'false' && raw !== 'nu' && raw !== 'no' && raw !== 'off';
+    }
+
+    function mapWithInferredParents(map) {
+        var out = Object.assign({}, map || {});
+        Object.keys(PARENT_CHILD_FALLBACKS).forEach(function (parentId) {
+            if (truthyRaw(out[parentId])) return;
+            var fallback = PARENT_CHILD_FALLBACKS[parentId] || {};
+            var hasChild = (fallback.children || []).some(function (childId) {
+                return truthyRaw(out[childId]);
+            });
+            if (hasChild) out[parentId] = fallback.value || '1';
+        });
+        return out;
     }
 
     function collectWapfMapFromForm() {
@@ -67,7 +98,7 @@
             }
         });
 
-        return out;
+        return mapWithInferredParents(out);
     }
 
     function themeCatalog() {
@@ -788,31 +819,50 @@
             else schedulePreviewFinalLayout(canvas);
         }
         if (isProductContext) {
-            buildFromApi();
-            scheduleFinalProductPass();
+            if (isDeferredAdminPreviewContext() && window.TEINVIT_INVITATION_DATA) {
+                var adminCanvas = renderInvitation(window.TEINVIT_INVITATION_DATA);
+                schedulePreviewFinalLayout(adminCanvas);
+            } else {
+                buildFromApi();
+                scheduleFinalProductPass();
+            }
         }
         setupPreviewResizeObserver();
     });
 
     document.addEventListener('input', function (e) {
         var t = e && e.target;
+        if (!canScheduleWapfBuild()) return;
         if (t && t.name && t.name.indexOf('wapf[') === 0) {
             scheduleBuildFromApi();
         }
     });
     document.addEventListener('change', function (e) {
         var t = e && e.target;
+        if (!canScheduleWapfBuild()) return;
         if (t && t.name && t.name.indexOf('wapf[') === 0 && (!t.type || t.type.toLowerCase() !== 'text') && t.tagName !== 'TEXTAREA') {
             scheduleBuildFromApi();
         }
     });
     document.addEventListener('wapf/date_selected', function () {
+        if (!canScheduleWapfBuild()) return;
         setTimeout(function () {
             scheduleBuildFromApi();
         }, 30);
     });
+    document.addEventListener('teinvit:baptism-wapf-hydrated', function () {
+        if (!isProductPreviewContext()) return;
+        window.__TEINVIT_BAPTISM_WAPF_READY__ = true;
+        window.__TEINVIT_AUTOFIT_DONE__ = false;
+        window.__TEINVIT_LAST_AUTOFIT_SIG__ = '';
+        setupMessageCounter();
+        scheduleBuildFromApi();
+        schedulePreviewFinalLayout(getCanvas());
+        scheduleFinalProductPass();
+    });
     document.addEventListener('click', function (e) {
         var t = e && e.target;
+        if (!canScheduleWapfBuild()) return;
         if (!isRepeatControl(t)) return;
         setTimeout(function () {
             clearPrefilledCloneInputs(document);

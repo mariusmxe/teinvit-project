@@ -204,6 +204,7 @@ $admin_toggle_fields = [
 .teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page-baptism,.teinvit-admin-page-baptism *{box-sizing:border-box}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px;text-align:center}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1+h1{margin-top:6px}.teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-toggle-grid,.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;width:100%;max-width:840px}.teinvit-info-toggle-grid label,.teinvit-rsvp-toggle-grid label{display:block}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-baptism .teinvit-apf-col #teinvit-save-form{display:block;width:100%;max-width:100%;margin:0}.teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}.teinvit-share-card h3{margin-top:0}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}.teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle;flex-wrap:wrap;max-width:100%}.teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}.teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-view[hidden]{display:none!important}
 @media (max-width:1024px){.teinvit-admin-page-baptism .teinvit-two-col{grid-template-columns:minmax(0,1fr)!important}.teinvit-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:768px){.teinvit-admin-page-baptism{padding:10px;max-width:100%;overflow-x:hidden}.teinvit-admin-page-baptism .teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-admin-page-baptism .teinvit-two-col>div,.teinvit-admin-page-baptism .teinvit-zone,.teinvit-admin-page-baptism .teinvit-apf-col,.teinvit-admin-page-baptism #teinvit-save-form,.teinvit-admin-page-baptism .teinvit-admin-preview-block,.teinvit-admin-page-baptism .teinvit-share-card{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-baptism .teinvit-info-toggle-grid,.teinvit-admin-page-baptism .teinvit-rsvp-toggle-grid,.teinvit-admin-page-baptism .teinvit-report-grid{grid-template-columns:1fr}.teinvit-admin-page-baptism .teinvit-admin-preview-block{display:block!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{aspect-ratio:148/210!important;height:auto!important;min-height:0!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col .wapf-wrapper,.teinvit-admin-page-baptism .teinvit-apf-col .wapf,.teinvit-admin-page-baptism .teinvit-apf-col form.cart,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field-container,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-repeatable,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field-row,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-input,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-input-wrap{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-apf-col input:not([type=checkbox]):not([type=radio]),.teinvit-admin-page-baptism .teinvit-apf-col select,.teinvit-admin-page-baptism .teinvit-apf-col textarea{width:100%;max-width:100%;min-width:0}.teinvit-variant-pdf-actions{display:flex;margin:6px 0 0 0}.teinvit-share-quick{width:100%;max-width:100%}}
+@media (max-width:768px){.teinvit-admin-page-baptism .teinvit-two-col{display:flex!important;flex-direction:column!important}.teinvit-admin-page-baptism .teinvit-admin-main-col{display:contents}.teinvit-admin-page-baptism .teinvit-admin-preview-block{order:1;display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col{order:2}.teinvit-admin-page-baptism .teinvit-admin-controls-col{order:3;width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container{width:var(--teinvit-preview-scaled-width,559px)!important;height:var(--teinvit-preview-scaled-height,794px)!important;max-width:100%!important;min-width:0!important;min-height:0!important;margin-left:auto!important;margin-right:auto!important;overflow:visible!important;padding:0!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:559px!important;min-width:559px!important;max-width:none!important;height:794px!important;max-height:none!important;aspect-ratio:auto!important;font-size:17.25px!important;margin:0!important;transform:scale(var(--teinvit-preview-scale,1));transform-origin:top left;overflow:hidden!important}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-baptism">
   <div class="teinvit-admin-title-card">
@@ -248,10 +249,12 @@ $admin_toggle_fields = [
   </div>
 
   <div class="teinvit-zone teinvit-two-col">
-    <div>
+    <div class="teinvit-admin-main-col">
       <div id="teinvit-vertical-product-preview" class="teinvit-admin-preview-block" data-product-id="<?php echo (int) $product_id; ?>">
         <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </div>
+
+      <div class="teinvit-admin-controls-col">
 
       <h3>Alege varianta afișată invitaților:</h3>
       <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-publish-form">
@@ -331,6 +334,7 @@ $admin_toggle_fields = [
         <p id="teinvit-share-status" aria-live="polite"></p>
       </div>
       <?php endif; ?>
+      </div>
     </div>
 
     <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
@@ -434,41 +438,369 @@ $admin_toggle_fields = [
   const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
   const giftsMaxSlots = <?php echo (int) $gifts_max_slots; ?>;
 
+  const saveForm = document.getElementById('teinvit-save-form');
+  const parentBooleanIds = ['3ec4ca5','1f32dd0','1eceab7','b4fca64'];
+  const repeatableFieldIds = ['2d8d1ce'];
+  const parentChildFallbacks = {
+    '3ec4ca5': { value: '1', children: ['080362c','23feecb'] },
+    '1f32dd0': { value: '1', children: ['7cff5b7','5c0ffa4'] },
+    '1eceab7': { value: '1', children: ['2f1dbe2','10adb6f','4c5ae13','40ec33f'] },
+    b4fca64: { value: '1', children: ['3f4cc5a','c1aaf27','da5f0dc','c95ca58'] }
+  };
+  let isHydratingWapf = true;
+  let saveSubmitGuardInstalled = false;
+
+  window.teinvitBaptismPreviewConfig.deferInitialBuild = true;
+  window.__TEINVIT_BAPTISM_WAPF_READY__ = false;
+
   function qsa(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
   function escapeHtml(value){ return String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function parseFieldId(name){ const m = String(name || '').match(/field_([a-z0-9_\-]+)/i); return m ? String(m[1] || '').replace(/_\d+$/, '').replace(/^clone_/, '') : ''; }
-  function controlsForField(id){ return qsa('[name^="wapf[field_"]').filter(el => parseFieldId(el.name) === id); }
-  function setWapfValue(id, value){
-    const controls = controlsForField(id);
-    if (!controls.length) return;
-    const parts = String(value || '').split(',').map(v => v.trim()).filter(Boolean);
-    const type = (controls[0].type || '').toLowerCase();
-    if (type === 'checkbox' || type === 'radio') {
-      controls.forEach(el => {
-        const val = String(el.value || '').trim();
-        el.checked = parts.indexOf(val) !== -1 || (parts.length > 0 && ['1','yes','da','on','true'].indexOf(val.toLowerCase()) !== -1);
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      return;
-    }
-    if (controls.length > 1 && parts.length > 1) {
-      controls.forEach((el, idx) => { el.value = parts[idx] || ''; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
-      return;
-    }
-    controls.forEach(el => {
+  function normalizeFieldId(id){ return String(id || '').replace(/^field_/,'').replace(/^wapf\[field_/,'').replace(/\]$/,'').replace(/_(?:clone_)?\d+$/,'').trim(); }
+  function rawFieldIdFromName(name){ const match = String(name || '').match(/^wapf\[field_([^\]]+)\]/); return match ? String(match[1] || '').trim() : ''; }
+  function fieldIdFromName(name){ return normalizeFieldId(rawFieldIdFromName(name)); }
+  function isSkippableInput(el){ return !el || (el.type === 'hidden' && el.classList.contains('wapf-tf-h')) || /_qty\]$/.test(String(el.name || '')); }
+  function lower(value){ return String(value || '').replace(/\s+/g,' ').trim().toLowerCase(); }
+  function splitSelected(raw){
+    if (Array.isArray(raw)) return raw.map(function(value){ return String(value || '').trim(); }).filter(Boolean);
+    return String(raw || '').split(/[\n,]+/).map(function(value){ return value.trim(); }).filter(Boolean);
+  }
+  function rawValueForField(map, id){
+    if (!map || typeof map !== 'object') return '';
+    const matches = [];
+    Object.keys(map).forEach(function(key){
+      if (normalizeFieldId(key) !== id) return;
+      const value = map[key];
+      if (Array.isArray(value)) value.forEach(function(part){ if (String(part || '').trim() !== '') matches.push(part); });
+      else if (String(value || '').trim() !== '') matches.push(value);
+    });
+    return matches.length > 1 ? matches : (matches[0] || '');
+  }
+  function isTruthyRaw(raw){
+    const selected = splitSelected(raw);
+    if (!selected.length) return false;
+    return selected.some(function(value){
+      const normalized = lower(value);
+      return normalized !== '' && normalized !== '0' && normalized !== 'false' && normalized !== 'nu' && normalized !== 'no' && normalized !== 'off';
+    });
+  }
+  function hasMeaningfulRaw(raw){ return splitSelected(raw).some(function(value){ return isTruthyRaw(value); }); }
+  function mapWithInferredParents(map){
+    const out = Object.assign({}, map || {});
+    Object.keys(parentChildFallbacks).forEach(function(parentId){
+      if (isTruthyRaw(rawValueForField(out, parentId))) return;
+      const fallback = parentChildFallbacks[parentId] || {};
+      const hasChildValue = (fallback.children || []).some(function(childId){ return hasMeaningfulRaw(rawValueForField(out, childId)); });
+      if (hasChildValue) out[parentId] = fallback.value || '1';
+    });
+    return out;
+  }
+  function labelForInput(el){
+    const label = el && el.closest ? el.closest('label') : null;
+    return label && label.textContent ? label.textContent.replace(/\s+/g,' ').trim() : '';
+  }
+  function optionLookups(elements){
+    const byValue = {};
+    const byLabel = {};
+    elements.forEach(function(el){
+      if (!el) return;
       if (el.tagName === 'SELECT') {
-        const target = parts[0] || '';
-        qsa('option', el).forEach(opt => { if (opt.value === target || opt.textContent.trim() === target) el.value = opt.value; });
-      } else {
-        el.value = String(value || '');
+        Array.from(el.options || []).forEach(function(option){
+          byValue[lower(option.value)] = option.value;
+          byLabel[lower(option.text)] = option.value;
+        });
+        return;
       }
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        byValue[lower(el.value)] = el.value;
+        byLabel[lower(labelForInput(el))] = el.value;
+      }
+    });
+    return { byValue: byValue, byLabel: byLabel };
+  }
+  function resolvedSelections(raw, elements){
+    const lookups = optionLookups(elements);
+    return splitSelected(raw).map(function(value){
+      const key = lower(value);
+      if (Object.prototype.hasOwnProperty.call(lookups.byValue, key)) return lookups.byValue[key];
+      if (Object.prototype.hasOwnProperty.call(lookups.byLabel, key)) return lookups.byLabel[key];
+      return value;
+    }).filter(Boolean);
+  }
+  function groupCurrentInputs(){
+    const groups = {};
+    if (!saveForm) return groups;
+    qsa('[name^="wapf[field_"]', saveForm).forEach(function(el){
+      if (isSkippableInput(el)) return;
+      const id = fieldIdFromName(el.name);
+      if (!id) return;
+      if (!groups[id]) groups[id] = [];
+      groups[id].push(el);
+    });
+    return groups;
+  }
+  function triggerFieldEvents(elements, options){
+    if (options && options.silent) return;
+    elements.forEach(function(el){
+      if (!el) return;
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     });
   }
-  window.addEventListener('load', function(){
-    Object.keys(initialWapf || {}).forEach(function(id){ setWapfValue(id, initialWapf[id]); });
-    document.dispatchEvent(new Event('teinvit:variant-applied'));
+  function phaseAllows(id, phase){
+    const isParent = parentBooleanIds.indexOf(id) !== -1;
+    if (phase === 'parents') return isParent;
+    if (phase === 'children') return !isParent;
+    return true;
+  }
+  function cloneIndex(el){
+    const raw = rawFieldIdFromName(el && el.name);
+    const match = raw.match(/_(?:clone_)?(\d+)$/);
+    if (!match) return 0;
+    const parsed = parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  function repeatableInputs(id){
+    if (!saveForm) return [];
+    return qsa('[name^="wapf[field_' + id + '"]', saveForm)
+      .filter(function(el){ return !isSkippableInput(el) && fieldIdFromName(el.name) === id && el.type !== 'checkbox' && el.type !== 'radio'; })
+      .sort(function(a, b){ return cloneIndex(a) - cloneIndex(b); });
+  }
+  function repeatableQtyInput(id){ return saveForm ? saveForm.querySelector('#field_' + id + '_qty, [name="wapf[field_' + id + '_qty]"]') : null; }
+  function syncRepeatableQty(id){
+    const qty = repeatableQtyInput(id);
+    if (qty) qty.value = String(Math.max(0, repeatableInputs(id).length - 1));
+  }
+  function wapfWrapper(){
+    if (!window.jQuery || !saveForm) return null;
+    const wrapper = saveForm.closest('[data-product-page-preselected-id]') || saveForm;
+    return window.jQuery(wrapper);
+  }
+  function repeatableFieldElement(id){
+    if (!window.jQuery || !saveForm) return null;
+    return window.jQuery(saveForm).find('.field-' + id).first();
+  }
+  function markCloneButtonsAsNonSubmit(){
+    if (!saveForm) return;
+    qsa('.wapf-add-clone, .wapf-del-clone', saveForm).forEach(function(btn){
+      if (btn && btn.tagName === 'BUTTON') btn.setAttribute('type', 'button');
+    });
+  }
+  function createRepeatableClone(id){
+    markCloneButtonsAsNonSubmit();
+    const $wrapper = wapfWrapper();
+    const $field = repeatableFieldElement(id);
+    if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.repeat === 'function' && $wrapper && $field && $field.length) {
+      const $clone = window.WAPF.Util.repeat($wrapper, $field);
+      const $cloner = window.jQuery(saveForm).find('.cloner-' + id).first();
+      if ($clone && $clone.length && $cloner && $cloner.length) $cloner.appendTo($clone);
+      if (window.WAPF.Pricing && typeof window.WAPF.Pricing.calculateAll === 'function') {
+        try { window.WAPF.Pricing.calculateAll($wrapper); } catch (e) {}
+      }
+      markCloneButtonsAsNonSubmit();
+      syncRepeatableQty(id);
+      return true;
+    }
+    return false;
+  }
+  function removeRepeatableClone(id){
+    const $wrapper = wapfWrapper();
+    const $field = repeatableFieldElement(id);
+    if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.unrepeat === 'function' && $wrapper && $field && $field.length) {
+      try {
+        const $cloner = window.jQuery(saveForm).find('.cloner-' + id).first();
+        const cache = $field.data('dupe') || [];
+        const $target = cache.length > 1 ? cache[cache.length - 2] : $field;
+        if ($cloner && $cloner.length && $target && $target.length) $cloner.appendTo($target);
+        window.WAPF.Util.unrepeat($wrapper, $field, 1);
+        syncRepeatableQty(id);
+        return true;
+      } catch (e) {}
+    }
+    const inputs = repeatableInputs(id);
+    const last = inputs[inputs.length - 1];
+    const row = last && last.closest('.field-' + id + ', .wapf-field-container, .wapf-field');
+    if (row && inputs.length > 1) {
+      row.parentNode.removeChild(row);
+      syncRepeatableQty(id);
+      return true;
+    }
+    return false;
+  }
+  function ensureRepeatableInputs(id, values){
+    let inputs = repeatableInputs(id);
+    let guard = 0;
+    const targetCount = Math.max(1, values.length || 1);
+    while (inputs.length < targetCount && guard < targetCount + 3) {
+      if (!createRepeatableClone(id)) break;
+      inputs = repeatableInputs(id);
+      guard += 1;
+    }
+    guard = 0;
+    while (inputs.length > targetCount && guard < 6) {
+      if (!removeRepeatableClone(id)) break;
+      inputs = repeatableInputs(id);
+      guard += 1;
+    }
+    syncRepeatableQty(id);
+    return inputs;
+  }
+  function applyRepeatableField(id, raw){
+    const values = splitSelected(raw).slice(0, 4);
+    const inputs = ensureRepeatableInputs(id, values.length ? values : ['']);
+    if (!inputs.length) return [];
+    if (values.length > 1 && inputs.length < values.length) {
+      inputs[0].value = values.join(', ');
+      return [inputs[0]];
+    }
+    inputs.forEach(function(el, index){ el.value = values[index] || (index === 0 ? String(raw || '') : ''); });
+    return inputs;
+  }
+  function applyStandardField(id, elements, raw){
+    const changed = [];
+    const checkboxes = elements.filter(function(el){ return el.type === 'checkbox'; });
+    const radios = elements.filter(function(el){ return el.type === 'radio'; });
+    const selects = elements.filter(function(el){ return el.tagName === 'SELECT'; });
+    const textControls = elements.filter(function(el){ return el.type !== 'checkbox' && el.type !== 'radio' && el.tagName !== 'SELECT'; });
+
+    if (checkboxes.length) {
+      const selections = resolvedSelections(raw, checkboxes);
+      const selectedLower = selections.map(lower);
+      const parentTruthy = parentBooleanIds.indexOf(id) !== -1 && isTruthyRaw(raw);
+      const hasExactCheckboxMatch = checkboxes.some(function(el){
+        return selectedLower.indexOf(lower(el.value)) !== -1 || selectedLower.indexOf(lower(labelForInput(el))) !== -1;
+      });
+      checkboxes.forEach(function(el, index){
+        el.checked = selectedLower.indexOf(lower(el.value)) !== -1 || selectedLower.indexOf(lower(labelForInput(el))) !== -1 || (parentTruthy && !hasExactCheckboxMatch && index === 0);
+        changed.push(el);
+      });
+    }
+
+    if (radios.length) {
+      const selections = resolvedSelections(raw, radios);
+      const wanted = lower(selections[0] || raw);
+      radios.forEach(function(el){
+        el.checked = lower(el.value) === wanted || lower(labelForInput(el)) === wanted;
+        changed.push(el);
+      });
+    }
+
+    selects.forEach(function(el){
+      const selections = resolvedSelections(raw, [el]);
+      el.value = selections[0] || String(raw || '');
+      changed.push(el);
+    });
+
+    textControls.forEach(function(el){
+      el.value = Array.isArray(raw) ? raw.join(', ') : String(raw || '');
+      changed.push(el);
+    });
+    return changed;
+  }
+  function runWapfDependencies(){
+    if (!saveForm) return;
+    markCloneButtonsAsNonSubmit();
+    if (window.jQuery) {
+      const $wrapper = wapfWrapper() || window.jQuery(saveForm);
+      if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.doDependencies === 'function') {
+        try { window.WAPF.Util.doDependencies($wrapper); } catch (e) {}
+      }
+      if (window.WAPF && window.WAPF.Pricing && typeof window.WAPF.Pricing.calculateAll === 'function') {
+        try { window.WAPF.Pricing.calculateAll($wrapper); } catch (e) {}
+      }
+      window.jQuery(document).trigger('wapf/init_datepickers', [$wrapper]);
+    }
+  }
+  function flushWapfDependencies(){
+    if (!saveForm) return;
+    parentBooleanIds.forEach(function(id){
+      qsa('[name="wapf[field_' + id + '][]"], [name="wapf[field_' + id + ']"]', saveForm).forEach(function(el){
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+    runWapfDependencies();
+  }
+  function serializeParentCheckedState(){
+    const holder = document.getElementById('teinvit-parent-checked-json');
+    if (!holder || !saveForm) return;
+    const payload = {};
+    parentBooleanIds.forEach(function(id){
+      payload[id] = qsa('[name="wapf[field_' + id + '][]"], [name="wapf[field_' + id + ']"]', saveForm).some(function(el){ return !!el.checked; }) ? 1 : 0;
+    });
+    holder.value = JSON.stringify(payload);
+  }
+  function setWapfValues(map, options){
+    const opts = options || {};
+    const sourceMap = mapWithInferredParents(map || {});
+    const shouldTrigger = opts.triggerEvents !== false;
+    const phases = opts.phase ? [opts.phase] : ['parents', 'children'];
+    let changed = [];
+
+    phases.forEach(function(phase){
+      const groups = groupCurrentInputs();
+      Object.keys(groups).forEach(function(id){
+        if (!phaseAllows(id, phase)) return;
+        const raw = rawValueForField(sourceMap, id);
+        if (repeatableFieldIds.indexOf(id) !== -1) changed = changed.concat(applyRepeatableField(id, raw));
+        else changed = changed.concat(applyStandardField(id, groups[id], raw));
+      });
+      if (phase === 'parents') {
+        triggerFieldEvents(changed, { silent: !shouldTrigger });
+        runWapfDependencies();
+      }
+    });
+
+    serializeParentCheckedState();
+    triggerFieldEvents(changed, { silent: !shouldTrigger });
+    runWapfDependencies();
+    return changed;
+  }
+  function hydrateWapf(map, options){
+    const opts = options || {};
+    isHydratingWapf = true;
+    markCloneButtonsAsNonSubmit();
+    window.__TEINVIT_BAPTISM_WAPF_READY__ = false;
+    if (opts.invitation) window.TEINVIT_INVITATION_DATA = opts.invitation;
+    setWapfValues(map || {}, { phase: 'parents', triggerEvents: false });
+    flushWapfDependencies();
+    setWapfValues(map || {}, { phase: 'children', triggerEvents: false });
+    document.dispatchEvent(new CustomEvent('teinvit:variant-applied'));
+    window.setTimeout(function(){
+      markCloneButtonsAsNonSubmit();
+      setWapfValues(map || {}, { phase: 'children', triggerEvents: false });
+      flushWapfDependencies();
+      serializeParentCheckedState();
+      isHydratingWapf = false;
+      window.__TEINVIT_BAPTISM_WAPF_READY__ = true;
+      document.dispatchEvent(new CustomEvent('teinvit:baptism-wapf-hydrated', { detail: { initial: !!opts.initial } }));
+    }, 90);
+  }
+  function installSaveSubmitGuard(){
+    if (!saveForm || saveSubmitGuardInstalled) return;
+    saveSubmitGuardInstalled = true;
+    saveForm.addEventListener('submit', function(e){
+      const submitter = e.submitter || document.activeElement;
+      const isSaveButton = !!(submitter && submitter.id === 'teinvit-save-btn');
+      if (isHydratingWapf || !isSaveButton) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+      }
+      serializeParentCheckedState();
+      e.stopImmediatePropagation();
+      return true;
+    }, true);
+  }
+  markCloneButtonsAsNonSubmit();
+  installSaveSubmitGuard();
+  document.addEventListener('DOMContentLoaded', function(){
+    markCloneButtonsAsNonSubmit();
+    if (saveForm) {
+      serializeParentCheckedState();
+      saveForm.addEventListener('input', serializeParentCheckedState);
+      saveForm.addEventListener('change', serializeParentCheckedState);
+      installSaveSubmitGuard();
+    }
+    window.setTimeout(function(){ hydrateWapf(initialWapf || {}, { initial: true, invitation: window.TEINVIT_INVITATION_DATA || null }); }, 30);
   });
 
   const dateToggle = document.getElementById('date_confirm');

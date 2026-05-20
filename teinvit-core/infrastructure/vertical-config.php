@@ -276,15 +276,27 @@ function teinvit_vertical_share_payload( $vertical_key, array $invitation = [], 
     if ( $vertical_key === 'baptism' ) {
         $children = isset( $invitation['children'] ) && is_array( $invitation['children'] ) ? $invitation['children'] : [];
         $joined_children = teinvit_join_ro_names( $children );
-        $text = $joined_children !== ''
-            ? 'Te invităm cu drag la botez, alături de ' . $joined_children
-            : (string) ( $share['fallback_message'] ?? 'Te invităm cu drag la botez' );
+        $baptism_short_text = $joined_children !== ''
+            ? html_entity_decode( 'Te invit&#259;m cu drag la botez, al&#259;turi de ', ENT_QUOTES, 'UTF-8' ) . $joined_children
+            : (string) ( $share['fallback_message'] ?? html_entity_decode( 'Te invit&#259;m cu drag la botez', ENT_QUOTES, 'UTF-8' ) );
+        $baptism_description = $joined_children !== ''
+            ? html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez, al&#259;turi de ', ENT_QUOTES, 'UTF-8' ) . $joined_children . '.'
+            : html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez.', ENT_QUOTES, 'UTF-8' );
+        $baptism_title = $joined_children !== ''
+            ? html_entity_decode( 'Te invit&#259;m la botezul lui ', ENT_QUOTES, 'UTF-8' ) . $joined_children
+            : (string) ( $share['title'] ?? html_entity_decode( 'Te invit&#259;m la botez', ENT_QUOTES, 'UTF-8' ) );
+        $baptism_image = defined( 'TEINVIT_BAPTISM_MODULE_URL' )
+            ? esc_url_raw( TEINVIT_BAPTISM_MODULE_URL . 'preview/social-preview.png' )
+            : '';
 
         return [
-            'title' => (string) ( $share['title'] ?? 'Te invităm la botez' ),
-            'message' => trim( $text . ( $url !== '' ? ' ' . $url : '' ) ),
-            'text' => $text,
+            'title' => $baptism_title,
+            'message' => trim( $baptism_short_text . ( $url !== '' ? "\n" . $url : '' ) ),
+            'text' => $baptism_description,
             'url' => $url,
+            'image' => $baptism_image,
+            'image_width' => 1200,
+            'image_height' => 630,
         ];
     }
 
