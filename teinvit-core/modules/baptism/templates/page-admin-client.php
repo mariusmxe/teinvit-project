@@ -208,6 +208,7 @@ $admin_toggle_fields = [
 @media (max-width:768px){.teinvit-admin-page-baptism .teinvit-two-col{display:flex!important;flex-direction:column!important}.teinvit-admin-page-baptism .teinvit-admin-main-col{display:contents}.teinvit-admin-page-baptism .teinvit-admin-preview-block{order:1;display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col{order:2}.teinvit-admin-page-baptism .teinvit-admin-controls-col{order:3;width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container{width:var(--teinvit-preview-scaled-width,559px)!important;height:var(--teinvit-preview-scaled-height,794px)!important;max-width:100%!important;min-width:0!important;min-height:0!important;margin-left:auto!important;margin-right:auto!important;overflow:visible!important;padding:0!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:559px!important;min-width:559px!important;max-width:none!important;height:794px!important;max-height:none!important;aspect-ratio:auto!important;font-size:17.25px!important;margin:0!important;transform:scale(var(--teinvit-preview-scale,1));transform-origin:top left;overflow:hidden!important}}
 @media (max-width:768px){body .teinvit-admin-page-baptism{width:100%!important;max-width:none!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important}.teinvit-admin-page-baptism .teinvit-admin-title-card,.teinvit-admin-page-baptism .teinvit-zone{margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-baptism .teinvit-admin-main-col,.teinvit-admin-page-baptism .teinvit-admin-controls-col,.teinvit-admin-page-baptism .teinvit-apf-col{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block{width:100%!important;max-width:100%!important;justify-content:center!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding{justify-content:center!important}.teinvit-admin-page-baptism .teinvit-share-actions,.teinvit-admin-page-baptism .teinvit-share-row,.teinvit-admin-page-baptism .teinvit-gifts-actions,.teinvit-admin-page-baptism .teinvit-gifts-save-row,.teinvit-admin-page-baptism .teinvit-report-toolbar{max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-share-social-btn{min-width:0}}
 @media (max-width:768px){body .teinvit-admin-page-baptism{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;margin-left:calc(50% - 50vw + 8px)!important;margin-right:calc(50% - 50vw + 8px)!important}}
+@media (max-width:768px){body.teinvit-admin-client-baptism{overflow-x:hidden}body.teinvit-admin-client-baptism .teinvit-admin-page-baptism{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important}.ast-container.teinvit-admin-client-container-baptism,.site-content .ast-container.teinvit-admin-client-container-baptism{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important;box-sizing:border-box}.ast-container.teinvit-admin-client-container-baptism .teinvit-admin-page-baptism{padding-left:0!important;padding-right:0!important}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-baptism">
   <div class="teinvit-admin-title-card">
@@ -330,7 +331,7 @@ $admin_toggle_fields = [
         <div class="teinvit-share-quick">
           <?php if ( $share_icon_base !== '' ) : ?>
           <div class="teinvit-share-row"><span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"></span><a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a></div>
-          <div class="teinvit-share-row"><span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span><a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( (string) ( $share_payload['message'] ?? '' ) ) ); ?>" target="_blank" rel="noopener">WhatsApp</a></div>
+          <div class="teinvit-share-row"><span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span><a class="button teinvit-share-social-btn" id="teinvit-share-whatsapp" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( (string) ( $share_payload['message'] ?? '' ) ) ); ?>" target="_blank" rel="noopener">WhatsApp</a></div>
           <div class="teinvit-share-row"><span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"></span><button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram">Instagram</button></div>
           <?php endif; ?>
         </div>
@@ -426,6 +427,10 @@ $admin_toggle_fields = [
 </div>
 <script>
 (function(){
+  document.body.classList.add('teinvit-admin-client-baptism');
+  const baptismAdminRoot = document.querySelector('.teinvit-admin-page-baptism');
+  const baptismAstContainer = baptismAdminRoot && baptismAdminRoot.closest ? baptismAdminRoot.closest('.ast-container') : null;
+  if (baptismAstContainer) baptismAstContainer.classList.add('teinvit-admin-client-container-baptism');
   window.teinvitBaptismPreviewConfig = Object.assign({}, window.teinvitBaptismPreviewConfig || {}, {
     previewBuildUrl: <?php echo wp_json_encode( esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ); ?>,
     token: <?php echo wp_json_encode( (string) $token ); ?>,
@@ -456,6 +461,7 @@ $admin_toggle_fields = [
   let isHydratingWapf = true;
   let saveSubmitGuardInstalled = false;
   let repeatableAddLimitGuardInstalled = false;
+  const repeatableManualSnapshots = {};
 
   window.teinvitBaptismPreviewConfig.deferInitialBuild = true;
   window.__TEINVIT_BAPTISM_WAPF_READY__ = false;
@@ -580,6 +586,29 @@ $admin_toggle_fields = [
   function syncRepeatableQty(id){
     const qty = repeatableQtyInput(id);
     if (qty) qty.value = String(Math.max(0, repeatableInputs(id).length - 1));
+  }
+  function repeatableValues(id){
+    return repeatableInputs(id).map(function(el){ return el ? String(el.value || '') : ''; });
+  }
+  function restoreRepeatableValuesAfterAdd(id, previousValues){
+    const before = Array.isArray(previousValues) ? previousValues.slice(0, repeatableMax(id) || previousValues.length) : [];
+    const run = function(){
+      const changed = [];
+      const inputs = repeatableInputs(id);
+      inputs.forEach(function(el, index){
+        if (!el) return;
+        const nextValue = index < before.length ? before[index] : '';
+        if (String(el.value || '') !== String(nextValue || '')) {
+          el.value = nextValue;
+          changed.push(el);
+        }
+      });
+      syncRepeatableQty(id);
+      syncRepeatableControls(id);
+      if (changed.length) triggerFieldEvents(changed);
+    };
+    window.setTimeout(run, 60);
+    window.setTimeout(run, 180);
   }
   function repeatableControlText(control){
     return lower((control && control.getAttribute ? control.getAttribute('class') : '') + ' ' + (control && control.getAttribute ? control.getAttribute('data-action') : '') + ' ' + (control && control.value ? control.value : '') + ' ' + (control && control.textContent ? control.textContent : ''));
@@ -730,8 +759,8 @@ $admin_toggle_fields = [
         syncRepeatableControls(id);
         return;
       }
-      const node = clone && clone[0] ? clone[0] : clone;
-      clearNewRepeatableClone(node, id);
+      const previousValues = repeatableManualSnapshots[id] || repeatableValues(id).slice(0, Math.max(0, repeatableInputs(id).length - 1));
+      restoreRepeatableValuesAfterAdd(id, previousValues);
       syncRepeatableQty(id);
       syncRepeatableControls(id);
     });
@@ -752,9 +781,11 @@ $admin_toggle_fields = [
             e.stopImmediatePropagation();
             syncRepeatableControls(id);
           } else {
-            window.setTimeout(function(){ syncRepeatableQty(id); syncRepeatableControls(id); }, 80);
+            repeatableManualSnapshots[id] = repeatableValues(id);
+            restoreRepeatableValuesAfterAdd(id, repeatableManualSnapshots[id]);
           }
         } else if (isRepeatableRemoveControl(control)) {
+          delete repeatableManualSnapshots[id];
           window.setTimeout(function(){ syncRepeatableQty(id); syncRepeatableControls(id); }, 80);
         }
       });
@@ -956,7 +987,9 @@ $admin_toggle_fields = [
   const shareStatus = document.getElementById('teinvit-share-status');
   const nativeBtn = document.getElementById('teinvit-share-native');
   const copyBtn = document.getElementById('teinvit-share-copy-main');
+  const whatsappBtn = document.getElementById('teinvit-share-whatsapp');
   const instaBtn = document.getElementById('teinvit-share-instagram');
+  if (whatsappBtn) whatsappBtn.setAttribute('href', 'https://wa.me/?text=' + encodeURIComponent(shareMessage));
   if (nativeBtn) nativeBtn.addEventListener('click', async function(){
     try {
       if (navigator.share) await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
@@ -965,7 +998,7 @@ $admin_toggle_fields = [
     } catch(e) {}
   });
   if (copyBtn) copyBtn.addEventListener('click', async function(){ await copyText(shareUrl); if (shareStatus) shareStatus.textContent = 'Link copiat.'; });
-  if (instaBtn) instaBtn.addEventListener('click', async function(){ await copyText(shareMessage); if (shareStatus) shareStatus.textContent = 'Text și link copiate pentru Instagram.'; });
+  if (instaBtn) instaBtn.addEventListener('click', async function(){ await copyText(shareUrl); if (shareStatus) shareStatus.textContent = 'Link copiat pentru Instagram.'; });
   qsa('.teinvit-share-pdf-btn').forEach(function(btn){
     btn.addEventListener('click', async function(){
       const pdfUrl = btn.getAttribute('data-pdf-url') || '';
