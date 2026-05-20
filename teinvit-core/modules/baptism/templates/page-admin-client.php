@@ -206,6 +206,7 @@ $admin_toggle_fields = [
 @media (max-width:1024px){.teinvit-admin-page-baptism .teinvit-two-col{grid-template-columns:minmax(0,1fr)!important}.teinvit-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:768px){.teinvit-admin-page-baptism{padding:10px;max-width:100%;overflow-x:hidden}.teinvit-admin-page-baptism .teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-admin-page-baptism .teinvit-two-col>div,.teinvit-admin-page-baptism .teinvit-zone,.teinvit-admin-page-baptism .teinvit-apf-col,.teinvit-admin-page-baptism #teinvit-save-form,.teinvit-admin-page-baptism .teinvit-admin-preview-block,.teinvit-admin-page-baptism .teinvit-share-card{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-baptism .teinvit-info-toggle-grid,.teinvit-admin-page-baptism .teinvit-rsvp-toggle-grid,.teinvit-admin-page-baptism .teinvit-report-grid{grid-template-columns:1fr}.teinvit-admin-page-baptism .teinvit-admin-preview-block{display:block!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{aspect-ratio:148/210!important;height:auto!important;min-height:0!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col .wapf-wrapper,.teinvit-admin-page-baptism .teinvit-apf-col .wapf,.teinvit-admin-page-baptism .teinvit-apf-col form.cart,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field-container,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-repeatable,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-field-row,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-input,.teinvit-admin-page-baptism .teinvit-apf-col .wapf-input-wrap{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-apf-col input:not([type=checkbox]):not([type=radio]),.teinvit-admin-page-baptism .teinvit-apf-col select,.teinvit-admin-page-baptism .teinvit-apf-col textarea{width:100%;max-width:100%;min-width:0}.teinvit-variant-pdf-actions{display:flex;margin:6px 0 0 0}.teinvit-share-quick{width:100%;max-width:100%}}
 @media (max-width:768px){.teinvit-admin-page-baptism .teinvit-two-col{display:flex!important;flex-direction:column!important}.teinvit-admin-page-baptism .teinvit-admin-main-col{display:contents}.teinvit-admin-page-baptism .teinvit-admin-preview-block{order:1;display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:hidden}.teinvit-admin-page-baptism .teinvit-apf-col{order:2}.teinvit-admin-page-baptism .teinvit-admin-controls-col{order:3;width:100%;max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-container{width:var(--teinvit-preview-scaled-width,559px)!important;height:var(--teinvit-preview-scaled-height,794px)!important;max-width:100%!important;min-width:0!important;min-height:0!important;margin-left:auto!important;margin-right:auto!important;overflow:visible!important;padding:0!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-preview{width:559px!important;min-width:559px!important;max-width:none!important;height:794px!important;max-height:none!important;aspect-ratio:auto!important;font-size:17.25px!important;margin:0!important;transform:scale(var(--teinvit-preview-scale,1));transform-origin:top left;overflow:hidden!important}}
+@media (max-width:768px){body .teinvit-admin-page-baptism{width:100%!important;max-width:none!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important}.teinvit-admin-page-baptism .teinvit-admin-title-card,.teinvit-admin-page-baptism .teinvit-zone{margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-baptism .teinvit-admin-main-col,.teinvit-admin-page-baptism .teinvit-admin-controls-col,.teinvit-admin-page-baptism .teinvit-apf-col{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block{width:100%!important;max-width:100%!important;justify-content:center!important}.teinvit-admin-page-baptism .teinvit-admin-preview-block .teinvit-wedding{justify-content:center!important}.teinvit-admin-page-baptism .teinvit-share-actions,.teinvit-admin-page-baptism .teinvit-share-row,.teinvit-admin-page-baptism .teinvit-gifts-actions,.teinvit-admin-page-baptism .teinvit-gifts-save-row,.teinvit-admin-page-baptism .teinvit-report-toolbar{max-width:100%;min-width:0}.teinvit-admin-page-baptism .teinvit-share-social-btn{min-width:0}}
 </style>
 <div class="teinvit-admin-page teinvit-admin-page-baptism">
   <div class="teinvit-admin-title-card">
@@ -436,8 +437,10 @@ $admin_toggle_fields = [
   const shareUrl = <?php echo wp_json_encode( $guest_page_url ); ?>;
   const shareTitle = <?php echo wp_json_encode( (string) ( $share_payload['title'] ?? 'Te invităm la botez' ) ); ?>;
   const shareText = <?php echo wp_json_encode( (string) ( $share_payload['text'] ?? 'Te invităm cu drag la botez' ) ); ?>;
+  const shareMessage = <?php echo wp_json_encode( (string) ( $share_payload['message'] ?? ( "Te invităm cu drag la botez\n" . $guest_page_url ) ) ); ?>;
   const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
   const giftsMaxSlots = <?php echo (int) $gifts_max_slots; ?>;
+  const editsRemaining = <?php echo (int) $edits_remaining; ?>;
 
   const saveForm = document.getElementById('teinvit-save-form');
   const parentBooleanIds = ['3ec4ca5','1f32dd0','1eceab7','b4fca64'];
@@ -451,7 +454,7 @@ $admin_toggle_fields = [
   };
   let isHydratingWapf = true;
   let saveSubmitGuardInstalled = false;
-  let repeatableClickGuardInstalled = false;
+  let repeatableAddLimitGuardInstalled = false;
 
   window.teinvitBaptismPreviewConfig.deferInitialBuild = true;
   window.__TEINVIT_BAPTISM_WAPF_READY__ = false;
@@ -615,8 +618,6 @@ $admin_toggle_fields = [
     repeatableControls(id).forEach(function(control){
       if (isRepeatableAddControl(control)) {
         setRepeatableControlState(control, !max || count < max, !!max && count >= max);
-      } else if (isRepeatableRemoveControl(control)) {
-        setRepeatableControlState(control, count > 1, count <= 1);
       }
     });
   }
@@ -732,9 +733,9 @@ $admin_toggle_fields = [
       syncRepeatableControls(id);
     });
   }
-  function installRepeatableClickGuard(){
-    if (!saveForm || repeatableClickGuardInstalled) return;
-    repeatableClickGuardInstalled = true;
+  function installRepeatableAddLimitGuard(){
+    if (!saveForm || repeatableAddLimitGuardInstalled) return;
+    repeatableAddLimitGuardInstalled = true;
     saveForm.addEventListener('click', function(e){
       const control = e.target && e.target.closest ? e.target.closest('button,a,[role="button"],input[type="button"]') : null;
       if (!control) return;
@@ -888,6 +889,11 @@ $admin_toggle_fields = [
       document.dispatchEvent(new CustomEvent('teinvit:baptism-wapf-hydrated', { detail: { initial: !!opts.initial } }));
     }, 90);
   }
+  function saveConfirmationMessage(){
+    return editsRemaining === 1
+      ? 'Aceasta este ultima modificare disponibil\u0103. Po\u021bi achizi\u021biona altele oric\u00e2nd. Salvezi modific\u0103rile?'
+      : 'Aceast\u0103 ac\u021biune consum\u0103 o modificare disponibil\u0103 din ' + editsRemaining + '. Salvezi modific\u0103rile?';
+  }
   function installSaveSubmitGuard(){
     if (!saveForm || saveSubmitGuardInstalled) return;
     saveSubmitGuardInstalled = true;
@@ -900,6 +906,14 @@ $admin_toggle_fields = [
         return false;
       }
       serializeParentCheckedState();
+      if (editsRemaining <= 0) {
+        e.preventDefault();
+        return false;
+      }
+      if (!window.confirm(saveConfirmationMessage())) {
+        e.preventDefault();
+        return false;
+      }
       e.stopImmediatePropagation();
       return true;
     }, true);
@@ -907,11 +921,11 @@ $admin_toggle_fields = [
   markCloneButtonsAsNonSubmit();
   installSaveSubmitGuard();
   bindManualRepeatableCloneReset();
-  installRepeatableClickGuard();
+  installRepeatableAddLimitGuard();
   document.addEventListener('DOMContentLoaded', function(){
     markCloneButtonsAsNonSubmit();
     bindManualRepeatableCloneReset();
-    installRepeatableClickGuard();
+    installRepeatableAddLimitGuard();
     if (saveForm) {
       serializeParentCheckedState();
       saveForm.addEventListener('input', serializeParentCheckedState);
@@ -948,7 +962,7 @@ $admin_toggle_fields = [
     } catch(e) {}
   });
   if (copyBtn) copyBtn.addEventListener('click', async function(){ await copyText(shareUrl); if (shareStatus) shareStatus.textContent = 'Link copiat.'; });
-  if (instaBtn) instaBtn.addEventListener('click', async function(){ await copyText(shareUrl); if (shareStatus) shareStatus.textContent = 'Link copiat pentru Instagram.'; });
+  if (instaBtn) instaBtn.addEventListener('click', async function(){ await copyText(shareMessage); if (shareStatus) shareStatus.textContent = 'Text și link copiate pentru Instagram.'; });
   qsa('.teinvit-share-pdf-btn').forEach(function(btn){
     btn.addEventListener('click', async function(){
       const pdfUrl = btn.getAttribute('data-pdf-url') || '';

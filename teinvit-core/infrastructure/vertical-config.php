@@ -289,9 +289,9 @@ function teinvit_vertical_share_payload( $vertical_key, array $invitation = [], 
             : html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez.', ENT_QUOTES, 'UTF-8' );
         $baptism_title = $use_children_in_title
             ? html_entity_decode( 'Te invit&#259;m la botezul lui ', ENT_QUOTES, 'UTF-8' ) . $joined_children
-            : (string) ( $share['title'] ?? html_entity_decode( 'Te invit&#259;m la botez', ENT_QUOTES, 'UTF-8' ) );
+            : html_entity_decode( 'Te invit&#259;m la botez', ENT_QUOTES, 'UTF-8' );
         $baptism_image = defined( 'TEINVIT_BAPTISM_MODULE_URL' )
-            ? esc_url_raw( TEINVIT_BAPTISM_MODULE_URL . 'preview/social-preview.png' )
+            ? esc_url_raw( TEINVIT_BAPTISM_MODULE_URL . 'preview/social-preview-baptism-v2.png' )
             : '';
         if ( $baptism_image !== '' ) {
             $baptism_image = function_exists( 'set_url_scheme' ) ? set_url_scheme( $baptism_image, 'https' ) : preg_replace( '/^http:/i', 'https:', $baptism_image );
