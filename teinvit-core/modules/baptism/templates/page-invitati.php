@@ -353,7 +353,35 @@ if ( $show_gifts_section ) {
   function checkedValue(name){ const node = form.querySelector('[name="' + name + '"]:checked'); return node ? node.value : ''; }
   function boolValue(name){ return checkedValue(name) === '1' ? 1 : 0; }
   function intValue(name, fallback){ const field = byName(name); const raw = String((field && field.value) || '').trim(); if (!raw) return fallback || 0; const n = parseInt(raw, 10); return Number.isFinite(n) ? n : (fallback || 0); }
-  function setError(field, text){ if (!field) return; field.classList.add('teinvit-field-error'); let next = field.nextElementSibling; if (!next || !next.classList || !next.classList.contains('teinvit-inline-error')) { next = document.createElement('small'); next.className = 'teinvit-inline-error'; field.insertAdjacentElement('afterend', next); } next.textContent = text; }
+  function setError(field, text){
+    if (!field) return;
+    field.classList.add('teinvit-field-error');
+    if (field.type === 'radio') {
+      const question = field.closest('.teinvit-rsvp-question');
+      const group = field.closest('.teinvit-rsvp-choice-group');
+      if (question && group) {
+        let radioError = null;
+        question.querySelectorAll('.teinvit-inline-error').forEach(function(node){
+          if (!radioError && node.getAttribute('data-radio-error') === field.name) radioError = node;
+        });
+        if (!radioError) {
+          radioError = document.createElement('small');
+          radioError.className = 'teinvit-inline-error';
+          radioError.setAttribute('data-radio-error', field.name || '');
+          group.insertAdjacentElement('beforebegin', radioError);
+        }
+        radioError.textContent = text;
+        return;
+      }
+    }
+    let next = field.nextElementSibling;
+    if (!next || !next.classList || !next.classList.contains('teinvit-inline-error')) {
+      next = document.createElement('small');
+      next.className = 'teinvit-inline-error';
+      field.insertAdjacentElement('afterend', next);
+    }
+    next.textContent = text;
+  }
   function clearErrors(){ form.querySelectorAll('.teinvit-field-error').forEach(el => el.classList.remove('teinvit-field-error')); form.querySelectorAll('.teinvit-inline-error').forEach(el => el.remove()); if (msg) { msg.textContent = ''; msg.className = 'teinvit-rsvp-status'; } }
   function bindConditional(name, targetId){
     const target = document.getElementById(targetId);

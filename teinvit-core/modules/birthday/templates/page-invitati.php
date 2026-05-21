@@ -455,12 +455,39 @@ if ( $show_gifts_section ) {
   function clearFieldError(field){
     if (!field) return;
     field.classList.remove('teinvit-field-error');
+    if (field.type === 'radio') {
+      const question = field.closest('.teinvit-rsvp-question');
+      if (question) {
+        question.querySelectorAll('.teinvit-inline-error').forEach(function(node){
+          if (node.getAttribute('data-radio-error') === field.name) node.remove();
+        });
+      }
+      return;
+    }
     const next = field.nextElementSibling;
     if (next && next.classList && next.classList.contains('teinvit-inline-error')) next.remove();
   }
   function setFieldError(field, message){
     if (!field) return;
     field.classList.add('teinvit-field-error');
+    if (field.type === 'radio') {
+      const question = field.closest('.teinvit-rsvp-question');
+      const group = field.closest('.teinvit-rsvp-choice-group');
+      if (question && group) {
+        let radioError = null;
+        question.querySelectorAll('.teinvit-inline-error').forEach(function(node){
+          if (!radioError && node.getAttribute('data-radio-error') === field.name) radioError = node;
+        });
+        if (!radioError) {
+          radioError = document.createElement('small');
+          radioError.className = 'teinvit-inline-error';
+          radioError.setAttribute('data-radio-error', field.name || '');
+          group.insertAdjacentElement('beforebegin', radioError);
+        }
+        radioError.textContent = message;
+        return;
+      }
+    }
     let next = field.nextElementSibling;
     if (!next || !next.classList || !next.classList.contains('teinvit-inline-error')) {
       next = document.createElement('small');
