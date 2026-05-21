@@ -3,6 +3,52 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+function teinvit_share_meta_tags_html( $meta_title, $meta_desc, $meta_url, $meta_image, $meta_image_width, $meta_image_height, $site_name ) {
+    $html = '';
+
+    if ( $meta_url !== '' ) {
+        $html .= "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
+    }
+    $html .= '<meta name="description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
+    $html .= '<meta property="og:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
+    $html .= '<meta property="og:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
+    if ( $meta_url !== '' ) {
+        $html .= '<meta property="og:url" content="' . esc_url( $meta_url ) . '" />' . "\n";
+    }
+    $html .= '<meta property="og:type" content="website" />' . "\n";
+    $html .= '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
+    if ( $meta_image !== '' ) {
+        $html .= '<meta property="og:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
+        $html .= '<meta property="og:image:secure_url" content="' . esc_url( $meta_image ) . '" />' . "\n";
+        if ( $meta_image_width > 0 && $meta_image_height > 0 ) {
+            $html .= '<meta property="og:image:width" content="' . esc_attr( (string) $meta_image_width ) . '" />' . "\n";
+            $html .= '<meta property="og:image:height" content="' . esc_attr( (string) $meta_image_height ) . '" />' . "\n";
+        }
+    }
+    $html .= '<meta name="twitter:card" content="summary_large_image" />' . "\n";
+    $html .= '<meta name="twitter:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
+    $html .= '<meta name="twitter:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
+    if ( $meta_url !== '' ) {
+        $html .= '<meta name="twitter:url" content="' . esc_url( $meta_url ) . '" />' . "\n";
+    }
+    if ( $meta_image !== '' ) {
+        $html .= '<meta name="twitter:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
+    }
+
+    return $html;
+}
+
+function teinvit_share_strip_conflicting_meta_tags( $head_html ) {
+    $patterns = [
+        '#<link\b(?=[^>]*\brel=["\']canonical["\'])[^>]*>\s*#i',
+        '#<meta\b(?=[^>]*\bname=["\']description["\'])[^>]*>\s*#i',
+        '#<meta\b(?=[^>]*\bproperty=["\']og:(title|description|url|type|site_name|image|image:secure_url|image:width|image:height)["\'])[^>]*>\s*#i',
+        '#<meta\b(?=[^>]*\b(name|property)=["\']twitter:(card|title|description|url|image)["\'])[^>]*>\s*#i',
+    ];
+
+    return preg_replace( $patterns, '', (string) $head_html );
+}
+
 function teinvit_share_render_meta( array $payload ) {
     static $rendered = false;
     if ( $rendered ) {
@@ -49,33 +95,14 @@ function teinvit_share_render_meta( array $payload ) {
     add_filter( 'wp_title', fn() => $meta_title, 999 );
     add_filter( 'single_post_title', fn() => $meta_title, 999 );
 
+    add_action( 'wp_head', function() {
+        ob_start();
+    }, -999999 );
     add_action( 'wp_head', function() use ( $meta_title, $meta_desc, $meta_url, $meta_image, $meta_image_width, $meta_image_height, $site_name ) {
-        if ( $meta_url !== '' ) {
-            echo "\n" . '<link rel="canonical" href="' . esc_url( $meta_url ) . '" />' . "\n";
-        }
-        echo '<meta name="description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
-        echo '<meta property="og:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
-        echo '<meta property="og:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
-        if ( $meta_url !== '' ) {
-            echo '<meta property="og:url" content="' . esc_url( $meta_url ) . '" />' . "\n";
-        }
-        echo '<meta property="og:type" content="website" />' . "\n";
-        echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
-        if ( $meta_image !== '' ) {
-            echo '<meta property="og:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
-            echo '<meta property="og:image:secure_url" content="' . esc_url( $meta_image ) . '" />' . "\n";
-            if ( $meta_image_width > 0 && $meta_image_height > 0 ) {
-                echo '<meta property="og:image:width" content="' . esc_attr( (string) $meta_image_width ) . '" />' . "\n";
-                echo '<meta property="og:image:height" content="' . esc_attr( (string) $meta_image_height ) . '" />' . "\n";
-            }
-        }
-        echo '<meta name="twitter:card" content="summary_large_image" />' . "\n";
-        echo '<meta name="twitter:title" content="' . esc_attr( $meta_title ) . '" />' . "\n";
-        echo '<meta name="twitter:description" content="' . esc_attr( $meta_desc ) . '" />' . "\n";
-        if ( $meta_image !== '' ) {
-            echo '<meta name="twitter:image" content="' . esc_url( $meta_image ) . '" />' . "\n";
-        }
-    }, 0 );
+        $head_html = ob_get_level() > 0 ? ob_get_clean() : '';
+        echo teinvit_share_strip_conflicting_meta_tags( $head_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo teinvit_share_meta_tags_html( $meta_title, $meta_desc, $meta_url, $meta_image, $meta_image_width, $meta_image_height, $site_name ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }, 999999 );
 
     add_filter( 'wpseo_title', fn() => $meta_title, 999 );
     add_filter( 'wpseo_metadesc', fn() => $meta_desc, 999 );
