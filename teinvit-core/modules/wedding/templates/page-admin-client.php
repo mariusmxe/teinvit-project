@@ -38,9 +38,14 @@ foreach ( $versions as $index => $row ) {
         $snap_inv = $order_invitation;
     }
 
-    $pdf_url = (string) ( $row['pdf_url'] ?? '' );
+    $pdf_status = (string) ( $row['pdf_status'] ?? 'none' );
+    $pdf_filename = (string) ( $row['pdf_filename'] ?? '' );
+    $pdf_url = esc_url_raw( (string) ( $row['pdf_url'] ?? '' ) );
     if ( $index === 0 && $pdf_url === '' && $order_pdf_url !== '' ) {
         $pdf_url = esc_url_raw( $order_pdf_url );
+    }
+    if ( $pdf_url === '' && $pdf_filename !== '' && ! in_array( $pdf_status, [ 'processing', 'failed', 'deleted_on_server' ], true ) && function_exists( 'teinvit_wedding_pdf_public_url_from_filename' ) ) {
+        $pdf_url = teinvit_wedding_pdf_public_url_from_filename( (int) $order->get_id(), $pdf_filename );
     }
 
     $variants[] = [
@@ -50,7 +55,9 @@ foreach ( $versions as $index => $row ) {
         'wapf_fields' => $snap_wapf,
         'created_at' => (string) $row['created_at'],
         'pdf_url' => $pdf_url,
-        'pdf_status' => (string) ( $row['pdf_status'] ?? 'none' ),
+        'pdf_status' => $pdf_status,
+        'pdf_filename' => sanitize_file_name( $pdf_filename ),
+        'pdf_available' => $pdf_url !== '',
     ];
 }
 
@@ -332,7 +339,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           <label style="display:block;margin-bottom:6px;">
             <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
             <?php echo esc_html( $variant['label'] ); ?>
-            <?php if ( ! empty( $variant['pdf_url'] ) ) : ?>
+            <?php if ( ! empty( $variant['pdf_available'] ) ) : ?>
               <?php $download_pdf_url = add_query_arg( [ 'action' => 'teinvit_download_variant_pdf', 'token' => $token, 'version_id' => (int) $variant['id'], '_wpnonce' => $download_pdf_nonce ], admin_url( 'admin-post.php' ) ); ?>
               <span class="teinvit-variant-pdf-actions">
                 <a href="<?php echo esc_url( $download_pdf_url ); ?>" class="button">Descarcă PDF</a>

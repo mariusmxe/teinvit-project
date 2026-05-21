@@ -321,7 +321,7 @@ $admin_toggle_fields = [
       <?php
       if ( ! empty( $capabilities['can_share_invitation'] ) && function_exists( 'teinvit_share_render_buttons' ) ) {
           teinvit_share_render_buttons( $share_payload, [
-              'help_text' => 'Trimite rapid invitația la botez către familie și prieteni.',
+              'help_text' => 'Trimite rapid invitația către familie și prieteni. Pe telefon poți folosi butonul „Distribuie”, iar în rest ai opțiuni rapide mai jos.',
           ] );
       }
       ?>

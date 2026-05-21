@@ -1263,6 +1263,26 @@ add_action( 'admin_post_teinvit_set_active_version', function() {
     exit;
 } );
 
+function teinvit_wedding_pdf_public_url_from_filename( $order_id, $filename ) {
+    $order_id = (int) $order_id;
+    $filename = trim( (string) $filename );
+    $filename = basename( str_replace( '\\', '/', $filename ) );
+    $filename = (string) preg_replace( '/[\x00-\x1F\x7F]/', '', $filename );
+    if ( $order_id <= 0 || $filename === '' ) {
+        return '';
+    }
+
+    $base_url = defined( 'TEINVIT_NODE_ENDPOINT' )
+        ? preg_replace( '#/api/render/?$#', '', (string) TEINVIT_NODE_ENDPOINT )
+        : 'https://pdf.teinvit.com';
+    $base_url = rtrim( (string) $base_url, '/' );
+    if ( $base_url === '' ) {
+        $base_url = 'https://pdf.teinvit.com';
+    }
+
+    return esc_url_raw( $base_url . '/wp-content/uploads/teinvit/orders/' . $order_id . '/' . rawurlencode( $filename ) );
+}
+
 add_action( 'admin_post_teinvit_download_variant_pdf', function() {
     global $wpdb;
 
@@ -1303,7 +1323,12 @@ add_action( 'admin_post_teinvit_download_variant_pdf', function() {
         ARRAY_A
     );
 
+    $filename_raw = (string) ( $row['pdf_filename'] ?? '' );
+    $filename = sanitize_file_name( $filename_raw );
     $pdf_url = esc_url_raw( (string) ( $row['pdf_url'] ?? '' ) );
+    if ( $pdf_url === '' && trim( $filename_raw ) !== '' ) {
+        $pdf_url = teinvit_wedding_pdf_public_url_from_filename( $order_id, $filename_raw );
+    }
     if ( $pdf_url === '' ) {
         // Legacy fallback for Variant 0: older flows stored only the order-level PDF URL.
         $oldest_version_id = (int) $wpdb->get_var(
@@ -1324,7 +1349,6 @@ add_action( 'admin_post_teinvit_download_variant_pdf', function() {
         exit;
     }
 
-    $filename = sanitize_file_name( (string) ( $row['pdf_filename'] ?? '' ) );
     if ( $filename === '' ) {
         $path = wp_parse_url( $pdf_url, PHP_URL_PATH );
         $filename = sanitize_file_name( basename( (string) $path ) );
