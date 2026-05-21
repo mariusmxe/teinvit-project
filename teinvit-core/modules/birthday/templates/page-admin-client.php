@@ -163,15 +163,13 @@ $report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_bir
 $basic_copy = function_exists( 'teinvit_vertical_basic_copy' ) ? teinvit_vertical_basic_copy( 'birthday' ) : [];
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
-$guest_page_url = home_url( '/invitati/' . rawurlencode( $token ) );
-$guest_page_url = function_exists( 'set_url_scheme' ) ? set_url_scheme( $guest_page_url, 'https' ) : preg_replace( '/^http:/i', 'https:', $guest_page_url );
+$guest_page_url = function_exists( 'teinvit_share_guest_url' ) ? teinvit_share_guest_url( $token ) : home_url( '/invitati/' . rawurlencode( $token ) );
 $share_payload = function_exists( 'teinvit_vertical_share_payload' ) ? teinvit_vertical_share_payload( 'birthday', $current_invitation, $guest_page_url ) : [
     'title' => 'Invitație aniversare - Te Invit',
     'text' => 'Te invităm cu drag la petrecerea aniversară',
-    'message' => 'Te invităm cu drag la petrecerea aniversară ' . $guest_page_url,
+    'message' => "Te invităm cu drag la petrecerea aniversară\n" . $guest_page_url,
     'url' => $guest_page_url,
 ];
-$share_icon_base = defined( 'TEINVIT_WEDDING_MODULE_URL' ) ? trailingslashit( TEINVIT_WEDDING_MODULE_URL . 'assets/icons/social' ) : '';
 $download_pdf_nonce = wp_create_nonce( 'teinvit_download_pdf_' . $token );
 $subtitle = function_exists( 'teinvit_join_ro_names' )
     ? teinvit_join_ro_names( isset( $current_invitation['celebrants'] ) && is_array( $current_invitation['celebrants'] ) ? $current_invitation['celebrants'] : [] )
@@ -213,13 +211,12 @@ $admin_child_toggle_fields = [
 .teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}.teinvit-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.teinvit-form-row label{display:block}.teinvit-form-row input[type=text]{width:100%}
 .teinvit-info-form{display:flex;flex-direction:column;align-items:center;gap:12px}.teinvit-info-deadline-toggle{text-align:center}.teinvit-info-date-wrap{width:min(260px,100%);text-align:center}.teinvit-info-date-wrap .acf-input,.teinvit-info-date-wrap .acf-input-wrap{width:100%}.teinvit-info-date-wrap input[type=text]{max-width:220px;text-align:center}.teinvit-info-free-text-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:820px}.teinvit-info-text-card{display:flex;flex-direction:column;gap:8px}.teinvit-info-text-card input[type=text]{width:100%}.teinvit-info-actions{text-align:center;margin:4px 0 0}.teinvit-apf-col{min-width:0}.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf,.teinvit-apf-col form.cart{max-width:100%}.teinvit-admin-page-birthday .teinvit-apf-col #teinvit-save-form{display:block;width:100%;max-width:100%;margin:0}.teinvit-admin-page-birthday .teinvit-admin-gifts{display:block;width:100%;max-width:100%;clear:both}.teinvit-admin-gifts h3{text-align:center;margin-top:0}
 .teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
-.teinvit-share-card h3{margin-top:0}.teinvit-share-help{margin:0 0 10px}.teinvit-share-actions{display:flex;gap:8px;flex-wrap:wrap}.teinvit-share-quick{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:320px}.teinvit-share-row{display:flex;align-items:center;gap:10px}.teinvit-share-icon-wrap{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px}.teinvit-share-icon-wrap img{width:18px;height:18px;display:block}.teinvit-share-social-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;line-height:1.2;text-align:center}
 .teinvit-admin-page-birthday .teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle;flex-wrap:wrap;max-width:100%}.teinvit-admin-page-birthday .teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}
-.teinvit-rsvp-mode-choice{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}.teinvit-rsvp-mode-choice label{display:inline-flex;align-items:center;gap:6px}.teinvit-rsvp-mode-panel[hidden]{display:none!important}.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status,.teinvit-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
+.teinvit-rsvp-mode-choice{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}.teinvit-rsvp-mode-choice label{display:inline-flex;align-items:center;gap:6px}.teinvit-rsvp-mode-panel[hidden]{display:none!important}.teinvit-rsvp-toggle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}.teinvit-rsvp-toggle-grid label{display:block}.teinvit-pdf-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
 .teinvit-gifts-table-wrap,.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table,.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse}.teinvit-gifts-table th,.teinvit-gifts-table td,.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:8px;vertical-align:top}.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}.teinvit-gifts-table textarea{min-height:56px;resize:vertical}.teinvit-gifts-actions,.teinvit-report-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-row-multi{background:#fff2f2}.teinvit-report-table td:nth-last-child(1),.teinvit-report-table td:nth-last-child(2){width:42ch;min-width:42ch;white-space:normal;word-break:break-word}
 @media (max-width: 1024px){.teinvit-admin-page-birthday .teinvit-two-col{grid-template-columns:minmax(0,1fr)!important}}
-@media (max-width: 768px){.teinvit-admin-page-birthday{padding:10px;max-width:100%;overflow-x:hidden}.teinvit-admin-page-birthday .teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-admin-page-birthday .teinvit-two-col>div,.teinvit-admin-page-birthday .teinvit-zone,.teinvit-admin-page-birthday .teinvit-apf-col,.teinvit-admin-page-birthday #teinvit-save-form,.teinvit-admin-page-birthday .teinvit-admin-preview-block,.teinvit-admin-page-birthday .teinvit-share-card,.teinvit-admin-page-birthday .teinvit-admin-rsvp-settings{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-preview-block{display:block!important;order:1;overflow:hidden}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-container,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-wedding{display:block!important}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-preview{aspect-ratio:148/210!important;height:auto!important;min-height:0!important;overflow:hidden}.teinvit-admin-page-birthday .teinvit-apf-col .wapf-wrapper,.teinvit-admin-page-birthday .teinvit-apf-col .wapf,.teinvit-admin-page-birthday .teinvit-apf-col form.cart,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field-container,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-repeatable,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field-row,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-input,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-input-wrap{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-apf-col input:not([type=checkbox]):not([type=radio]),.teinvit-admin-page-birthday .teinvit-apf-col select,.teinvit-admin-page-birthday .teinvit-apf-col textarea{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-variant-pdf-actions{display:flex;margin:6px 0 0 0}.teinvit-admin-page-birthday .teinvit-share-actions,.teinvit-admin-page-birthday .teinvit-share-row,.teinvit-admin-page-birthday .teinvit-gifts-actions,.teinvit-admin-page-birthday .teinvit-report-toolbar{max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-share-quick{width:100%;max-width:100%}.teinvit-admin-page-birthday .teinvit-report-grid{grid-template-columns:1fr}}
-@media (max-width: 768px){body .teinvit-admin-page-birthday{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important}.teinvit-admin-page-birthday .teinvit-admin-title-card,.teinvit-admin-page-birthday .teinvit-zone{margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-birthday .teinvit-two-col{display:flex!important;flex-direction:column!important}.teinvit-admin-page-birthday .teinvit-two-col>div:first-child{display:contents}.teinvit-admin-page-birthday .teinvit-admin-preview-block{order:1;display:flex!important;justify-content:center!important;align-items:flex-start!important}.teinvit-admin-page-birthday .teinvit-apf-col{order:2}.teinvit-admin-page-birthday .teinvit-two-col>div:first-child>:not(.teinvit-admin-preview-block){order:3;width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-apf-col,.teinvit-admin-page-birthday #teinvit-save-form{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-birthday .teinvit-share-social-btn{min-width:0}}
+@media (max-width: 768px){.teinvit-admin-page-birthday{padding:10px;max-width:100%;overflow-x:hidden}.teinvit-admin-page-birthday .teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-admin-page-birthday .teinvit-two-col>div,.teinvit-admin-page-birthday .teinvit-zone,.teinvit-admin-page-birthday .teinvit-apf-col,.teinvit-admin-page-birthday #teinvit-save-form,.teinvit-admin-page-birthday .teinvit-admin-preview-block,.teinvit-admin-page-birthday .teinvit-share-card,.teinvit-admin-page-birthday .teinvit-admin-rsvp-settings{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-preview-block{display:block!important;order:1;overflow:hidden}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-page,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-container,.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-wedding{display:block!important}.teinvit-admin-page-birthday .teinvit-admin-preview-block .teinvit-preview{aspect-ratio:148/210!important;height:auto!important;min-height:0!important;overflow:hidden}.teinvit-admin-page-birthday .teinvit-apf-col .wapf-wrapper,.teinvit-admin-page-birthday .teinvit-apf-col .wapf,.teinvit-admin-page-birthday .teinvit-apf-col form.cart,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field-container,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-repeatable,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-field-row,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-input,.teinvit-admin-page-birthday .teinvit-apf-col .wapf-input-wrap{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-apf-col input:not([type=checkbox]):not([type=radio]),.teinvit-admin-page-birthday .teinvit-apf-col select,.teinvit-admin-page-birthday .teinvit-apf-col textarea{width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-variant-pdf-actions{display:flex;margin:6px 0 0 0}.teinvit-admin-page-birthday .teinvit-gifts-actions,.teinvit-admin-page-birthday .teinvit-report-toolbar{max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-report-grid{grid-template-columns:1fr}}
+@media (max-width: 768px){body .teinvit-admin-page-birthday{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important}.teinvit-admin-page-birthday .teinvit-admin-title-card,.teinvit-admin-page-birthday .teinvit-zone{margin-left:auto!important;margin-right:auto!important}.teinvit-admin-page-birthday .teinvit-two-col{display:flex!important;flex-direction:column!important}.teinvit-admin-page-birthday .teinvit-two-col>div:first-child{display:contents}.teinvit-admin-page-birthday .teinvit-admin-preview-block{order:1;display:flex!important;justify-content:center!important;align-items:flex-start!important}.teinvit-admin-page-birthday .teinvit-apf-col{order:2}.teinvit-admin-page-birthday .teinvit-two-col>div:first-child>:not(.teinvit-admin-preview-block){order:3;width:100%;max-width:100%;min-width:0}.teinvit-admin-page-birthday .teinvit-apf-col,.teinvit-admin-page-birthday #teinvit-save-form{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important}}
 @media (max-width: 768px){body.teinvit-admin-client-birthday{overflow-x:hidden}body.teinvit-admin-client-birthday .teinvit-admin-page-birthday{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important}.ast-container.teinvit-admin-client-container-birthday,.site-content .ast-container.teinvit-admin-client-container-birthday{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:8px!important;padding-right:8px!important;box-sizing:border-box}.ast-container.teinvit-admin-client-container-birthday .teinvit-admin-page-birthday{padding-left:0!important;padding-right:0!important}}
 @media (max-width: 768px){body.teinvit-mode-admin-client.teinvit-vertical-birthday,body.teinvit-mode-admin-client.teinvit-vertical-birthday #page,body.teinvit-mode-admin-client.teinvit-vertical-birthday #content{overflow-x:hidden!important}body.teinvit-mode-admin-client.teinvit-vertical-birthday .site-content .ast-container,body.teinvit-mode-admin-client.teinvit-vertical-birthday .ast-container.teinvit-admin-client-container-birthday{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;padding-left:0!important;padding-right:0!important;box-sizing:border-box}body.teinvit-mode-admin-client.teinvit-vertical-birthday .teinvit-admin-page-birthday{width:100%!important;max-width:980px!important;margin:0 auto!important;padding-left:8px!important;padding-right:8px!important;box-sizing:border-box}body.teinvit-mode-admin-client.teinvit-vertical-birthday .teinvit-admin-title-card,body.teinvit-mode-admin-client.teinvit-vertical-birthday .teinvit-zone{width:100%;max-width:100%;margin-left:auto!important;margin-right:auto!important}}
 @media (max-width: 640px){.teinvit-two-col,.teinvit-form-row,.teinvit-rsvp-toggle-grid,.teinvit-info-free-text-grid{grid-template-columns:1fr!important}.teinvit-admin-page{padding:10px}}
@@ -357,33 +354,11 @@ $admin_child_toggle_fields = [
         <?php endif; ?>
       </p>
 
-      <?php if ( ! empty( $capabilities['can_share_invitation'] ) ) : ?>
-      <div class="teinvit-zone teinvit-share-card" id="teinvit-share-card">
-        <h3>Distribuie invitația</h3>
-        <p class="teinvit-share-help">Trimite rapid invitația către familie și prieteni. Pe telefon poți folosi butonul „Distribuie”, iar în rest ai opțiuni rapide mai jos.</p>
-        <div class="teinvit-share-actions">
-          <button type="button" class="button button-primary" id="teinvit-share-native">Distribuie</button>
-          <button type="button" class="button" id="teinvit-share-copy-main">Copiază link</button>
-        </div>
-        <div class="teinvit-share-quick">
-          <?php if ( $share_icon_base !== '' ) : ?>
-          <div class="teinvit-share-row">
-            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'facebook.svg' ); ?>" alt="" aria-hidden="true"></span>
-            <a class="button teinvit-share-social-btn" href="<?php echo esc_url( 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $guest_page_url ) ); ?>" target="_blank" rel="noopener">Facebook</a>
-          </div>
-          <div class="teinvit-share-row">
-            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'whatsapp.svg' ); ?>" alt="" aria-hidden="true"></span>
-            <a class="button teinvit-share-social-btn" id="teinvit-share-whatsapp" href="<?php echo esc_url( 'https://wa.me/?text=' . rawurlencode( trim( (string) ( $share_payload['text'] ?? '' ) ) . "\n" . $guest_page_url ) ); ?>" target="_blank" rel="noopener">WhatsApp</a>
-          </div>
-          <div class="teinvit-share-row">
-            <span class="teinvit-share-icon-wrap"><img src="<?php echo esc_url( $share_icon_base . 'instagram.svg' ); ?>" alt="" aria-hidden="true"></span>
-            <button type="button" class="button teinvit-share-social-btn" id="teinvit-share-instagram">Instagram</button>
-          </div>
-          <?php endif; ?>
-        </div>
-        <p class="teinvit-share-status" id="teinvit-share-status" aria-live="polite"></p>
-      </div>
-      <?php endif; ?>
+      <?php
+      if ( ! empty( $capabilities['can_share_invitation'] ) && function_exists( 'teinvit_share_render_buttons' ) ) {
+          teinvit_share_render_buttons( $share_payload );
+      }
+      ?>
     </div>
 
     <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
@@ -488,10 +463,6 @@ $admin_child_toggle_fields = [
   const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
   const initialInvitation = <?php echo wp_json_encode( $current_invitation ); ?>;
   const baseUrl = <?php echo wp_json_encode( home_url( '/admin-client/' . rawurlencode( $token ) ) ); ?>;
-  const shareUrl = <?php echo wp_json_encode( $guest_page_url ); ?>;
-  const shareTitle = <?php echo wp_json_encode( (string) ( $share_payload['title'] ?? 'Invitație aniversare - Te Invit' ) ); ?>;
-  const shareText = <?php echo wp_json_encode( (string) ( $share_payload['text'] ?? 'Te invităm cu drag la petrecerea aniversară' ) ); ?>;
-  const shareMessage = [shareText, shareUrl].filter(Boolean).join("\n");
   const editsRemaining = <?php echo (int) $edits_remaining; ?>;
   const saveForm = document.getElementById('teinvit-save-form');
   const parentBooleanIds = ['fc5b530','2cac251','1aa14a1'];
@@ -1249,47 +1220,11 @@ $admin_child_toggle_fields = [
     }
     return fallbackCopy(value);
   }
-  function setShareStatus(message){
-    const box = document.getElementById('teinvit-share-status');
-    if (box) box.textContent = String(message || '');
-  }
   function setPdfShareStatus(message){
     const box = document.getElementById('teinvit-pdf-share-status');
     if (box) box.textContent = String(message || '');
   }
 
-  const nativeBtn = document.getElementById('teinvit-share-native');
-  if (nativeBtn) {
-    nativeBtn.addEventListener('click', async function(){
-      if (navigator.share && typeof navigator.share === 'function') {
-        try {
-          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
-          setShareStatus('Invitația a fost pregătită pentru distribuire.');
-          return;
-        } catch (e) {
-          if (e && e.name === 'AbortError') return;
-        }
-      }
-      setShareStatus((await copyValue(shareUrl)) ? 'Link pregătit pentru distribuire.' : 'Nu am putut copia automat linkul.');
-    });
-  }
-  const copyBtn = document.getElementById('teinvit-share-copy-main');
-  if (copyBtn) {
-    copyBtn.addEventListener('click', async function(){
-      setShareStatus((await copyValue(shareUrl)) ? 'Link copiat.' : 'Nu am putut copia automat linkul.');
-    });
-  }
-  const whatsappBtn = document.getElementById('teinvit-share-whatsapp');
-  if (whatsappBtn) {
-    whatsappBtn.setAttribute('href', 'https://wa.me/?text=' + encodeURIComponent(shareMessage));
-  }
-  const instagramBtn = document.getElementById('teinvit-share-instagram');
-  if (instagramBtn) {
-    instagramBtn.addEventListener('click', async function(){
-      await copyValue(shareUrl);
-      setShareStatus('Link copiat pentru Instagram.');
-    });
-  }
   document.querySelectorAll('.teinvit-share-pdf-btn').forEach(function(btn){
     btn.addEventListener('click', async function(){
       const pdfUrl = btn.getAttribute('data-pdf-url') || '';

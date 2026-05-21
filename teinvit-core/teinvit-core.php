@@ -28,6 +28,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-runtime.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-config.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/share.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/templates/social-meta.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/templates/share-buttons.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/routing.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/pdf/generate.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/custom-emails.php';
