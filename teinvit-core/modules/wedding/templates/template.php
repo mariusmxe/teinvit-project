@@ -15,7 +15,6 @@ $is_pdf = (
 /* =========================
    BACKGROUND IMAGE
 ========================= */
-$model_key = isset( $invitation['model_key'] ) ? (string) $invitation['model_key'] : 'invn01';
 $product_id_for_background = 0;
 if ( isset( $product ) && $product instanceof WC_Product ) {
     $product_id_for_background = (int) $product->get_id();

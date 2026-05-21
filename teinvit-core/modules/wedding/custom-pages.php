@@ -3,24 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-function teinvit_model_background_url( $model_key ) {
-    $model_key = preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $model_key );
-    if ( $model_key === '' ) {
-        $model_key = 'invn01';
-    }
-
-    $base = TEINVIT_WEDDING_MODULE_PATH . 'assets/backgrounds/' . $model_key;
-    if ( file_exists( $base . '.jpg' ) ) {
-        return TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/' . $model_key . '.jpg';
-    }
-    if ( file_exists( $base . '.png' ) ) {
-        return TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/' . $model_key . '.png';
-    }
-
-    return TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png';
-}
-
-
 function teinvit_get_product_background_url( $product_or_id ) {
     $product_id = 0;
 
@@ -894,7 +876,6 @@ function teinvit_build_invitation_from_wapf_map( array $wapf, array $theme_optio
         'show_nasi'    => false,
         'nasi'         => [],
         'events'       => [],
-        'model_key'    => 'invn01',
     ];
 
     $invitation['theme'] = teinvit_resolve_theme_key_from_wapf_value( $get( '6967752ab511b' ), $theme_options_map );
