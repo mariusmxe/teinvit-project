@@ -133,22 +133,6 @@ function teinvit_share_get_social_image( $vertical ) {
         ];
     }
 
-    if ( $vertical === 'baptism' && defined( 'TEINVIT_BAPTISM_MODULE_URL' ) ) {
-        return [
-            'url' => teinvit_share_normalize_url( TEINVIT_BAPTISM_MODULE_URL . 'preview/social-preview-baptism-v3.png' ),
-            'width' => 1200,
-            'height' => 630,
-        ];
-    }
-
-    if ( defined( 'TEINVIT_WEDDING_MODULE_URL' ) ) {
-        return [
-            'url' => teinvit_share_normalize_url( TEINVIT_WEDDING_MODULE_URL . 'assets/backgrounds/invn01.png' ),
-            'width' => 0,
-            'height' => 0,
-        ];
-    }
-
     return [
         'url' => '',
         'width' => 0,

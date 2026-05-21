@@ -249,81 +249,18 @@ function teinvit_vertical_share_payload( $vertical_key, array $invitation = [], 
 
     $semantics = teinvit_vertical_semantics( $vertical_key );
     $share = isset( $semantics['share'] ) && is_array( $semantics['share'] ) ? $semantics['share'] : [];
+    $text = (string) ( $share['fallback_message'] ?? 'Te invitam cu drag la evenimentul nostru.' );
+    $title = (string) ( $share['fallback_title'] ?? 'Invitatia noastra - Te Invit' );
     $url = esc_url_raw( (string) $url );
 
-    if ( $vertical_key === 'birthday' ) {
-        $names = isset( $invitation['celebrants'] ) && is_array( $invitation['celebrants'] ) ? $invitation['celebrants'] : [];
-        $joined_names = teinvit_join_ro_names( $names );
-        $count = count( array_filter( $names ) );
-        $event_name = '';
-        if ( isset( $invitation['event_name'] ) && is_array( $invitation['event_name'] ) && ! empty( $invitation['event_name']['enabled'] ) ) {
-            $event_name = trim( (string) ( $invitation['event_name']['value'] ?? $invitation['event_name']['line'] ?? '' ) );
-        }
-
-        if ( $joined_names !== '' ) {
-            if ( $event_name !== '' ) {
-                $message = $joined_names . ' te invită la ' . $event_name;
-                $title = $count <= 1 ? ( 'Te invit la ' . $event_name ) : ( 'Te invităm la ' . $event_name );
-            } else {
-                $message = $joined_names . ( $count <= 1 ? ' te invită la aniversarea sa' : ' te invită la aniversarea lor' );
-                $title = $count <= 1 ? 'Te invit la aniversarea mea' : 'Te invităm la aniversarea noastră';
-            }
-        } else {
-            $message = (string) ( $share['fallback_message'] ?? 'Te invităm cu drag la petrecerea aniversară' );
-            $title = (string) ( $share['fallback_title'] ?? 'Invitație aniversare - Te Invit' );
-        }
-
-        return [
-            'title' => $title,
-            'message' => trim( $message . ( $url !== '' ? ' ' . $url : '' ) ),
-            'text' => $message,
-            'url' => $url,
-        ];
-    }
-
-    if ( $vertical_key === 'baptism' ) {
-        $children = isset( $invitation['children'] ) && is_array( $invitation['children'] ) ? $invitation['children'] : [];
-        $joined_children = teinvit_join_ro_names( $children );
-        $baptism_url = $url !== ''
-            ? ( function_exists( 'set_url_scheme' ) ? set_url_scheme( $url, 'https' ) : preg_replace( '/^http:/i', 'https:', $url ) )
-            : '';
-        $children_title_len = function_exists( 'mb_strlen' ) ? mb_strlen( $joined_children ) : strlen( $joined_children );
-        $use_children_in_title = $joined_children !== '' && $children_title_len <= 70;
-        $baptism_short_text = $joined_children !== ''
-            ? html_entity_decode( 'Te invit&#259;m cu drag la botez, al&#259;turi de ', ENT_QUOTES, 'UTF-8' ) . $joined_children
-            : (string) ( $share['fallback_message'] ?? html_entity_decode( 'Te invit&#259;m cu drag la botez', ENT_QUOTES, 'UTF-8' ) );
-        $baptism_description = $joined_children !== ''
-            ? html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez, al&#259;turi de ', ENT_QUOTES, 'UTF-8' ) . $joined_children . '.'
-            : html_entity_decode( 'Te invit&#259;m cu drag la Slujba de botez &#537;i la petrecerea de botez.', ENT_QUOTES, 'UTF-8' );
-        $baptism_title = $use_children_in_title
-            ? html_entity_decode( 'Te invit&#259;m la botezul lui ', ENT_QUOTES, 'UTF-8' ) . $joined_children
-            : html_entity_decode( 'Te invit&#259;m la botez', ENT_QUOTES, 'UTF-8' );
-        $baptism_image = defined( 'TEINVIT_BAPTISM_MODULE_URL' )
-            ? esc_url_raw( TEINVIT_BAPTISM_MODULE_URL . 'preview/social-preview-baptism-v3.png' )
-            : '';
-        if ( $baptism_image !== '' ) {
-            $baptism_image = function_exists( 'set_url_scheme' ) ? set_url_scheme( $baptism_image, 'https' ) : preg_replace( '/^http:/i', 'https:', $baptism_image );
-        }
-
-        return [
-            'title' => $baptism_title,
-            'message' => trim( $baptism_short_text . ( $baptism_url !== '' ? "\n" . $baptism_url : '' ) ),
-            'text' => $baptism_description,
-            'url' => $baptism_url,
-            'image' => $baptism_image,
-            'image_width' => 1200,
-            'image_height' => 630,
-        ];
-    }
-
-    $text = (string) ( $share['fallback_message'] ?? 'Te invităm cu drag la evenimentul nostru! Vezi invitația aici:' );
     return [
-        'title' => (string) ( $share['fallback_title'] ?? 'Invitația noastră - Te Invit' ),
-        'message' => trim( $text . ( $url !== '' ? ' ' . $url : '' ) ),
+        'title' => $title,
+        'message' => trim( $text . ( $url !== '' ? "\n" . $url : '' ) ),
         'text' => $text,
         'url' => $url,
     ];
 }
+
 
 function teinvit_render_vertical_admin_client_foundation( $token, $vertical_key, $order = null ) {
     $token = sanitize_text_field( (string) $token );

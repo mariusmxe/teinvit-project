@@ -93,7 +93,7 @@ function teinvit_share_render_buttons( array $payload, array $args = [] ) {
 
     $facebook_url = teinvit_share_button_url_facebook( $payload );
     $whatsapp_url = teinvit_share_button_url_whatsapp( $payload );
-    $icon_base = defined( 'TEINVIT_WEDDING_MODULE_URL' ) ? trailingslashit( TEINVIT_WEDDING_MODULE_URL . 'assets/icons/social' ) : '';
+    $icon_base = defined( 'TEINVIT_CORE_URL' ) ? trailingslashit( TEINVIT_CORE_URL . 'infrastructure/assets/icons/social' ) : '';
     $card_id = sanitize_html_class( (string) $args['id'] );
     $status_id = sanitize_html_class( (string) $args['status_id'] );
     $classes = trim( 'teinvit-zone teinvit-share-card ' . (string) $args['class'] );
