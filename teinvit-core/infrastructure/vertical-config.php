@@ -239,6 +239,14 @@ function teinvit_vertical_basic_copy( $vertical_key ) {
 
 function teinvit_vertical_share_payload( $vertical_key, array $invitation = [], $url = '' ) {
     $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
+    if ( function_exists( 'teinvit_share_build_payload' ) ) {
+        $payload = teinvit_share_build_payload( '', $vertical_key, $invitation, 'invitati', (string) $url );
+        if ( ! empty( $payload['description'] ) ) {
+            $payload['text'] = (string) $payload['description'];
+        }
+        return $payload;
+    }
+
     $semantics = teinvit_vertical_semantics( $vertical_key );
     $share = isset( $semantics['share'] ) && is_array( $semantics['share'] ) ? $semantics['share'] : [];
     $url = esc_url_raw( (string) $url );

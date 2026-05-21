@@ -138,7 +138,10 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
     $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] = true;
 }
 
-if ( $mode === 'invitati' ) {
+if ( $mode === 'invitati' && function_exists( 'teinvit_share_build_payload' ) && function_exists( 'teinvit_share_render_meta' ) ) {
+    $share_payload = teinvit_share_build_payload( $token, $vertical_key, $preview_invitation_data, 'invitati' );
+    teinvit_share_render_meta( $share_payload );
+} elseif ( $mode === 'invitati' ) {
     $names = trim( (string) ( $preview_invitation_data['names'] ?? '' ) );
     $message = trim( (string) ( $preview_invitation_data['message'] ?? '' ) );
 
