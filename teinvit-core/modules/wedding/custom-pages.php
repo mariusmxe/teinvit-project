@@ -482,9 +482,14 @@ function teinvit_prepare_tokenized_invitation_request( $mode, $token, $invitatio
             return $template;
         }
 
-        $tokenized_template = TEINVIT_WEDDING_MODULE_PATH . 'templates/single-teinvit_invitation.php';
-        if ( file_exists( $tokenized_template ) ) {
-            return $tokenized_template;
+        $common_tokenized_template = defined( 'TEINVIT_CORE_PATH' ) ? TEINVIT_CORE_PATH . 'infrastructure/templates/single-teinvit_invitation.php' : '';
+        if ( $common_tokenized_template !== '' && file_exists( $common_tokenized_template ) ) {
+            return $common_tokenized_template;
+        }
+
+        $legacy_tokenized_template = TEINVIT_WEDDING_MODULE_PATH . 'templates/single-teinvit_invitation.php';
+        if ( file_exists( $legacy_tokenized_template ) ) {
+            return $legacy_tokenized_template;
         }
 
         status_header( 500 );
