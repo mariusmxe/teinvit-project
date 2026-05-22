@@ -84,6 +84,9 @@ function teinvit_birthday_config_with_defaults( array $config = [] ) {
     if ( ! isset( $config['edits_free_remaining'] ) ) {
         $config['edits_free_remaining'] = 2;
     }
+    if ( ! isset( $config['edits_admin_remaining'] ) ) {
+        $config['edits_admin_remaining'] = 0;
+    }
     if ( ! isset( $config['edits_paid_remaining'] ) ) {
         $config['edits_paid_remaining'] = 0;
     }
@@ -284,7 +287,7 @@ function teinvit_birthday_gifts_allocation_sort_key( array $allocation ) {
 function teinvit_birthday_build_gifts_summary_for_token( $token, $config = null ) {
     $token = sanitize_text_field( (string) $token );
     if ( $token === '' ) {
-        return [ 'base_slots' => 0, 'addon_slots' => 0, 'total_slots' => 0, 'used_slots' => 0, 'available_slots' => 0, 'allocations' => [] ];
+        return [ 'base_slots' => 0, 'addon_slots' => 0, 'admin_slots' => 0, 'total_slots' => 0, 'used_slots' => 0, 'available_slots' => 0, 'allocations' => [] ];
     }
 
     if ( ! is_array( $config ) ) {
@@ -357,6 +360,7 @@ function teinvit_birthday_build_gifts_summary_for_token( $token, $config = null 
     $remaining_to_consume = $used;
     $base_slots = 0;
     $addon_slots = 0;
+    $admin_slots = 0;
     foreach ( $normalized as &$allocation ) {
         if ( (string) $allocation['status'] !== 'applied' ) {
             $allocation['slots_remaining'] = max( 0, (int) $allocation['slots_remaining'] );
@@ -369,18 +373,21 @@ function teinvit_birthday_build_gifts_summary_for_token( $token, $config = null 
         $allocation['slots_remaining'] = max( 0, $total - $consume );
         if ( (string) $allocation['kind'] === 'base' ) {
             $base_slots += $total;
+        } elseif ( (string) $allocation['kind'] === 'admin_grant' ) {
+            $admin_slots += $total;
         } else {
             $addon_slots += $total;
         }
     }
     unset( $allocation );
 
-    $total_slots = max( 0, $base_slots + $addon_slots );
+    $total_slots = max( 0, $base_slots + $addon_slots + $admin_slots );
     $available = max( 0, $total_slots - $used );
 
     return [
         'base_slots' => $base_slots,
         'addon_slots' => $addon_slots,
+        'admin_slots' => $admin_slots,
         'total_slots' => $total_slots,
         'used_slots' => $used,
         'available_slots' => $available,
@@ -957,6 +964,7 @@ add_action( 'admin_post_teinvit_birthday_save_gifts', function() {
     $config['gifts_allocations'] = $summary_after['allocations'];
     $config['gifts_base_slots_applied'] = (int) $summary_after['base_slots'];
     $config['gifts_extra_slots'] = (int) $summary_after['addon_slots'];
+    $config['gifts_admin_slots'] = (int) ( $summary_after['admin_slots'] ?? 0 );
     $config['gifts_total_slots_applied'] = (int) $summary_after['total_slots'];
     $config['gifts_slots_used'] = (int) $summary_after['used_slots'];
     $config['gifts_slots_available'] = (int) $summary_after['available_slots'];
@@ -998,9 +1006,20 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
     $inv = $ctx['invitation'];
 
     $config = teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] );
-    $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
-    $paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
-    if ( $free_remaining + $paid_remaining <= 0 ) {
+    if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
+        $config = teinvit_config_ensure_edit_balance_keys( $config );
+        $edit_balance = teinvit_edit_balance_summary( $config );
+        $free_remaining = (int) $edit_balance['free'];
+        $admin_remaining = (int) $edit_balance['admin'];
+        $paid_remaining = (int) $edit_balance['paid'];
+        $remaining = (int) $edit_balance['total'];
+    } else {
+        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+        $admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
+        $paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
+        $remaining = $free_remaining + $admin_remaining + $paid_remaining;
+    }
+    if ( $remaining <= 0 ) {
         teinvit_birthday_admin_redirect( $token, [ 'error' => 'noedits' ] );
     }
 
@@ -1069,8 +1088,12 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
         ], [ 'id' => $version_id ] );
     }
 
-    if ( $free_remaining > 0 ) {
+    if ( function_exists( 'teinvit_config_consume_one_edit' ) ) {
+        $config = teinvit_config_consume_one_edit( $config );
+    } elseif ( $free_remaining > 0 ) {
         $config['edits_free_remaining'] = max( 0, $free_remaining - 1 );
+    } elseif ( $admin_remaining > 0 ) {
+        $config['edits_admin_remaining'] = max( 0, $admin_remaining - 1 );
     } else {
         $config['edits_paid_remaining'] = max( 0, $paid_remaining - 1 );
     }

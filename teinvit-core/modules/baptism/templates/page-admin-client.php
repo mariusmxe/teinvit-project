@@ -101,9 +101,18 @@ $config = function_exists( 'teinvit_baptism_config_with_defaults' )
     ? teinvit_baptism_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] )
     : wp_parse_args( is_array( $inv['config'] ?? null ) ? $inv['config'] : [], function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( 'baptism' ) : [] );
 
-$edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
-$edits_paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
-$edits_remaining = $edits_free_remaining + $edits_paid_remaining;
+if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
+    $edit_balance = teinvit_edit_balance_summary( $config );
+    $edits_free_remaining = (int) $edit_balance['free'];
+    $edits_admin_remaining = (int) $edit_balance['admin'];
+    $edits_paid_remaining = (int) $edit_balance['paid'];
+    $edits_remaining = (int) $edit_balance['total'];
+} else {
+    $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+    $edits_admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
+    $edits_paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
+    $edits_remaining = $edits_free_remaining + $edits_admin_remaining + $edits_paid_remaining;
+}
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
 $can_save_invitation_info = ! empty( $capabilities['can_save_invitation_info'] );
@@ -341,7 +350,7 @@ $admin_toggle_fields = [
         <?php endif; ?>
 
         <?php if ( ! empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
-          <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
+          <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_admin_remaining > 0 || $edits_paid_remaining > 0 ) : ?> (<?php if ( $edits_admin_remaining > 0 ) : ?><?php echo (int) $edits_admin_remaining; ?> administrative<?php endif; ?><?php if ( $edits_admin_remaining > 0 && $edits_paid_remaining > 0 ) : ?>, <?php endif; ?><?php if ( $edits_paid_remaining > 0 ) : ?><?php echo (int) $edits_paid_remaining; ?> cumpărate<?php endif; ?>)<?php endif; ?></p>
         <?php endif; ?>
         <?php if ( empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
           <p><em><?php echo esc_html( (string) ( $basic_copy['content_locked'] ?? 'Editările de conținut și salvarea versiunilor sunt blocate pe pachetul Basic.' ) ); ?></em></p>

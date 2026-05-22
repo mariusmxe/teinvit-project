@@ -7,26 +7,122 @@ function teinvit_admin_root_slug() {
     return 'teinvit-admin-hub';
 }
 
+function teinvit_admin_capability() {
+    return 'manage_woocommerce';
+}
+
 function teinvit_admin_register_menu_pages() {
     add_menu_page(
         'TeInvit',
         'TeInvit',
-        'manage_woocommerce',
+        teinvit_admin_capability(),
         teinvit_admin_root_slug(),
-        'teinvit_admin_render_integrations_page',
+        'teinvit_admin_render_dashboard_page',
         'dashicons-email-alt2',
         57
     );
 
-    add_submenu_page( teinvit_admin_root_slug(), 'Integrations', 'Integrations', 'manage_woocommerce', 'teinvit-integrations', 'teinvit_admin_render_integrations_page' );
-    add_submenu_page( teinvit_admin_root_slug(), 'API Keys', 'API Keys', 'manage_woocommerce', 'teinvit-api-keys', 'teinvit_admin_render_api_keys_page' );
-    add_submenu_page( teinvit_admin_root_slug(), 'Contacts', 'Contacts', 'manage_woocommerce', 'teinvit-contacts', 'teinvit_admin_render_contacts_page' );
-    add_submenu_page( teinvit_admin_root_slug(), 'Reports', 'Reports', 'manage_woocommerce', 'teinvit-reports', 'teinvit_admin_render_reports_page' );
+    add_submenu_page( teinvit_admin_root_slug(), 'Dashboard', 'Dashboard', teinvit_admin_capability(), teinvit_admin_root_slug(), 'teinvit_admin_render_dashboard_page' );
 }
 add_action( 'admin_menu', 'teinvit_admin_register_menu_pages', 25 );
 
+function teinvit_admin_register_secondary_menu_pages() {
+    add_submenu_page( teinvit_admin_root_slug(), 'Contacts', 'Contacts', teinvit_admin_capability(), 'teinvit-contacts', 'teinvit_admin_render_contacts_page' );
+    add_submenu_page( teinvit_admin_root_slug(), 'Integrari', 'Integrari', teinvit_admin_capability(), 'teinvit-integrations', 'teinvit_admin_render_integrations_page' );
+    add_submenu_page( teinvit_admin_root_slug(), 'API Keys', 'API Keys', teinvit_admin_capability(), 'teinvit-api-keys', 'teinvit_admin_render_api_keys_page' );
+    add_submenu_page( teinvit_admin_root_slug(), 'Rapoarte', 'Rapoarte', teinvit_admin_capability(), 'teinvit-reports', 'teinvit_admin_render_reports_page' );
+    add_submenu_page( teinvit_admin_root_slug(), 'Setari', 'Setari', teinvit_admin_capability(), 'teinvit-settings', 'teinvit_admin_render_settings_page' );
+}
+add_action( 'admin_menu', 'teinvit_admin_register_secondary_menu_pages', 120 );
+
+function teinvit_admin_dashboard_links() {
+    $links = [
+        [
+            'label' => 'Custom Products',
+            'url' => admin_url( 'admin.php?page=teinvit-custom-products-wedding' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'Custom Emails',
+            'url' => admin_url( 'admin.php?page=teinvit-custom-emails' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'Merge Tags',
+            'url' => admin_url( 'admin.php?page=teinvit-email-merge-tags' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'Contacts',
+            'url' => admin_url( 'admin.php?page=teinvit-contacts' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'Integrari',
+            'url' => admin_url( 'admin.php?page=teinvit-integrations' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'API Keys',
+            'url' => admin_url( 'admin.php?page=teinvit-api-keys' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'Rapoarte',
+            'url' => admin_url( 'admin.php?page=teinvit-reports' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+        [
+            'label' => 'Setari',
+            'url' => admin_url( 'admin.php?page=teinvit-settings' ),
+            'capability' => teinvit_admin_capability(),
+        ],
+    ];
+
+    if ( function_exists( 'teinvit_token_grants_capability' ) ) {
+        array_unshift(
+            $links,
+            [
+                'label' => 'Alocari token',
+                'url' => admin_url( 'admin.php?page=teinvit-token-grants' ),
+                'capability' => teinvit_token_grants_capability(),
+            ]
+        );
+    }
+
+    return $links;
+}
+
+function teinvit_admin_render_dashboard_page() {
+    if ( ! current_user_can( teinvit_admin_capability() ) ) {
+        wp_die( 'Unauthorized' );
+    }
+
+    echo '<div class="wrap"><h1>TeInvit</h1>';
+    echo '<p>Administrare centralizata pentru modulele custom TeInvit. WooCommerce ramane zona pentru comenzi, produse si plati.</p>';
+    echo '<h2>Sectiuni disponibile</h2>';
+    echo '<ul>';
+    foreach ( teinvit_admin_dashboard_links() as $link ) {
+        if ( ! current_user_can( $link['capability'] ) ) {
+            continue;
+        }
+        echo '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
+    }
+    echo '</ul></div>';
+}
+
+function teinvit_admin_render_settings_page() {
+    if ( ! current_user_can( teinvit_admin_capability() ) ) {
+        wp_die( 'Unauthorized' );
+    }
+
+    echo '<div class="wrap"><h1>TeInvit Setari</h1>';
+    echo '<p>Zona rezervata pentru setari administrative TeInvit. Setarile existente raman in sectiunile lor dedicate.</p>';
+    echo '</div>';
+}
+
 function teinvit_admin_render_integrations_page() {
-    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+    if ( ! current_user_can( teinvit_admin_capability() ) ) {
         wp_die( 'Unauthorized' );
     }
 
@@ -192,7 +288,7 @@ function teinvit_api_keys_generate_secret() {
 }
 
 function teinvit_admin_render_api_keys_page() {
-    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+    if ( ! current_user_can( teinvit_admin_capability() ) ) {
         wp_die( 'Unauthorized' );
     }
 
@@ -351,7 +447,7 @@ function teinvit_contacts_where_sql( &$params = [] ) {
 }
 
 function teinvit_admin_render_contacts_page() {
-    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+    if ( ! current_user_can( teinvit_admin_capability() ) ) {
         wp_die( 'Unauthorized' );
     }
 
@@ -491,7 +587,7 @@ function teinvit_admin_render_contacts_page() {
 }
 
 function teinvit_admin_render_reports_page() {
-    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+    if ( ! current_user_can( teinvit_admin_capability() ) ) {
         wp_die( 'Unauthorized' );
     }
 

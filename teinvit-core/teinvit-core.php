@@ -16,7 +16,7 @@ define( 'TEINVIT_CORE_VERSION', '1.0.0' );
 define( 'TEINVIT_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TEINVIT_CORE_URL', plugin_dir_url( __FILE__ ) );
 
-define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 10 );
+define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 11 );
 define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION', 'teinvit_client_admin_schema_version' );
 
 require_once TEINVIT_CORE_PATH . 'infrastructure/security.php';
@@ -36,6 +36,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/newsman-api.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/integrations.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/marketing-subscribers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/admin-integrations.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/token-grants.php';
 
 require_once TEINVIT_CORE_PATH . 'modules/wedding/module.php';
 require_once TEINVIT_CORE_PATH . 'modules/baptism/module.php';
@@ -52,6 +53,7 @@ function teinvit_maybe_run_client_admin_schema_migrations() {
         teinvit_install_modular_tables();
         teinvit_install_vertical_storage_tables();
         teinvit_install_email_tables();
+        teinvit_install_token_grants_table();
         flush_rewrite_rules();
         update_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION, false );
     }
@@ -61,6 +63,7 @@ register_activation_hook( __FILE__, 'teinvit_install_client_admin_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_modular_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_vertical_storage_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_email_tables' );
+register_activation_hook( __FILE__, 'teinvit_install_token_grants_table' );
 
 add_action( 'plugins_loaded', function () {
     if ( ! class_exists( 'WooCommerce' ) ) {

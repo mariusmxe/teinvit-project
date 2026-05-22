@@ -809,6 +809,9 @@ function teinvit_default_rsvp_config() {
         'rsvp_deadline_text' => '',
         'show_gifts_section' => 0,
         'gifts_extra_slots' => 0,
+        'edits_free_remaining' => 2,
+        'edits_admin_remaining' => 0,
+        'edits_paid_remaining' => 0,
     ];
 }
 
