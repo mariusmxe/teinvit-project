@@ -1,0 +1,1103 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+$token = get_query_var( 'teinvit_admin_client_token' );
+$inv = teinvit_get_invitation( $token );
+if ( ! $inv ) {
+    echo '<p>Invitația nu a fost găsită.</p>';
+    return;
+}
+
+$order = wc_get_order( (int) $inv['order_id'] );
+if ( ! $order ) {
+    echo '<p>Comanda nu a fost găsită.</p>';
+    return;
+}
+
+$versions = teinvit_get_versions_for_token( $token );
+usort( $versions, static function( $a, $b ) {
+    return (int) $a['id'] <=> (int) $b['id'];
+} );
+
+$order_wapf = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
+$order_invitation = TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order );
+$order_pdf_url = (string) $order->get_meta( '_teinvit_pdf_url' );
+
+$variants = [];
+foreach ( $versions as $index => $row ) {
+    $snap = json_decode( (string) $row['snapshot'], true );
+    $snap_inv = ( isset( $snap['invitation'] ) && is_array( $snap['invitation'] ) ) ? $snap['invitation'] : [];
+    $snap_wapf = ( isset( $snap['wapf_fields'] ) && is_array( $snap['wapf_fields'] ) ) ? $snap['wapf_fields'] : [];
+
+    if ( empty( $snap_wapf ) && 0 === $index && empty( $row['snapshot'] ) ) {
+        $snap_wapf = $order_wapf;
+    }
+    if ( empty( $snap_inv ) && 0 === $index && empty( $row['snapshot'] ) ) {
+        $snap_inv = $order_invitation;
+    }
+
+    $pdf_status = (string) ( $row['pdf_status'] ?? 'none' );
+    $pdf_filename = (string) ( $row['pdf_filename'] ?? '' );
+    $pdf_url = esc_url_raw( (string) ( $row['pdf_url'] ?? '' ) );
+    if ( $index === 0 && $pdf_url === '' && $order_pdf_url !== '' ) {
+        $pdf_url = esc_url_raw( $order_pdf_url );
+    }
+    if ( $pdf_url === '' && $pdf_filename !== '' && ! in_array( $pdf_status, [ 'processing', 'failed', 'deleted_on_server' ], true ) && function_exists( 'teinvit_wedding_pdf_public_url_from_filename' ) ) {
+        $pdf_url = teinvit_wedding_pdf_public_url_from_filename( (int) $order->get_id(), $pdf_filename );
+    }
+
+    $variants[] = [
+        'id' => (int) $row['id'],
+        'label' => 'Varianta ' . $index,
+        'invitation' => $snap_inv,
+        'wapf_fields' => $snap_wapf,
+        'created_at' => (string) $row['created_at'],
+        'pdf_url' => $pdf_url,
+        'pdf_status' => $pdf_status,
+        'pdf_filename' => sanitize_file_name( $pdf_filename ),
+        'pdf_available' => $pdf_url !== '',
+    ];
+}
+
+$current = null;
+$active_id = (int) ( $inv['active_version_id'] ?? 0 );
+$selected_version_id = isset( $_GET['selected_version_id'] ) ? (int) $_GET['selected_version_id'] : 0;
+
+if ( $selected_version_id > 0 ) {
+    foreach ( $variants as $variant ) {
+        if ( (int) $variant['id'] === $selected_version_id ) {
+            $current = $variant;
+            break;
+        }
+    }
+}
+
+foreach ( $variants as $variant ) {
+    if ( (int) $variant['id'] === $active_id ) {
+        if ( ! $current ) {
+            $current = $variant;
+        }
+        break;
+    }
+}
+if ( ! $current && ! empty( $variants ) ) {
+    $current = $variants[0];
+}
+
+$current_invitation = $current['invitation'] ?? $order_invitation;
+$current_wapf = $current['wapf_fields'] ?? $order_wapf;
+$ui_selected_version_id = (int) ( $current['id'] ?? $active_id );
+$subtitle = trim( (string) ( $current_invitation['names'] ?? '' ) );
+if ( $subtitle === '' ) {
+    $subtitle = 'Nume Mireasă & Nume Mire';
+}
+
+$config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+$edits_free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+$edits_paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
+$edits_remaining = max( 0, $edits_free_remaining ) + max( 0, $edits_paid_remaining );
+$show_deadline = ! empty( $config['show_rsvp_deadline'] );
+$deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
+
+$show_gifts_section = ! empty( $config['show_gifts_section'] );
+$gifts_summary = function_exists( 'teinvit_build_gifts_summary_for_token' ) ? teinvit_build_gifts_summary_for_token( $token, $config ) : [ 'total_slots' => 20, 'used_slots' => 0, 'available_slots' => 20 ];
+$gifts_max_slots = max( 0, (int) ( $gifts_summary['total_slots'] ?? 20 ) );
+
+global $wpdb;
+$t = teinvit_db_tables();
+$gift_rows = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, rs.guest_first_name, rs.guest_last_name, rs.guest_phone FROM {$t['gifts']} g LEFT JOIN {$t['rsvp']} rs ON rs.id = g.reserved_by_rsvp_id WHERE g.token = %s ORDER BY g.id ASC", $token ), ARRAY_A );
+$gift_rows = is_array( $gift_rows ) ? $gift_rows : [];
+
+$gift_rows_export = [];
+$gifts_entered = 0;
+foreach ( $gift_rows as $row ) {
+    $gift_name = trim( (string) ( $row['gift_name'] ?? '' ) );
+    $gift_link = trim( (string) ( $row['gift_link'] ?? '' ) );
+    if ( $gift_name !== '' || $gift_link !== '' ) {
+        $gifts_entered++;
+    }
+
+    $phone = trim( (string) ( $row['guest_phone'] ?? '' ) );
+    if ( strpos( $phone, '+407' ) === 0 ) {
+        $phone = '0' . substr( $phone, 3 );
+    }
+    $reserved_by = 'Disponibil';
+    if ( (string) ( $row['status'] ?? '' ) === 'reserved' ) {
+        $reserved_by = trim( (string) ( $row['guest_first_name'] ?? '' ) . ' ' . (string) ( $row['guest_last_name'] ?? '' ) );
+        if ( $phone !== '' ) {
+            $reserved_by = trim( $reserved_by . ' ' . $phone );
+        }
+        if ( $reserved_by === '' ) {
+            $reserved_by = 'Rezervat';
+        }
+    }
+
+    $gift_rows_export[] = [
+        'gift_id' => (string) ( $row['gift_id'] ?? '' ),
+        'gift_name' => (string) ( $row['gift_name'] ?? '' ),
+        'gift_link' => (string) ( $row['gift_link'] ?? '' ),
+        'gift_delivery_address' => (string) ( $row['gift_delivery_address'] ?? '' ),
+        'include_in_public' => ! empty( $row['include_in_public'] ) ? 1 : 0,
+        'published_locked' => ! empty( $row['published_locked'] ) ? 1 : 0,
+        'status' => (string) ( $row['status'] ?? 'free' ),
+        'reserved_by' => $reserved_by,
+    ];
+}
+$gifts_remaining = max( 0, (int) ( $gifts_summary['available_slots'] ?? max( 0, $gifts_max_slots - $gifts_entered ) ) );
+$buy_gifts_url = add_query_arg( [ 'teinvit_buy_gifts_token' => $token ], home_url( '/' ) );
+$catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
+$gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
+$buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
+
+$report_sets = function_exists( 'teinvit_build_rsvp_report_sets' ) ? teinvit_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
+$report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
+$report_history = is_array( $report_sets['history'] ?? null ) ? $report_sets['history'] : [];
+$report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
+
+$sum_people_civil = 0; $sum_people_religious = 0; $sum_people_party = 0;
+$count_da_civil = 0; $count_da_religious = 0; $count_da_party = 0;
+$total_kids = 0; $total_cazare_rsvp = 0; $total_cazare_people = 0; $total_veg_rsvp = 0; $total_veg_menus = 0; $total_messages = 0;
+foreach ( $report_unique as $r ) {
+    $adults = max( 0, (int) ( $r['attending_people_count'] ?? 0 ) );
+    if ( ! empty( $r['attending_civil'] ) ) { $sum_people_civil += $adults; $count_da_civil++; }
+    if ( ! empty( $r['attending_religious'] ) ) { $sum_people_religious += $adults; $count_da_religious++; }
+    if ( ! empty( $r['attending_party'] ) ) { $sum_people_party += $adults; $count_da_party++; }
+    if ( ! empty( $r['bringing_kids'] ) ) { $total_kids += max( 0, (int) ( $r['kids_count'] ?? 0 ) ); }
+    if ( ! empty( $r['needs_accommodation'] ) ) { $total_cazare_rsvp++; $total_cazare_people += max( 0, (int) ( $r['accommodation_people_count'] ?? 0 ) ); }
+    if ( ! empty( $r['vegetarian_requested'] ) ) { $total_veg_rsvp++; $total_veg_menus += max( 0, (int) ( $r['vegetarian_menus_count'] ?? 0 ) ); }
+
+}
+foreach ( $report_history as $r ) {
+    if ( trim( (string) ( $r['message_to_couple'] ?? '' ) ) !== '' ) { $total_messages++; }
+}
+
+$active_snapshot = function_exists( 'teinvit_get_active_snapshot' ) ? teinvit_get_active_snapshot( $token ) : [];
+$active_payload = ! empty( $active_snapshot['snapshot'] ) ? json_decode( (string) $active_snapshot['snapshot'], true ) : [];
+$active_events = isset( $active_payload['invitation']['events'] ) && is_array( $active_payload['invitation']['events'] ) ? $active_payload['invitation']['events'] : [];
+$event_flags = [
+    'civil' => false,
+    'religious' => false,
+    'party' => false,
+];
+foreach ( $active_events as $event ) {
+    if ( ! is_array( $event ) ) {
+        continue;
+    }
+    $title = strtolower( trim( (string) ( $event['title'] ?? '' ) ) );
+    if ( strpos( $title, 'civil' ) !== false ) {
+        $event_flags['civil'] = true;
+    }
+    if ( strpos( $title, 'religio' ) !== false ) {
+        $event_flags['religious'] = true;
+    }
+    if ( strpos( $title, 'petrec' ) !== false ) {
+        $event_flags['party'] = true;
+    }
+}
+
+$admin_toggle_fields = [
+    'permite_confirmarea_pentru_cununia_civila' => [
+        'label' => 'Permite confirmarea pentru cununia civilă',
+        'config_key' => 'show_attending_civil',
+        'event_key' => 'civil',
+    ],
+    'permite_confirmarea_pentru_ceremonia_religioasa' => [
+        'label' => 'Permite confirmarea pentru ceremonia religioasă',
+        'config_key' => 'show_attending_religious',
+        'event_key' => 'religious',
+    ],
+    'permite_confirmarea_pentru_petrecere' => [
+        'label' => 'Permite confirmarea pentru petrecere',
+        'config_key' => 'show_attending_party',
+        'event_key' => 'party',
+    ],
+    'permite_confirmarea_copiilor' => [
+        'label' => 'Permite confirmarea copiilor',
+        'config_key' => 'show_kids',
+    ],
+    'permite_solicitarea_de_cazare' => [
+        'label' => 'Permite solicitarea de cazare',
+        'config_key' => 'show_accommodation',
+    ],
+    'permite_selectarea_meniului_vegetarian' => [
+        'label' => 'Permite selectarea meniului vegetarian',
+        'config_key' => 'show_vegetarian',
+    ],
+    'permite_mentionarea_alergiilor' => [
+        'label' => 'Permite menționarea alergiilor',
+        'config_key' => 'show_allergies',
+    ],
+    'permite_trimiterea_unui_mesaj_catre_miri' => [
+        'label' => 'Permite trimiterea unui mesaj către miri',
+        'config_key' => 'show_message',
+    ],
+];
+
+$preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
+$product_id = teinvit_get_order_primary_product_id( $order );
+$product = $product_id ? wc_get_product( $product_id ) : null;
+$apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
+$capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
+$token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
+$buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
+$buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
+$guest_page_url = function_exists( 'teinvit_share_guest_url' ) ? teinvit_share_guest_url( $token ) : home_url( '/invitati/' . rawurlencode( $token ) );
+$share_payload = function_exists( 'teinvit_share_build_payload' ) ? teinvit_share_build_payload( $token, 'wedding', $current_invitation, 'admin-client', $guest_page_url ) : [
+    'title' => 'Invitația noastră - Te Invit',
+    'text' => 'Te invităm cu drag la evenimentul nostru! Vezi invitația aici:',
+    'message' => "Te invităm cu drag la evenimentul nostru! Vezi invitația aici:\n" . $guest_page_url,
+    'url' => $guest_page_url,
+];
+$download_pdf_nonce = wp_create_nonce( 'teinvit_download_pdf_' . $token );
+$global_admin_content = function_exists( 'teinvit_render_admin_client_global_content' ) ? teinvit_render_admin_client_global_content( $token ) : '';
+?>
+<style>
+.teinvit-admin-page{max-width:1200px;margin:20px auto;padding:16px}.teinvit-admin-page h1{text-align:center}.teinvit-admin-title-card{border:1px solid #e5e5e5;padding:16px;border-radius:8px;background:#fff;margin:0 0 16px}.teinvit-admin-title-card h1{margin:0}.teinvit-admin-title-card h1 + h1{margin-top:6px}
+.teinvit-deadline-title,.teinvit-rsvp-settings-title{text-align:center}
+.teinvit-deadline-form{display:flex;flex-direction:column;align-items:center;gap:10px}
+.teinvit-deadline-form label{display:block;text-align:center}
+.teinvit-zone{border:1px solid #e5e5e5;padding:14px;border-radius:8px;background:#fff;margin:16px 0}
+.teinvit-two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
+@media (max-width: 1024px){.teinvit-two-col{grid-template-columns:1fr}}
+@media (max-width: 768px){.teinvit-admin-page{padding:10px}.teinvit-two-col{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.teinvit-two-col>div{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-preview-block{display:block!important;order:1;min-width:0;max-width:100%!important}.teinvit-admin-preview-block .teinvit-wedding,.teinvit-admin-preview-block .teinvit-page,.teinvit-admin-preview-block .teinvit-container,.teinvit-admin-preview-block .teinvit-preview{width:100%!important;max-width:100%!important;min-width:0}.teinvit-admin-preview-block .teinvit-wedding{display:block!important}.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;min-height:280px;overflow:hidden}.teinvit-admin-page .teinvit-preview img,.teinvit-admin-page .teinvit-preview svg,.teinvit-admin-page .teinvit-preview canvas{max-width:100%!important;height:auto!important}.teinvit-report-grid{grid-template-columns:1fr}.teinvit-report-card{overflow-wrap:normal;word-break:normal}.teinvit-report-card strong{display:block;margin-bottom:4px;word-break:normal;overflow-wrap:normal;hyphens:none}}
+.teinvit-apf-col .wapf-wrapper,.teinvit-apf-col .wapf{max-width:100%}.teinvit-apf-col .teinvit-message-invitatie-field textarea{height:calc(1.5em * 6 + 22px) !important;min-height:calc(1.5em * 6 + 22px) !important;max-height:calc(1.5em * 6 + 22px) !important;resize:none !important;overflow:auto !important}
+.teinvit-admin-preview-block{display:block!important;min-height:320px;overflow:visible}
+.teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}
+.teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}
+.teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
+
+.teinvit-gifts-title{text-align:center}
+.teinvit-gifts-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0}
+.teinvit-gifts-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-gifts-table{width:max-content;min-width:100%;border-collapse:collapse}
+.teinvit-gifts-table th,.teinvit-gifts-table td{border:1px solid #ddd;padding:8px;vertical-align:top}
+.teinvit-gifts-table input[type=text],.teinvit-gifts-table input[type=url],.teinvit-gifts-table textarea{width:100%}
+.teinvit-gifts-table textarea{min-height:56px;resize:vertical}
+.teinvit-gifts-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.teinvit-gifts-cta{display:inline-block}
+.teinvit-report-kpi{max-width:980px}.teinvit-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teinvit-report-card{border:1px solid #ddd;padding:10px;border-radius:8px;background:#fafafa}.teinvit-report-table-zone{margin-top:12px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:12px}.teinvit-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.teinvit-report-table-wrap{width:100%;overflow-x:auto;background:#fff}.teinvit-report-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}.teinvit-report-table th,.teinvit-report-table td{border:1px solid #ddd;padding:6px;vertical-align:top}.teinvit-report-table th{white-space:nowrap}.teinvit-report-table td:nth-child(6),.teinvit-report-table th:nth-child(6){width:16ch;min-width:16ch;white-space:nowrap}.teinvit-report-table td:nth-child(18),.teinvit-report-table th:nth-child(18){width:30ch;min-width:30ch;white-space:normal;word-break:break-word}.teinvit-report-table td:nth-child(19),.teinvit-report-table th:nth-child(19){width:120ch;min-width:120ch;white-space:normal;word-break:break-word}.teinvit-report-row-multi{background:#fff2f2}
+.teinvit-variant-pdf-actions{display:inline-flex;gap:8px;align-items:center;margin-left:8px;vertical-align:middle}
+.teinvit-variant-pdf-actions .button{line-height:1.2;min-height:28px;padding:3px 10px}
+.teinvit-pdf-share-status{margin-top:8px;font-size:13px;color:#2f3a45}
+</style>
+<div class="teinvit-admin-page">
+  <div class="teinvit-admin-title-card">
+    <h1>Administrare invitație</h1>
+    <h1><?php echo esc_html( $subtitle ); ?></h1>
+  </div>
+
+  <?php if ( $token_state === 'basic_pure' ) : ?>
+  <div class="notice notice-warning" style="padding:10px;">
+    <p><strong>Pachet Basic activ.</strong> Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul <em>Pachet Premium</em>.</p>
+    <?php if ( ! empty( $capabilities['can_buy_premium_upgrade'] ) ) : ?>
+      <p><a href="<?php echo esc_url( $buy_premium_upgrade_url ); ?>" class="button button-primary">Upgrade la Premium</a></p>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php if ( $global_admin_content !== '' ) : ?>
+  <div class="teinvit-zone teinvit-admin-global-zone">
+    <?php echo $global_admin_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+  </div>
+  <?php endif; ?>
+
+  <div class="teinvit-zone">
+    <h3 class="teinvit-deadline-title">Data limită pentru confirmări</h3>
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-deadline-form" class="teinvit-deadline-form">
+      <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+      <input type="hidden" name="action" value="teinvit_save_invitation_info">
+      <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+      <label><input type="checkbox" id="date_confirm" name="date_confirm" value="1" <?php checked( $show_deadline ); ?>> Doresc afișarea datei limită pentru confirmări în pagina invitaților</label>
+      <div id="selecteaza-data-wrap" style="margin-top:10px;<?php echo $show_deadline ? '' : 'display:none;'; ?>" class="acf-field acf-field-date-picker" data-name="selecteaza_data" data-type="date_picker">
+        <label for="selecteaza_data">Selectează data</label>
+        <div class="acf-input">
+          <div class="acf-date-picker acf-input-wrap" data-date_format="dd/mm/yy" data-display_format="dd/mm/yy" data-first_day="1">
+            <input type="text" id="selecteaza_data" name="selecteaza_data" placeholder="zz/ll/aaaa" value="<?php echo esc_attr( $deadline_date ); ?>" autocomplete="off" class="input">
+          </div>
+        </div>
+      </div>
+            <?php if ( ! empty( $capabilities['can_save_invitation_info'] ) ) : ?>
+      <p><button type="submit" class="button">Publică data limită</button></p>
+      <?php else : ?>
+      <p><em>Publicarea datei limită pe pagina invitaților este disponibilă după upgrade la Premium.</em></p>
+      <?php endif; ?>
+    </form>
+  </div>
+
+  <div class="teinvit-zone teinvit-two-col">
+    <div>
+      <div class="teinvit-admin-preview-block">
+      <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
+      <h3>Alege varianta afișată invitaților:</h3>
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-publish-form">
+        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+        <input type="hidden" name="action" value="teinvit_set_active_version">
+        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <?php foreach ( $variants as $variant ) : ?>
+          <label style="display:block;margin-bottom:6px;">
+            <input type="radio" name="active_version_id" value="<?php echo (int) $variant['id']; ?>" <?php checked( (int) $variant['id'], $ui_selected_version_id ); ?> class="teinvit-variant-radio">
+            <?php echo esc_html( $variant['label'] ); ?>
+            <?php if ( ! empty( $variant['pdf_available'] ) ) : ?>
+              <?php $download_pdf_url = add_query_arg( [ 'action' => 'teinvit_download_variant_pdf', 'token' => $token, 'version_id' => (int) $variant['id'], '_wpnonce' => $download_pdf_nonce ], admin_url( 'admin-post.php' ) ); ?>
+              <span class="teinvit-variant-pdf-actions">
+                <a href="<?php echo esc_url( $download_pdf_url ); ?>" class="button">Descarcă PDF</a>
+                <button type="button" class="button teinvit-share-pdf-btn" data-pdf-url="<?php echo esc_attr( $variant['pdf_url'] ); ?>">Distribuie PDF</button>
+              </span>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'processing' ) : ?>
+              — <em>PDF în curs...</em>
+            <?php elseif ( ( $variant['pdf_status'] ?? '' ) === 'failed' ) : ?>
+              — <em>PDF eșuat</em>
+            <?php endif; ?>
+          </label>
+        <?php endforeach; ?>
+        <?php if ( ! empty( $capabilities['can_set_active_version'] ) ) : ?>
+        <button type="submit" class="button button-primary">Publică</button>
+        <?php else : ?>
+        <p><em>Publicarea de versiuni este disponibilă după upgrade la Premium.</em></p>
+        <?php endif; ?>
+      </form>
+      <p id="teinvit-pdf-share-status" class="teinvit-pdf-share-status" aria-live="polite"></p>
+
+      <div class="teinvit-zone teinvit-admin-rsvp-settings">
+        <h3 class="teinvit-rsvp-settings-title">Setările formularului de confirmare</h3>
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-rsvp-config-form">
+          <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+          <input type="hidden" name="action" value="teinvit_save_rsvp_config">
+          <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+          <?php foreach ( $admin_toggle_fields as $field_name => $field_def ) : ?>
+            <?php
+            $event_key = isset( $field_def['event_key'] ) ? (string) $field_def['event_key'] : '';
+            if ( $event_key !== '' && empty( $event_flags[ $event_key ] ) ) {
+                continue;
+            }
+            $checked = ! empty( $config[ $field_def['config_key'] ] );
+            ?>
+            <label>
+              <input type="checkbox" name="<?php echo esc_attr( $field_name ); ?>" value="1" <?php checked( $checked ); ?>>
+              <?php echo esc_html( $field_def['label'] ); ?>
+            </label><br>
+          <?php endforeach; ?>
+          <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
+          <p><button type="submit" class="button">Publică selecțiile</button></p>
+          <?php else : ?>
+          <p><em>Configurările RSVP avansate sunt disponibile după upgrade la Premium.</em></p>
+          <?php endif; ?>
+        </form>
+
+
+
+      </div>
+
+      <p style="margin-top:8px;">
+        <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
+        <a href="<?php echo esc_url( $guest_page_url ); ?>" target="_blank" rel="noopener">Vezi pagina invitaților</a>
+        <?php else : ?>
+        <em>Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.</em>
+        <?php endif; ?>
+      </p>
+
+      <?php
+      if ( ! empty( $capabilities['can_share_invitation'] ) && function_exists( 'teinvit_share_render_buttons' ) ) {
+          teinvit_share_render_buttons( $share_payload );
+      }
+      ?>
+    </div>
+
+    <div class="teinvit-apf-col" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+      <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-save-form" class="cart" data-product-page-preselected-id="<?php echo (int) $product_id; ?>">
+        <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+        <input type="hidden" name="action" value="teinvit_save_version_snapshot">
+        <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+        <input type="hidden" name="teinvit_parent_checked_json" id="teinvit-parent-checked-json" value="">
+
+        <?php if ( $apf_html !== '' ) : ?>
+          <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php else : ?>
+          <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
+        <?php endif; ?>
+
+                <?php if ( ! empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
+        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
+        <?php endif; ?>
+        <?php if ( empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
+          <p><em>Editările de conținut și salvarea versiunilor sunt blocate pe pachetul Basic.</em></p>
+          <?php if ( ! empty( $capabilities['can_buy_premium_upgrade'] ) ) : ?>
+            <a href="<?php echo esc_url( $buy_premium_upgrade_url ); ?>" class="button">Upgrade la Premium</a>
+          <?php endif; ?>
+        <?php elseif ( $edits_remaining > 0 ) : ?>
+          <button type="submit" class="button button-primary" id="teinvit-save-btn">Salvează modificările</button>
+        <?php else : ?>
+          <!-- teinvit-buy-edits-endpoint: <?php echo esc_url( $buy_edits_url ); ?> -->
+          <?php if ( ! empty( $capabilities['can_buy_extra_edits'] ) ) : ?>
+          <a href="<?php echo esc_url( $buy_edits_url ); ?>" class="button" target="_blank" rel="noopener">Cumpără modificări suplimentare</a>
+          <?php endif; ?>
+        <?php endif; ?>
+      </form>
+    </div>
+  </div>
+
+      <?php if ( ! empty( $capabilities['can_manage_gifts'] ) ) : ?>
+      <div class="teinvit-zone teinvit-admin-gifts">
+        <h3 class="teinvit-gifts-title">Lista de cadouri</h3>
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="teinvit-gifts-form">
+          <?php wp_nonce_field( 'teinvit_admin_' . $token ); ?>
+          <input type="hidden" name="action" value="teinvit_save_gifts">
+          <input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+          <label><input type="checkbox" name="show_gifts_section" value="1" id="teinvit-show-gifts-section" <?php checked( $show_gifts_section ); ?>> Activează secțiunea Cadouri pe pagina invitaților</label>
+
+          <div id="teinvit-gifts-editor" style="margin-top:10px;<?php echo $show_gifts_section ? '' : 'display:none;'; ?>">
+            <div class="teinvit-gifts-table-wrap">
+            <table class="teinvit-gifts-table" id="teinvit-gifts-table">
+              <thead>
+                <tr>
+                  <th>Selectează</th>
+                  <th>Denumire produs</th>
+                  <th>Link produs</th>
+                  <th>Adresă de livrare</th>
+                  <th>Rezervat de</th>
+                </tr>
+              </thead>
+              <tbody id="teinvit-gifts-body"></tbody>
+            </table>
+            </div>
+
+            <div class="teinvit-gifts-actions">
+              <button type="button" class="button" id="teinvit-add-gift">Adaugă cadou</button>
+              <span id="teinvit-gifts-counter">Mai poți adăuga <?php echo (int) $gifts_remaining; ?> cadouri în listă</span>
+              <?php if ( ! empty( $capabilities['can_buy_extra_gifts'] ) ) : ?>
+              <a href="<?php echo esc_url( $buy_gifts_url ); ?>" class="button teinvit-gifts-cta" id="teinvit-buy-gifts" style="<?php echo $gifts_remaining > 0 ? 'display:none;' : ''; ?>" target="_blank" rel="noopener"><?php echo esc_html( $buy_gifts_cta_label ); ?></a>
+              <?php endif; ?>
+            </div>
+
+            <p style="margin-top:10px;"><button type="submit" class="button button-primary" id="teinvit-save-gifts">Salvează lista</button></p>
+          </div>
+        </form>
+      </div>
+      <?php else : ?>
+      <div class="teinvit-zone teinvit-admin-gifts">
+        <h3 class="teinvit-gifts-title">Lista de cadouri</h3>
+        <p><em>Activarea listei de Cadouri pe pagina invitaților este disponibilă doar pentru pachetul Premium</em></p>
+      </div>
+      <?php endif; ?>
+
+      <script type="text/template" id="teinvit-gift-row-template">
+        <tr data-gift-row="1">
+          <td>
+            <input type="hidden" name="__GIFT_ID__" value="">
+            <input type="checkbox" name="__INCLUDE__" value="1">
+          </td>
+          <td><input type="text" name="__NAME__" value=""></td>
+          <td><input type="url" name="__LINK__" value=""></td>
+          <td><textarea name="__ADDRESS__"></textarea></td>
+          <td data-reserved-by="1">Disponibil</td>
+        </tr>
+      </script>
+
+
+  <div class="teinvit-zone teinvit-admin-report">
+    <h3 class="teinvit-gifts-title">Raport invitați</h3>
+    <div class="teinvit-report-kpi">
+    <div class="teinvit-report-grid">
+      <div class="teinvit-report-card"><strong>Confirmari totale unice:</strong> <?php echo (int) ( $report_sets['unique_phones_count'] ?? 0 ); ?></div>
+      <div class="teinvit-report-card"><strong>Confirmari totale completate:</strong> <?php echo (int) ( $report_sets['submissions_count'] ?? 0 ); ?></div>
+      <div class="teinvit-report-card"><strong>Confirmări multiple (invitați):</strong> <?php echo (int) ( $report_sets['multiple_phones_count'] ?? 0 ); ?></div>
+      <div class="teinvit-report-card"><strong>Persoane Civilă/ Religioasă/ Petrecere:</strong> <?php echo (int) $sum_people_civil; ?> / <?php echo (int) $sum_people_religious; ?> / <?php echo (int) $sum_people_party; ?></div>
+            <div class="teinvit-report-card"><strong>Total copii:</strong> <?php echo (int) $total_kids; ?></div>
+      <div class="teinvit-report-card"><strong>Cazare DA / Persoane:</strong> <?php echo (int) $total_cazare_rsvp; ?> / <?php echo (int) $total_cazare_people; ?></div>
+      <div class="teinvit-report-card"><strong>Vegetarian DA / Meniuri:</strong> <?php echo (int) $total_veg_rsvp; ?> / <?php echo (int) $total_veg_menus; ?></div>
+      <div class="teinvit-report-card"><strong>Total mesaje:</strong> <?php echo (int) $total_messages; ?></div>
+    </div>
+    </div>
+    <div class="teinvit-report-table-zone">
+    <div class="teinvit-report-toolbar">
+      <label><input type="radio" name="teinvit-report-view" value="unique" checked> Unic</label>
+      <label><input type="radio" name="teinvit-report-view" value="history"> Istoric</label>
+      <label><input type="checkbox" id="teinvit-filter-multi"> Doar confirmări multiple</label>
+      <label><input type="checkbox" id="teinvit-filter-party"> Doar Petrecere = DA</label>
+      <label><input type="checkbox" id="teinvit-filter-cazare"> Doar Cazare = DA</label>
+      <label><input type="checkbox" id="teinvit-filter-message"> Doar cu Mesaj completat</label>
+      <a href="<?php echo esc_url( $report_export_url ); ?>" class="button">Descarcă raportul (XLSX)</a>
+    </div>
+    <div class="teinvit-report-table-wrap">
+    <table class="teinvit-report-table" id="teinvit-report-table"><thead><tr><th>Status</th><th>Nume</th><th>Prenume</th><th>Telefon</th><th>Email</th><th>Data/ora submit</th><th>Adulti Confirmati</th><th>Cununie civilă?</th><th>Ceremonie religioasă?</th><th>Petrecere?</th><th>Copii?</th><th>Câți copii</th><th>Cazare?</th><th>Cazare nr. persoane</th><th>Vegetarian?</th><th>Meniuri vegetariene</th><th>Alergii?</th><th>Detalii alergii</th><th>Mesaj către miri</th></tr></thead><tbody></tbody></table>
+    </div>
+    </div>
+  </div>
+
+</div>
+<script>
+(function(){
+  window.teinvitPreviewConfig = Object.assign({}, window.teinvitPreviewConfig || {}, {
+    previewBuildUrl: <?php echo wp_json_encode( esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ); ?>,
+    token: <?php echo wp_json_encode( (string) $token ); ?>,
+    productId: <?php echo (int) $product_id; ?>
+  });
+
+  const variants = <?php echo wp_json_encode( $variants ); ?>;
+  const initialWapf = <?php echo wp_json_encode( $current_wapf ); ?>;
+  const initialInvitation = <?php echo wp_json_encode( $current_invitation ); ?>;
+  const editsRemaining = <?php echo (int) $edits_remaining; ?>;
+  const parentBooleanIds = ['696445d6a9ce9','696448f2ae763','69644d9e814ef','69645088f4b73','696451a951467'];
+  let isApplyingVariant = false;
+
+  const pdfShareStatus = document.getElementById('teinvit-pdf-share-status');
+
+  function setPdfShareStatus(message){
+    if (!pdfShareStatus) return;
+    pdfShareStatus.textContent = String(message || '');
+  }
+
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', 'readonly');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return !!ok;
+  }
+
+  document.querySelectorAll('.teinvit-share-pdf-btn').forEach((btn)=>{
+    btn.addEventListener('click', async ()=>{
+      const pdfUrl = btn.getAttribute('data-pdf-url') || '';
+      if (!pdfUrl) {
+        setPdfShareStatus('Linkul PDF nu este disponibil.');
+        return;
+      }
+
+      if (navigator.share && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title: 'PDF invitație', text: 'Poți vedea invitația în format PDF aici:', url: pdfUrl });
+          setPdfShareStatus('PDF pregătit pentru distribuire.');
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') {
+            setPdfShareStatus('Distribuirea PDF a fost anulată.');
+            return;
+          }
+        }
+      }
+
+      const copied = await copyShareLinkToValue(pdfUrl);
+      setPdfShareStatus(copied ? 'Linkul PDF a fost copiat. Îl poți trimite mai departe.' : 'Nu am putut copia automat linkul PDF. Copiază-l manual.');
+    });
+  });
+
+  async function copyShareLinkToValue(value){
+    if (!value) return false;
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      } catch (e) {
+        copied = fallbackCopy(value);
+      }
+    } else {
+      copied = fallbackCopy(value);
+    }
+    return copied;
+  }
+
+  function markMessageInvitationTextarea(){
+    const scope = document.getElementById('teinvit-save-form') || document;
+    const candidates = Array.from(scope.querySelectorAll('textarea[name^="wapf[field_"]'));
+    if (!candidates.length) return;
+
+    const messageTextarea = candidates.find((el)=> Number(el.getAttribute('maxlength') || '0') === 255) || candidates[0];
+    const field = messageTextarea.closest('.wapf-field') || messageTextarea.parentElement;
+    if (field) {
+      field.classList.add('teinvit-message-invitatie-field');
+    }
+
+    messageTextarea.setAttribute('rows', '6');
+    messageTextarea.style.setProperty('height', 'calc(1.5em * 6 + 22px)', 'important');
+    messageTextarea.style.setProperty('min-height', 'calc(1.5em * 6 + 22px)', 'important');
+    messageTextarea.style.setProperty('max-height', 'calc(1.5em * 6 + 22px)', 'important');
+    messageTextarea.style.setProperty('resize', 'none', 'important');
+    messageTextarea.style.setProperty('overflow', 'auto', 'important');
+  }
+
+  const deadlineCb = document.getElementById('date_confirm');
+  const deadlineWrap = document.getElementById('selecteaza-data-wrap');
+  if(deadlineCb && deadlineWrap){ deadlineCb.addEventListener('change',()=>{ deadlineWrap.style.display = deadlineCb.checked ? '' : 'none'; }); }
+
+  if (window.acf && typeof window.acf.doAction === 'function') {
+    window.acf.doAction('ready');
+    window.acf.doAction('append', window.jQuery ? window.jQuery('#teinvit-deadline-form') : null);
+  }
+
+  if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.datepicker === 'function') {
+    window.jQuery('#selecteaza_data').datepicker({ dateFormat: 'dd/mm/yy' });
+  }
+
+  markMessageInvitationTextarea();
+  window.setTimeout(markMessageInvitationTextarea, 200);
+
+
+  const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
+  const giftsMaxSlots = <?php echo (int) $gifts_max_slots; ?>;
+  const giftsBody = document.getElementById('teinvit-gifts-body');
+  const giftsEditor = document.getElementById('teinvit-gifts-editor');
+  const showGiftsCheckbox = document.getElementById('teinvit-show-gifts-section');
+  const addGiftBtn = document.getElementById('teinvit-add-gift');
+  const giftsCounter = document.getElementById('teinvit-gifts-counter');
+  const buyGiftsBtn = document.getElementById('teinvit-buy-gifts');
+  const giftsForm = document.getElementById('teinvit-gifts-form');
+
+  function normalizeGiftRowsCount(){
+    if (!giftsBody) return 0;
+    let used = 0;
+    giftsBody.querySelectorAll('tr[data-gift-row="1"]').forEach((row)=>{
+      const name = (row.querySelector('input[data-field="gift_name"]')?.value || '').trim();
+      const link = (row.querySelector('input[data-field="gift_link"]')?.value || '').trim();
+      if (name || link) used++;
+    });
+    return used;
+  }
+
+  function refreshGiftsCounter(){
+    const used = normalizeGiftRowsCount();
+    const remaining = Math.max(0, giftsMaxSlots - used);
+    if (giftsCounter) giftsCounter.textContent = 'Mai poți adăuga ' + remaining + ' cadouri în listă';
+    if (addGiftBtn) addGiftBtn.disabled = remaining === 0;
+    if (buyGiftsBtn) buyGiftsBtn.style.display = remaining === 0 ? 'inline-block' : 'none';
+  }
+
+  function createGiftRow(item, index){
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-gift-row','1');
+
+    const locked = Number(item.published_locked || 0) === 1;
+    const includeChecked = Number(item.include_in_public || 0) === 1;
+    const hasName = String(item.gift_name || '').trim() !== '';
+    const hasLink = String(item.gift_link || '').trim() !== '';
+    const hasAddress = String(item.gift_delivery_address || '').trim() !== '';
+
+    tr.innerHTML = `
+      <td>
+        <input type="hidden" name="gifts[${index}][gift_id]" value="${item.gift_id || ''}">
+        <input type="checkbox" name="gifts[${index}][include_in_public]" value="1" ${includeChecked ? 'checked' : ''}>
+      </td>
+      <td><input type="text" data-field="gift_name" name="gifts[${index}][gift_name]" value="${(item.gift_name || '').replace(/"/g, '&quot;')}" ${(locked && hasName) ? 'readonly' : ''}></td>
+      <td><input type="url" data-field="gift_link" name="gifts[${index}][gift_link]" value="${(item.gift_link || '').replace(/"/g, '&quot;')}" ${(locked && hasLink) ? 'readonly' : ''}></td>
+      <td><textarea name="gifts[${index}][gift_delivery_address]" ${(locked && hasAddress) ? 'readonly' : ''}>${item.gift_delivery_address || ''}</textarea></td>
+      <td>${item.reserved_by || 'Disponibil'}</td>
+    `;
+
+    tr.querySelectorAll('input[data-field="gift_name"], input[data-field="gift_link"]').forEach((el)=>{
+      el.addEventListener('input', refreshGiftsCounter);
+    });
+
+    giftsBody.appendChild(tr);
+  }
+
+  function renderGifts(){
+    if (!giftsBody) return;
+    giftsBody.innerHTML = '';
+    giftsInitial.forEach((item, index)=> createGiftRow(item, index));
+    if (!giftsInitial.length) {
+      createGiftRow({ gift_id: '', gift_name: '', gift_link: '', gift_delivery_address: '', include_in_public: 1, published_locked: 0, reserved_by: 'Disponibil' }, 0);
+    }
+    refreshGiftsCounter();
+  }
+
+  if (showGiftsCheckbox && giftsEditor) {
+    showGiftsCheckbox.addEventListener('change', ()=>{
+      const enabled = !!showGiftsCheckbox.checked;
+      giftsEditor.style.display = enabled ? '' : 'none';
+      if (!enabled && giftsForm) {
+        giftsForm.submit();
+      }
+    });
+  }
+
+  if (addGiftBtn) {
+    addGiftBtn.addEventListener('click', ()=>{
+      const idx = giftsBody.querySelectorAll('tr[data-gift-row="1"]').length;
+      createGiftRow({ gift_id: '', gift_name: '', gift_link: '', gift_delivery_address: '', include_in_public: 1, published_locked: 0, reserved_by: 'Disponibil' }, idx);
+      refreshGiftsCounter();
+    });
+  }
+
+  if (giftsForm) {
+    giftsForm.addEventListener('submit', (e)=>{
+      const shouldConfirm = !showGiftsCheckbox || !!showGiftsCheckbox.checked;
+      if (!shouldConfirm) {
+        return;
+      }
+      const ok = window.confirm('După salvarea listei cadourile completate nu mai pot fi editate. Ești sigur că vrei să o salvezi?');
+      if (!ok) {
+        e.preventDefault();
+      }
+    });
+  }
+
+  renderGifts();
+
+  const reportUnique = <?php echo wp_json_encode( $report_unique ); ?>;
+  const reportHistory = <?php echo wp_json_encode( $report_history ); ?>;
+  const reportTableBody = document.querySelector('#teinvit-report-table tbody');
+  function yn(v){ return Number(v) === 1 ? 'DA' : 'NU'; }
+  function mapReportRow(r){ return { is_multi: Number(r.is_multi||0)===1, party_da:Number(r.attending_party)===1, cazare_da:Number(r.needs_accommodation)===1, has_message:String(r.message_to_couple||'').trim()!=='', cells:[ r.multi_badge||'', r.guest_last_name||'', r.guest_first_name||'', r.guest_phone||'', r.guest_email||'', (r.created_at_display||''), String(r.attending_people_count||'-'), yn(r.attending_civil), yn(r.attending_religious), yn(r.attending_party), yn(r.bringing_kids), Number(r.bringing_kids)===1?String(r.kids_count||'-'):'-', yn(r.needs_accommodation), Number(r.needs_accommodation)===1?String(r.accommodation_people_count||'-'):'-', yn(r.vegetarian_requested), Number(r.vegetarian_requested)===1?String(r.vegetarian_menus_count||'-'):'-', yn(r.has_allergies), Number(r.has_allergies)===1?(r.allergy_details||'-'):'-', String(r.message_to_couple||'').trim()!==''?r.message_to_couple:'-' ] }; }
+  function renderReport(){ if(!reportTableBody) return; const view=document.querySelector('input[name="teinvit-report-view"]:checked')?.value||'unique'; const rows=(view==='history'?reportHistory:reportUnique).map(mapReportRow).filter(r=>!document.getElementById('teinvit-filter-multi')?.checked||r.is_multi).filter(r=>!document.getElementById('teinvit-filter-party')?.checked||r.party_da).filter(r=>!document.getElementById('teinvit-filter-cazare')?.checked||r.cazare_da).filter(r=>!document.getElementById('teinvit-filter-message')?.checked||r.has_message); reportTableBody.innerHTML=''; rows.forEach(r=>{ const tr=document.createElement('tr'); if(r.is_multi) tr.classList.add('teinvit-report-row-multi'); tr.innerHTML=r.cells.map(c=>`<td>${String(c||'').replace(/</g,'&lt;')}</td>`).join(''); reportTableBody.appendChild(tr); }); }
+  document.querySelectorAll('input[name="teinvit-report-view"], #teinvit-filter-multi, #teinvit-filter-party, #teinvit-filter-cazare, #teinvit-filter-message').forEach(el=>{ if(el) el.addEventListener('change', renderReport); });
+  renderReport();
+
+  function normalizeToArray(value){
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(s=>s.trim()).filter(Boolean);
+    if (value == null) return [];
+    return [String(value)];
+  }
+
+  function parseWapfForm(){
+    const out = {};
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
+      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
+      const id = m[1];
+
+      if (el.type === 'hidden') {
+        return;
+      }
+
+      if (el.type === 'checkbox') {
+        if (!Array.isArray(out[id])) {
+          out[id] = normalizeToArray(out[id]);
+        }
+        if (el.checked) {
+          const val = el.value || '1';
+          if (!out[id].includes(val)) out[id].push(val);
+        }
+        return;
+      }
+
+      if(el.type==='radio'){
+        if(el.checked){ out[id]=el.value || ''; }
+        else if(typeof out[id] === 'undefined'){ out[id]=''; }
+        return;
+      }
+
+      if (!Array.isArray(out[id])) {
+        out[id]=el.value || '';
+      }
+    });
+
+    Object.keys(out).forEach(k=>{
+      if(Array.isArray(out[k])) out[k]=out[k].join(', ');
+    });
+
+    return out;
+  }
+
+  function splitSelected(raw){
+    return String(raw || '').split(',').map(s=>s.trim()).filter(Boolean);
+  }
+
+  function buildOptionLookups(elements){
+    const byValue = {};
+    const byLabel = {};
+    elements.forEach(el=>{
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options || []).forEach(opt=>{
+          const value = String(opt.value || '').trim();
+          const label = String(opt.text || '').trim();
+          if (value) byValue[value] = label;
+          if (label) byLabel[label.toLowerCase()] = value || label;
+        });
+        return;
+      }
+      const value = String(el.value || '').trim();
+      const labelNode = el.closest('label');
+      const label = labelNode && labelNode.textContent ? String(labelNode.textContent).trim() : '';
+      if (value && value !== '0') byValue[value] = label || value;
+      if (label) byLabel[label.toLowerCase()] = value || label;
+    });
+    return { byValue, byLabel };
+  }
+
+  function normalizeRawWithLookups(raw, lookups, allowMulti){
+    const rawString = String(raw || '').trim();
+    if (!rawString) return '';
+
+    const resolveSingle = (token)=>{
+      const t = String(token || '').trim();
+      if (!t || t === '0') return '';
+      if (Object.prototype.hasOwnProperty.call(lookups.byValue, t)) return t;
+      const byLabel = lookups.byLabel[t.toLowerCase()];
+      return byLabel ? String(byLabel) : '';
+    };
+
+    if (!allowMulti) {
+      return resolveSingle(rawString) || rawString;
+    }
+
+    const resolved = [];
+    const direct = resolveSingle(rawString);
+    if (direct) resolved.push(direct);
+    splitSelected(rawString).forEach(token=>{
+      const match = resolveSingle(token);
+      if (match) resolved.push(match);
+    });
+    return Array.from(new Set(resolved)).join(', ');
+  }
+
+  function normalizeMapToCurrentInputs(map){
+    const out = Object.assign({}, map || {});
+    const groups = {};
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
+      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
+      const id = m[1];
+      if(!groups[id]) groups[id] = [];
+      groups[id].push(el);
+    });
+
+    Object.keys(groups).forEach(id=>{
+      const elements = groups[id];
+      const raw = out[id] ?? '';
+      const nonHidden = elements.filter(el=>el.type !== 'hidden');
+      const lookups = buildOptionLookups(nonHidden);
+      const isMultiCheckbox = nonHidden.some(el=>el.type === 'checkbox');
+      out[id] = normalizeRawWithLookups(raw, lookups, isMultiCheckbox);
+    });
+
+    return out;
+  }
+
+  function buildThemeLookup(){
+    const out = {};
+    const themeSelect = document.querySelector('#teinvit-save-form [name="wapf[field_6967752ab511b]"]');
+    if(!themeSelect || !themeSelect.options) return out;
+    Array.from(themeSelect.options).forEach(opt=>{
+      const val = String(opt.value || '').trim();
+      const label = String(opt.text || '').trim();
+      if(val) out[val] = label;
+    });
+    return out;
+  }
+
+  function resolveThemeKey(raw, themeLookup){
+    const rawTrimmed = String(raw || '').trim();
+    const rawLower = rawTrimmed.toLowerCase();
+
+    const toKey = (value)=>{
+      const normalized = String(value || '').trim().toLowerCase();
+      if(!normalized) return '';
+      if(normalized === 'editorial' || normalized.includes('editorial')) return 'editorial';
+      if(normalized === 'romantic' || normalized.includes('romantic')) return 'romantic';
+      if(normalized === 'modern' || normalized.includes('modern')) return 'modern';
+      if(normalized === 'classic' || normalized.includes('classic')) return 'classic';
+      return '';
+    };
+
+    const directKey = toKey(rawLower);
+    if (directKey) return directKey;
+
+    const mappedLabel = String(themeLookup[rawTrimmed] || '').trim();
+    const mappedKey = toKey(mappedLabel);
+    if (mappedKey) return mappedKey;
+
+    return 'editorial';
+  }
+
+  function isParentBooleanField(id){
+    return parentBooleanIds.includes(String(id || ''));
+  }
+
+  function setWapfValues(map, options){
+    const shouldTrigger = !(options && options.triggerEvents === false);
+    const batchMode = !!(options && options.batchMode);
+    const phase = options && options.phase ? String(options.phase) : 'all';
+    const normalizedMap = normalizeMapToCurrentInputs(map || {});
+    const groups = {};
+
+    document.querySelectorAll('#teinvit-save-form [name^="wapf[field_"]').forEach(el=>{
+      const m = el.name.match(/^wapf\[field_([^\]]+)\]/); if(!m) return;
+      const id = m[1];
+      if(!groups[id]) groups[id] = [];
+      groups[id].push(el);
+    });
+
+    Object.keys(groups).forEach(id=>{
+      if (phase === 'parents_only' && !isParentBooleanField(id)) return;
+      if (phase === 'non_parents_only' && isParentBooleanField(id)) return;
+
+      const elements = groups[id];
+      const raw = normalizedMap[id] ?? '';
+      const selected = splitSelected(raw);
+
+      elements.forEach(el=>{
+        if (el.type === 'hidden' && el.classList.contains('wapf-tf-h')) {
+          return;
+        }
+
+        if(el.type==='checkbox'){
+          const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
+          const selectedLower = selected.map(v=>String(v).toLowerCase());
+          const valueLower = String(el.value || '').toLowerCase();
+          const labelLower = String(label || '').toLowerCase();
+          el.checked = selected.includes(el.value) || selected.includes(label) || selectedLower.includes(valueLower) || selectedLower.includes(labelLower) || (selected.includes('1') && (el.value === '1' || el.value === 'on'));
+        } else if(el.type==='radio'){
+          const label = (el.closest('label') && el.closest('label').textContent ? el.closest('label').textContent.trim() : '');
+          el.checked = String(el.value) === String(raw) || String(label).trim().toLowerCase() === String(raw).trim().toLowerCase();
+        } else if(el.tagName === 'SELECT'){
+          const opts = Array.from(el.options || []);
+          const byValue = opts.find(o=>String(o.value)===String(raw));
+          const byLabel = opts.find(o=>String(o.text).trim()===String(raw).trim());
+          el.value = byValue ? byValue.value : (byLabel ? byLabel.value : String(raw));
+        } else {
+          el.value = String(raw);
+        }
+
+      });
+    });
+
+    if (shouldTrigger && !batchMode) {
+      document.dispatchEvent(new Event('input', {bubbles:true}));
+      document.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+
+    if (window.jQuery && !batchMode) {
+      const $form = window.jQuery('#teinvit-save-form');
+      window.jQuery(document).trigger('wapf/init', [$form]);
+      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+      document.dispatchEvent(new CustomEvent('wapf:init', { detail: { wrapper: $form[0] || null } }));
+    }
+  }
+
+  function buildInvitation(w){
+    const get=(k)=> (w[k]||'').trim();
+    const isZeroish=(v)=>{
+      const tokens = String(v || '').split(',').map(t=>t.trim().toLowerCase()).filter(Boolean);
+      if(!tokens.length) return false;
+      return tokens.every(t => t === '0' || t === 'false' || t === 'off' || t === 'no');
+    };
+    const has=(k)=> {
+      const val = get(k);
+      return val !== '' && !isZeroish(val);
+    };
+    const inv={theme:'editorial',names:[get('6963a95e66425'),get('6963aa37412e4')].filter(Boolean).join(' & '),message:get('6963aa782092d'),show_parents:false,parents:{},show_nasi:false,nasi:'',events:[]};
+    inv.theme = resolveThemeKey(get('6967752ab511b'), buildThemeLookup());
+    if(has('696445d6a9ce9')){ inv.show_parents=true; inv.parents={mireasa:[get('6964461d67da5'),get('6964466afe4d1')].filter(Boolean).join(' & '),mire:[get('69644689ee7e1'),get('696446dfabb7b')].filter(Boolean).join(' & ')}; }
+    if(has('696448f2ae763')){ inv.show_nasi=true; inv.nasi=[get('69644a3415fb9'),get('69644a5822ddc')].filter(Boolean).join(' & '); }
+    if(has('69644d9e814ef')) inv.events.push({title:'Cununie civilă',loc:get('69644f2b40023'),date:[get('69644f85d865e'),get('8dec5e7')].filter(Boolean).join(' ora '),waze:get('69644fd5c832b')});
+    if(has('69645088f4b73')) inv.events.push({title:'Ceremonie religioasă',loc:get('696450ee17f9e'),date:[get('696450ffe7db4'),get('32f74cc')].filter(Boolean).join(' ora '),waze:get('69645104b39f4')});
+    if(has('696451a951467')) inv.events.push({title:'Petrecerea',loc:get('696451d204a8a'),date:[get('696452023cdcd'),get('a4a0fca')].filter(Boolean).join(' ora '),waze:get('696452478586d')});
+    return inv;
+  }
+
+  function refreshPreview(){
+    if (isApplyingVariant) {
+      return;
+    }
+
+    const parsed = parseWapfForm();
+    if (Object.keys(parsed).length === 0) {
+      return;
+    }
+    const inv = buildInvitation(parsed);
+    window.TEINVIT_INVITATION_DATA = inv;
+    window.__TEINVIT_AUTOFIT_DONE__ = false;
+    document.dispatchEvent(new Event('input', {bubbles:true}));
+  }
+
+  function runPreviewCycle(options){
+    const skipFormRefresh = !!(options && options.skipFormRefresh);
+
+    window.__TEINVIT_AUTOFIT_DONE__ = false;
+    const form = document.getElementById('teinvit-save-form');
+    if (window.jQuery && form) {
+      const $form = window.jQuery(form);
+      window.jQuery(document).trigger('wapf/init', [$form]);
+      window.jQuery(document).trigger('wapf/init_datepickers', [$form]);
+      document.dispatchEvent(new CustomEvent('wapf:init', { detail: { wrapper: $form[0] || null } }));
+    }
+    document.dispatchEvent(new Event('change', {bubbles:true}));
+    if (!skipFormRefresh) {
+      refreshPreview();
+    }
+    document.dispatchEvent(new Event('input', {bubbles:true}));
+    document.dispatchEvent(new CustomEvent('teinvit:variant-applied', { bubbles: true }));
+  }
+
+  function flushWapfDependencies(){
+    const form = document.getElementById('teinvit-save-form');
+    if (!form) return;
+
+    const parentCheckboxes = parentBooleanIds
+      .map(id => Array.from(form.querySelectorAll('[name="wapf[field_' + id + '][]"]')).filter(el => el && el.type === 'checkbox'))
+      .flat();
+
+    parentCheckboxes.forEach((cb)=>{
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  function applyVariant(id){
+    const variant = variants.find(v => String(v.id)===String(id)); if(!variant) return;
+    isApplyingVariant = true;
+
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false, batchMode: true, phase: 'parents_only' });
+    flushWapfDependencies();
+    setWapfValues(variant.wapf_fields || {}, { triggerEvents: false, batchMode: true, phase: 'non_parents_only' });
+
+    window.TEINVIT_INVITATION_DATA = variant.invitation || null;
+    runPreviewCycle({ skipFormRefresh: true });
+
+    window.setTimeout(()=>{
+      isApplyingVariant = false;
+      refreshPreview();
+    }, 0);
+  }
+
+  isApplyingVariant = true;
+  setWapfValues(initialWapf, { triggerEvents: false, batchMode: true, phase: 'parents_only' });
+  flushWapfDependencies();
+  setWapfValues(initialWapf, { triggerEvents: false, batchMode: true, phase: 'non_parents_only' });
+  window.TEINVIT_INVITATION_DATA = initialInvitation || (variants.find(v => String(v.id)===String(<?php echo (int)($current['id'] ?? 0); ?>)) || {}).invitation || null;
+  runPreviewCycle({ skipFormRefresh: true });
+  window.setTimeout(()=>{
+    isApplyingVariant = false;
+    refreshPreview();
+  }, 0);
+
+  document.querySelectorAll('.teinvit-variant-radio').forEach(r=>r.addEventListener('change',()=>applyVariant(r.value)));
+  document.querySelectorAll('#teinvit-save-form input, #teinvit-save-form select, #teinvit-save-form textarea').forEach(el=>{
+    el.addEventListener('input', refreshPreview); el.addEventListener('change', refreshPreview);
+  });
+
+  const saveForm = document.getElementById('teinvit-save-form');
+  if(saveForm){
+    const serializeParentCheckedState = ()=>{
+      const payload = {};
+      parentBooleanIds.forEach((id)=>{
+        const checkboxes = Array.from(saveForm.querySelectorAll('[name="wapf[field_' + id + '][]"]')).filter((el)=>el && el.type === 'checkbox');
+        payload[id] = checkboxes.some((el)=>el.checked) ? 1 : 0;
+      });
+      const holder = saveForm.querySelector('#teinvit-parent-checked-json');
+      if (holder) {
+        holder.value = JSON.stringify(payload);
+      }
+    };
+
+    serializeParentCheckedState();
+    saveForm.addEventListener('input', serializeParentCheckedState);
+    saveForm.addEventListener('change', serializeParentCheckedState);
+
+    saveForm.addEventListener('submit', function(e){
+      serializeParentCheckedState();
+      if(editsRemaining <= 0){ e.preventDefault(); return; }
+      const msg = editsRemaining === 1
+        ? 'Aceasta este ultima modificare disponibilă. Poți achiziționa altele oricând. Salvezi modificările?'
+        : 'Această acțiune consumă o modificare disponibilă din ' + editsRemaining + '. Salvezi modificările?';
+      if(!window.confirm(msg)){ e.preventDefault(); }
+    });
+  }
+})();
+</script>

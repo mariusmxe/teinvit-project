@@ -1,0 +1,76 @@
+.teinvit-share-card h3 {
+  margin-top: 0;
+}
+
+.teinvit-share-help {
+  margin: 0 0 10px;
+}
+
+.teinvit-share-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.teinvit-share-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  max-width: 320px;
+}
+
+.teinvit-share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.teinvit-share-icon-wrap {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+}
+
+.teinvit-share-icon-wrap img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.teinvit-share-social-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.teinvit-share-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #2f3a45;
+}
+
+@media (max-width: 768px) {
+  .teinvit-share-quick {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .teinvit-share-actions,
+  .teinvit-share-row {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .teinvit-share-social-btn {
+    min-width: 0;
+  }
+}

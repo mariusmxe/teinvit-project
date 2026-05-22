@@ -1,0 +1,186 @@
+/* =====================================================
+   TEINVIT – PREVIEW FINAL CSS
+   SURSĂ UNICĂ DE ADEVĂR PENTRU PREVIEW (DESKTOP + MOBILE)
+   ⚠️ NU ESTE FOLOSIT PENTRU PDF
+===================================================== */
+@import url('./themes.css');
+
+
+/* =====================================================
+   1. GLOBAL RESET & RENDERING
+===================================================== */
+.teinvit-wedding,
+.teinvit-wedding * {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+}
+
+.teinvit-wedding {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 2.5em 0;
+}
+
+
+/* =====================================================
+   2. PREVIEW ARTBOARD – A5 (DESKTOP DEFAULT)
+   👉 DOAR PENTRU PREVIEW
+===================================================== */
+.teinvit-preview {
+    position: relative;
+    width: 559px;      /* 148mm @ 96dpi */
+    height: 794px;     /* 210mm @ 96dpi */
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 17.25px;
+}
+
+
+/* =====================================================
+   3. BACKGROUND (IMAGINE INVITAȚIE)
+===================================================== */
+.teinvit-preview .teinvit-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    pointer-events: none;
+}
+
+
+/* =====================================================
+   4. CANVAS – SAFE AREA (TEXT + CONȚINUT)
+   👉 COMPLET ÎN INTERIORUL CHENARULUI
+===================================================== */
+.teinvit-preview .teinvit-canvas {
+    position: absolute;
+
+    top: 14%;
+    left: 8%;
+    right: 8%;
+    bottom: 4%;
+
+    z-index: 2;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* =====================================================
+   STRUCTURĂ – PĂRINȚI & NAȘI (layout only)
+===================================================== */
+.inv-parents-grid {
+    display: flex;
+    justify-content: space-between;
+}
+
+.inv-parent-mireasa,
+.inv-parent-mire,
+.nasi-row {
+    width: 48%;
+}
+
+.inv-parent-mireasa { text-align: left; }
+.inv-parent-mire     { text-align: right; }
+
+/* =====================================================
+   STRUCTURĂ – EVENIMENTE (layout only)
+===================================================== */
+.events-row {
+    display: flex;
+    justify-content: center;
+}
+
+.inv-event {
+    max-width: 48%;
+}
+
+.events-row.top .inv-event:only-child {
+    max-width: 100%;
+}
+
+
+/* =====================================================
+   8. RESPONSIVE – MOBILE / TABLET
+   👉 PREVIEW PRODUS + /i/{token}
+===================================================== */
+
+@media (max-width: 768px) {
+
+    .teinvit-wedding {
+        padding: 0;
+        justify-content: center;
+    }
+
+    .teinvit-preview {
+        width: 100%;
+        max-width: 100%;
+
+        /* 🔑 CHEIA: raport A5 fix */
+        aspect-ratio: 148 / 210;
+
+        height: auto;              /* NU mai lăsăm imaginea să decidă */
+        font-size: 14px;           /* scaling controlat */
+        margin: 0 auto;
+    }
+
+    .teinvit-preview .teinvit-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+@media (max-width: 420px) {
+
+    .teinvit-preview {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 148 / 210;
+        font-size: 13px; /* mic tweak pentru telefoane foarte înguste */
+    }
+}
+
+/* =====================================================
+   9. PRODUCT PAGE PREVIEW (SCOPED)
+   👉 Desktop context alignment with canonical wrappers
+===================================================== */
+#teinvit-product-preview {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#teinvit-product-preview .teinvit-page,
+#teinvit-product-preview .teinvit-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+}
+
+#teinvit-product-preview .teinvit-wedding {
+    padding: 0;
+    max-width: 100%;
+}
+
+#teinvit-product-preview .teinvit-preview {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    #teinvit-product-preview .teinvit-wedding {
+        padding: 0;
+    }
+}

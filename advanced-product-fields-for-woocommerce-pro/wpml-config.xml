@@ -1,0 +1,6 @@
+<wpml-config>
+    <admin-texts>
+        <key name="wapf_add_to_cart_text"/>
+        <key name="wapf_settings_upload_msg"/>
+    </admin-texts>
+</wpml-config>

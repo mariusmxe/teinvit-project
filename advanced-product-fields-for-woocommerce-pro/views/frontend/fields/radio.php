@@ -1,0 +1,27 @@
+<?php
+/** @var array $model */
+
+use SW_WAPF_PRO\Includes\Classes\Html;
+use \SW_WAPF_PRO\Includes\Classes\Util;
+
+if( ! empty($model['field']->options['choices'] ) ) {
+
+    echo '<div class="wapf-radios">';
+	echo '<input type="hidden" class="wapf-tf-h" data-fid="'.$model['field']->id.'" value="0" name="wapf[field_'.$model['field']->id.']" />';
+
+    foreach ( $model['field']->options['choices'] as $option ) {
+
+        $class_atts = Html::get_option_classes_and_attributes( $model['field'], $model['product'], $option, $model['default'], false, false, false, [ 'wapf-radio' ] );
+
+        echo sprintf(
+            '<div class="%s"><label class="wapf-input-label"><input type="radio" %s /><span class="wapf-custom"></span><span class="wapf-label-text">%s</span></label></div>',
+            join( ' ', $class_atts['classes'] ),
+            Util::array_to_attributes( $class_atts['atts'] ),
+            esc_html( $option['label'] ) . ' ' . Html::frontend_option_pricing_hint( $option, $model['field'], $model['product'] )
+        );
+
+    }
+
+    echo '</div>';
+
+}

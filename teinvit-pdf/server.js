@@ -1,6 +1,6 @@
 /**
- * TeInvit – PDF Service (Puppeteer Core)
- * CANONIC – FINAL (WP decides filename, Node only renders)
+ * TeInvit â€“ PDF Service (Puppeteer Core)
+ * CANONIC â€“ FINAL (WP decides filename, Node only renders)
  */
 
 const express = require('express');
@@ -13,9 +13,10 @@ app.use(express.json({ limit: '2mb' }));
 
 /* ================= CONFIG ================= */
 const PORT = 3000;
-const PDF_BASE_URL = 'https://pdf.teinvit.com';
+const PDF_BASE_URL = 'https://www.teinvit.com';
 const OUTPUT_DIR = path.join(__dirname, 'pdf');
 const CHROME_PATH = '/usr/bin/google-chrome';
+const NODE_SHARED_SECRET = (process.env.TEINVIT_NODE_SHARED_SECRET || '').trim();
 
 /* ================= ENSURE DIR ================= */
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -25,10 +26,16 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 /* ================= STATIC ================= */
 app.use('/pdf', express.static(OUTPUT_DIR));
 
+function isAuthorizedDelete(req) {
+    if (!NODE_SHARED_SECRET) return false;
+    const provided = String(req.header('X-TeInvit-Secret') || '').trim();
+    return provided !== '' && provided === NODE_SHARED_SECRET;
+}
+
 /* ================= RENDER ENDPOINT ================= */
 app.post('/api/render', async (req, res) => {
 
-    const { token, order_id, filename } = req.body || {};
+    const { token, order_id, filename, version_id } = req.body || {};
 
     if (!token || !order_id || !filename) {
         return res.status(400).json({
@@ -37,7 +44,10 @@ app.post('/api/render', async (req, res) => {
         });
     }
 
-    const targetUrl = `${PDF_BASE_URL}/pdf/${token}`;
+    const parsedVersionId = parseInt(version_id, 10);
+    const hasVersion = Number.isFinite(parsedVersionId) && parsedVersionId > 0;
+    const versionQuery = hasVersion ? `?teinvit_version_id=${encodeURIComponent(parsedVersionId)}` : '';
+    const targetUrl = `${PDF_BASE_URL}/pdf/${token}/${versionQuery}`;
     const orderDir  = path.join(OUTPUT_DIR, String(order_id));
 
     if (!fs.existsSync(orderDir)) {
@@ -72,7 +82,7 @@ app.post('/api/render', async (req, res) => {
             timeout: 60000
         });
 
-        // Handshake PDF final (exact cum ai definit deja)
+        // Handshake PDF final
         await page.waitForFunction(
             () => window.__TEINVIT_PDF_READY__ === true,
             { timeout: 30000 }
@@ -107,6 +117,127 @@ app.post('/api/render', async (req, res) => {
         return res.status(500).json({
             status: 'error',
             code: 'RENDER_FAILED',
+            message: err.message
+        });
+    }
+});
+
+/* ================= DELETE ENDPOINT ================= */
+app.post('/api/delete', async (req, res) => {
+    if (!isAuthorizedDelete(req)) {
+        return res.status(401).json({
+            status: 'error',
+            code: 'UNAUTHORIZED'
+        });
+    }
+
+    const { order_id, filenames } = req.body || {};
+    const parsedOrderId = parseInt(order_id, 10);
+    if (!Number.isFinite(parsedOrderId) || parsedOrderId <= 0) {
+        return res.status(400).json({
+            status: 'error',
+            code: 'INVALID_ORDER_ID'
+        });
+    }
+
+    const orderDir = path.join(OUTPUT_DIR, String(parsedOrderId));
+    const resolvedOrderDir = path.resolve(orderDir);
+    const resolvedBaseDir = path.resolve(OUTPUT_DIR);
+    if (!resolvedOrderDir.startsWith(resolvedBaseDir + path.sep)) {
+        return res.status(400).json({
+            status: 'error',
+            code: 'INVALID_ORDER_DIR'
+        });
+    }
+
+    if (!fs.existsSync(orderDir)) {
+        return res.json({
+            status: 'ok',
+            order_id: parsedOrderId,
+            deleted_files: [],
+            folder_deleted: false,
+            folder_missing: true
+        });
+    }
+
+    const requested = Array.isArray(filenames)
+        ? filenames.map((name) => path.basename(String(name || '').trim())).filter(Boolean)
+        : [];
+
+    const deletedFiles = [];
+    const errors = [];
+
+    try {
+        const filesInDir = fs.readdirSync(orderDir);
+        const targetSet = requested.length > 0
+            ? new Set(requested)
+            : new Set(filesInDir.filter((f) => /\.pdf$/i.test(f)));
+
+        for (const fileName of filesInDir) {
+            if (!targetSet.has(fileName)) continue;
+            const fullPath = path.join(orderDir, fileName);
+            const resolvedFilePath = path.resolve(fullPath);
+            if (!resolvedFilePath.startsWith(resolvedOrderDir + path.sep)) {
+                continue;
+            }
+            try {
+                if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+                    fs.unlinkSync(fullPath);
+                    deletedFiles.push(fileName);
+                }
+            } catch (err) {
+                errors.push({ file: fileName, message: err.message });
+            }
+        }
+
+        let folderDeleted = false;
+        let folderMissing = false;
+        try {
+            const remaining = fs.readdirSync(orderDir);
+            if (remaining.length === 0) {
+                fs.rmdirSync(orderDir);
+                folderDeleted = true;
+            }
+        } catch (err) {
+            if (err && err.code === 'ENOENT') {
+                folderMissing = true;
+            } else {
+                errors.push({ folder: String(parsedOrderId), message: err.message });
+            }
+        }
+
+        if (errors.length > 0) {
+            return res.status(500).json({
+                status: 'error',
+                code: 'DELETE_PARTIAL',
+                order_id: parsedOrderId,
+                deleted_files: deletedFiles,
+                errors
+            });
+        }
+
+        if (!folderMissing && deletedFiles.length === 0 && !folderDeleted) {
+            return res.status(409).json({
+                status: 'error',
+                code: 'NOTHING_DELETED',
+                order_id: parsedOrderId,
+                deleted_files: [],
+                folder_deleted: false,
+                folder_missing: false
+            });
+        }
+
+        return res.json({
+            status: 'ok',
+            order_id: parsedOrderId,
+            deleted_files: deletedFiles,
+            folder_deleted: folderDeleted,
+            folder_missing: folderMissing
+        });
+    } catch (err) {
+        return res.status(500).json({
+            status: 'error',
+            code: 'DELETE_FAILED',
             message: err.message
         });
     }

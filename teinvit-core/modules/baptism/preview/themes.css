@@ -1,0 +1,437 @@
+.teinvit-canvas.theme-baptism-little-princess,
+.teinvit-canvas.theme-baptism-blush-angel,
+.teinvit-canvas.theme-baptism-rosy-grace,
+.teinvit-canvas.theme-baptism-sweet-peony,
+.teinvit-canvas.theme-baptism-pink-cherub,
+.teinvit-canvas.theme-baptism-little-prince,
+.teinvit-canvas.theme-baptism-blue-angel,
+.teinvit-canvas.theme-baptism-gentle-sailor,
+.teinvit-canvas.theme-baptism-sky-blessing,
+.teinvit-canvas.theme-baptism-royal-baptism,
+.teinvit-canvas.theme-baptism-twin-harmony,
+.teinvit-canvas.theme-baptism-triple-blessing,
+.teinvit-canvas.theme-baptism-heavenly-stars,
+.teinvit-canvas.theme-baptism-little-miracles,
+.teinvit-canvas.theme-baptism-angelic-trio {
+  text-shadow: none;
+  --ba-names-font: 'Great Vibes', cursive;
+  --ba-body-font: 'Cormorant Garamond', serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #c77d8c;
+  --ba-color-primary: #3a2f2f;
+  --ba-color-secondary: #6a5e5a;
+  --ba-color-accent: #c8a96a;
+  --ba-color-caps: var(--ba-color-primary);
+  --ba-color-link: #2b5a78;
+  --ba-size-names: 2.22em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 1) Little Princess / Princess Blush */
+.teinvit-canvas.theme-baptism-little-princess {
+  --ba-names-font: 'Great Vibes', cursive;
+  --ba-body-font: 'Cormorant Garamond', serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #c77d8c;
+  --ba-color-primary: #3a2f2f;
+  --ba-color-secondary: #6a5e5a;
+  --ba-color-accent: #c8a96a;
+  --ba-color-link: #2b5a78;
+  --ba-size-names: 2.22em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 2) Blush Angel / Soft Halo */
+.teinvit-canvas.theme-baptism-blush-angel {
+  --ba-names-font: 'Alex Brush', cursive;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #e3a8b9;
+  --ba-color-primary: #504143;
+  --ba-color-secondary: #8c7e80;
+  --ba-color-accent: #dcc38a;
+  --ba-color-link: #5c7a95;
+  --ba-size-names: 2.14em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.06em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 3) Rosy Grace / Rosy Mauve */
+.teinvit-canvas.theme-baptism-rosy-grace {
+  --ba-names-font: 'Prata', serif;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Cinzel', serif;
+  --ba-color-names: #a96384;
+  --ba-color-primary: #3a313a;
+  --ba-color-secondary: #726271;
+  --ba-color-accent: #c7a86a;
+  --ba-color-link: #3f607a;
+  --ba-size-names: 2.14em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.06em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 4) Sweet Peony / Soft Peony */
+.teinvit-canvas.theme-baptism-sweet-peony {
+  --ba-names-font: 'Satisfy', cursive;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Cinzel', serif;
+  --ba-color-names: #c77e98;
+  --ba-color-primary: #423537;
+  --ba-color-secondary: #7d6b6d;
+  --ba-color-accent: #d2b179;
+  --ba-color-link: #48667e;
+  --ba-size-names: 2.33em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.05em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 5) Pink Cherub / Baby Pink */
+.teinvit-canvas.theme-baptism-pink-cherub {
+  --ba-names-font: 'Pacifico', cursive;
+  --ba-body-font: 'DM Sans', sans-serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #fb7185;
+  --ba-color-primary: #553a45;
+  --ba-color-secondary: #8b6b75;
+  --ba-color-accent: #facc15;
+  --ba-color-link: #5b7fa3;
+  --ba-size-names: 2.14em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.06em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 6) Little Prince / Prince Navy */
+.teinvit-canvas.theme-baptism-little-prince {
+  --ba-names-font: 'Cinzel', serif;
+  --ba-body-font: 'Spectral', serif;
+  --ba-caps-font: 'Cinzel', serif;
+  --ba-color-names: #1e3a8a;
+  --ba-color-primary: #1c274c;
+  --ba-color-secondary: #6978a1;
+  --ba-color-accent: #d4af37;
+  --ba-color-link: #355c7d;
+  --ba-size-names: 2.44em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 7) Blue Angel / Angel Sky */
+.teinvit-canvas.theme-baptism-blue-angel {
+  --ba-names-font: 'Cormorant Garamond', serif;
+  --ba-body-font: 'Source Serif 4', serif;
+  --ba-caps-font: 'Inter', sans-serif;
+  --ba-color-names: #5da9e9;
+  --ba-color-primary: #29455a;
+  --ba-color-secondary: #6a90a5;
+  --ba-color-accent: #d6b46a;
+  --ba-color-link: #2e6f95;
+  --ba-size-names: 2.22em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 8) Gentle Sailor / Harbor Blue */
+.teinvit-canvas.theme-baptism-gentle-sailor {
+  --ba-names-font: 'Cinzel', serif;
+  --ba-body-font: 'Source Serif 4', serif;
+  --ba-caps-font: 'Oswald', sans-serif;
+  --ba-color-names: #22577a;
+  --ba-color-primary: #22425d;
+  --ba-color-secondary: #68839b;
+  --ba-color-accent: #e0be74;
+  --ba-color-link: #4c7b92;
+  --ba-size-names: 2.31em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.06em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 9) Sky Blessing / Blue Dawn */
+.teinvit-canvas.theme-baptism-sky-blessing {
+  --ba-names-font: 'Spectral', serif;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #6daedb;
+  --ba-color-primary: #375066;
+  --ba-color-secondary: #7f96a7;
+  --ba-color-accent: #d4b072;
+  --ba-color-link: #527998;
+  --ba-size-names: 2.08em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.05em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 10) Royal Baptism / Imperial Gold */
+.teinvit-canvas.theme-baptism-royal-baptism {
+  --ba-names-font: 'Bodoni Moda', serif;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Oswald', sans-serif;
+  --ba-color-names: #7b5e3b;
+  --ba-color-primary: #3d3327;
+  --ba-color-secondary: #85745f;
+  --ba-color-accent: #e6c57a;
+  --ba-color-link: #496a81;
+  --ba-size-names: 2.22em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 11) Twin Harmony / Harmony Sage */
+.teinvit-canvas.theme-baptism-twin-harmony {
+  --ba-names-font: 'Cormorant Garamond', serif;
+  --ba-body-font: 'Source Serif 4', serif;
+  --ba-caps-font: 'Raleway', sans-serif;
+  --ba-color-names: #5c7a6a;
+  --ba-color-primary: #31433a;
+  --ba-color-secondary: #6f877a;
+  --ba-color-accent: #c8a96a;
+  --ba-color-link: #4b6b7c;
+  --ba-size-names: 2.22em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 12) Triple Blessing / Triple Petal */
+.teinvit-canvas.theme-baptism-triple-blessing {
+  --ba-names-font: 'DM Serif Display', serif;
+  --ba-body-font: 'Source Serif 4', serif;
+  --ba-caps-font: 'Raleway', sans-serif;
+  --ba-color-names: #a58096;
+  --ba-color-primary: #4a3a44;
+  --ba-color-secondary: #8b7481;
+  --ba-color-accent: #d8b06d;
+  --ba-color-link: #607b90;
+  --ba-size-names: 2.08em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.05em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 13) Heavenly Stars / Moonlight */
+.teinvit-canvas.theme-baptism-heavenly-stars {
+  --ba-names-font: 'Alice', serif;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #8da0f0;
+  --ba-color-primary: #3b4270;
+  --ba-color-secondary: #8f96c4;
+  --ba-color-accent: #f0d57b;
+  --ba-color-link: #677e9a;
+  --ba-size-names: 2.14em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.06em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 14) Little Miracles / Miracle Mint */
+.teinvit-canvas.theme-baptism-little-miracles {
+  --ba-names-font: 'Allura', cursive;
+  --ba-body-font: 'Source Serif 4', serif;
+  --ba-caps-font: 'Montserrat', sans-serif;
+  --ba-color-names: #6fb1a0;
+  --ba-color-primary: #36453f;
+  --ba-color-secondary: #7e948d;
+  --ba-color-accent: #d8b46a;
+  --ba-color-link: #5b7e91;
+  --ba-size-names: 2.22em;
+  --ba-size-caps: 0.96em;
+  --ba-size-body: 0.96em;
+  --ba-size-message: 1.08em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+/* 15) Angelic Trio / Trio Lavender */
+.teinvit-canvas.theme-baptism-angelic-trio {
+  --ba-names-font: 'Bodoni Moda', serif;
+  --ba-body-font: 'Lora', serif;
+  --ba-caps-font: 'Oswald', sans-serif;
+  --ba-color-names: #9a84c7;
+  --ba-color-primary: #433b57;
+  --ba-color-secondary: #8e81a4;
+  --ba-color-accent: #dec175;
+  --ba-color-link: #657f97;
+  --ba-size-names: 2.14em;
+  --ba-size-caps: 0.95em;
+  --ba-size-body: 0.95em;
+  --ba-size-message: 1.06em;
+  --ba-size-place: 0.96em;
+  --ba-size-date: 0.88em;
+  --ba-size-link: 0.86em;
+}
+
+.teinvit-baptism .inv-names {
+  font-family: var(--ba-names-font);
+  color: var(--ba-color-names);
+  font-size: var(--ba-size-names);
+  line-height: 1.14;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .section-title {
+  font-family: var(--ba-caps-font);
+  color: var(--ba-color-caps, var(--ba-color-primary)) !important;
+  font-size: var(--ba-size-caps);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-event strong {
+  font-family: var(--ba-caps-font);
+  color: var(--ba-color-caps, var(--ba-color-primary)) !important;
+  font-size: var(--ba-size-caps);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider {
+  width: min(82%, 320px);
+  height: 40px;
+  margin: 0.36em auto 0.42em;
+  background: transparent;
+  opacity: 1;
+}
+
+.teinvit-baptism .teinvit-canvas[class*="theme-baptism-"] .inv-divider svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.teinvit-baptism .inv-parent-col,
+.teinvit-baptism .inv-parent-sep,
+.teinvit-baptism .inv-event > div {
+  font-family: var(--ba-body-font);
+  font-size: var(--ba-size-body);
+  color: var(--ba-color-primary);
+}
+
+.teinvit-baptism .inv-message {
+  font-family: var(--ba-body-font);
+  color: var(--ba-color-secondary);
+  font-size: var(--ba-size-message);
+  line-height: 1.35;
+}
+
+.teinvit-baptism .inv-event .inv-place {
+  color: var(--ba-color-primary);
+  font-size: var(--ba-size-place);
+}
+
+.teinvit-baptism .inv-event .inv-datetime {
+  color: var(--ba-color-secondary);
+  font-size: var(--ba-size-date);
+  white-space: nowrap;
+}
+
+.teinvit-baptism .inv-event a {
+  color: var(--ba-color-link);
+  font-family: var(--ba-body-font);
+  font-size: var(--ba-size-link);
+}
+
+.teinvit-baptism .inv-parents-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.teinvit-baptism .inv-parent-sep {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.teinvit-baptism .inv-parent-mire {
+  text-align: left;
+}
+
+.teinvit-baptism .inv-parent-mireasa {
+  text-align: right;
+}
+
+.teinvit-baptism .inv-nasi .inv-parents-grid {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 3px;
+}
+
+.teinvit-baptism .inv-nasi .nasi-godmother {
+  text-align: right;
+}
+
+.teinvit-baptism .inv-nasi .nasi-godfather {
+  text-align: left;
+}
+
+.teinvit-baptism .inv-parents-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.teinvit-baptism .inv-parents-grid.is-single .inv-parent-sep,
+.teinvit-baptism .inv-parents-grid.is-single .inv-parent-col:empty {
+  display: none;
+}
+
+.teinvit-baptism .inv-parents-grid.is-single .inv-parent-col {
+  text-align: center !important;
+}
