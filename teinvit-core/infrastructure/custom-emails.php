@@ -2091,8 +2091,10 @@ function teinvit_email_read_blocks_from_post() {
 add_action(
     'admin_menu',
     function() {
-        add_submenu_page( 'woocommerce', 'Custom Emails', 'Custom Emails', 'manage_woocommerce', 'teinvit-custom-emails', 'teinvit_emails_page_router' );
-        add_submenu_page( 'woocommerce', 'TeInvit Merge Tags', 'Merge Tags', 'manage_woocommerce', 'teinvit-email-merge-tags', 'teinvit_emails_page_merge_tags' );
+        $parent = function_exists( 'teinvit_admin_root_slug' ) ? teinvit_admin_root_slug() : 'woocommerce';
+        $capability = function_exists( 'teinvit_admin_capability' ) ? teinvit_admin_capability() : 'manage_woocommerce';
+        add_submenu_page( $parent, 'Custom Emails', 'Custom Emails', $capability, 'teinvit-custom-emails', 'teinvit_emails_page_router' );
+        add_submenu_page( $parent, 'TeInvit Merge Tags', 'Merge Tags', $capability, 'teinvit-email-merge-tags', 'teinvit_emails_page_merge_tags' );
     },
     99
 );

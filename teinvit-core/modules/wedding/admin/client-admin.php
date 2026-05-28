@@ -25,6 +25,7 @@ function teinvit_install_client_admin_tables() {
         order_id bigint(20) unsigned NOT NULL,
         user_id bigint(20) unsigned NOT NULL,
         edits_free_remaining int NOT NULL DEFAULT 2,
+        edits_admin_remaining int NOT NULL DEFAULT 0,
         edits_paid_remaining int NOT NULL DEFAULT 0,
         gifts_free_capacity int NOT NULL DEFAULT 10,
         gifts_paid_capacity int NOT NULL DEFAULT 0,
@@ -163,7 +164,7 @@ function teinvit_get_settings( $token ) {
 }
 
 function teinvit_get_remaining_edits( $settings ) {
-    return max( 0, (int) $settings['edits_free_remaining'] + (int) $settings['edits_paid_remaining'] );
+    return max( 0, (int) $settings['edits_free_remaining'] + (int) ( $settings['edits_admin_remaining'] ?? 0 ) + (int) $settings['edits_paid_remaining'] );
 }
 
 function teinvit_get_gifts_capacity( $settings ) {
@@ -269,6 +270,10 @@ function teinvit_token_has_premium_upgrade_addon( $token ) {
     $token = sanitize_text_field( (string) $token );
     if ( $token === '' ) {
         return false;
+    }
+
+    if ( function_exists( 'teinvit_token_has_premium_admin_grant' ) && teinvit_token_has_premium_admin_grant( $token ) ) {
+        return true;
     }
 
     if ( function_exists( 'teinvit_get_invitation' ) ) {
@@ -430,7 +435,7 @@ function teinvit_gifts_allocation_sort_key( array $allocation ) {
 function teinvit_build_gifts_summary_for_token( $token, $config = null ) {
     $token = sanitize_text_field( (string) $token );
     if ( $token === '' ) {
-        return [ 'base_slots' => 0, 'addon_slots' => 0, 'total_slots' => 0, 'used_slots' => 0, 'available_slots' => 0, 'allocations' => [] ];
+        return [ 'base_slots' => 0, 'addon_slots' => 0, 'admin_slots' => 0, 'total_slots' => 0, 'used_slots' => 0, 'available_slots' => 0, 'allocations' => [] ];
     }
 
     if ( ! is_array( $config ) ) {
@@ -499,6 +504,7 @@ function teinvit_build_gifts_summary_for_token( $token, $config = null ) {
     $remaining_to_consume = $used;
     $base_slots = 0;
     $addon_slots = 0;
+    $admin_slots = 0;
     foreach ( $normalized as &$allocation ) {
         if ( (string) $allocation['status'] !== 'applied' ) {
             $allocation['slots_remaining'] = max( 0, (int) $allocation['slots_remaining'] );
@@ -510,18 +516,21 @@ function teinvit_build_gifts_summary_for_token( $token, $config = null ) {
         $allocation['slots_remaining'] = max( 0, $total - $consume );
         if ( (string) $allocation['kind'] === 'base' ) {
             $base_slots += $total;
+        } elseif ( (string) $allocation['kind'] === 'admin_grant' ) {
+            $admin_slots += $total;
         } else {
             $addon_slots += $total;
         }
     }
     unset( $allocation );
 
-    $total_slots = max( 0, $base_slots + $addon_slots );
+    $total_slots = max( 0, $base_slots + $addon_slots + $admin_slots );
     $available = max( 0, $total_slots - $used );
 
     return [
         'base_slots' => $base_slots,
         'addon_slots' => $addon_slots,
+        'admin_slots' => $admin_slots,
         'total_slots' => $total_slots,
         'used_slots' => $used,
         'available_slots' => $available,
@@ -540,12 +549,14 @@ function teinvit_custom_products_vertical_labels() {
 
 function teinvit_register_custom_products_admin_page() {
     $labels = teinvit_custom_products_vertical_labels();
+    $parent = function_exists( 'teinvit_admin_root_slug' ) ? teinvit_admin_root_slug() : 'woocommerce';
+    $capability = function_exists( 'teinvit_admin_capability' ) ? teinvit_admin_capability() : 'manage_woocommerce';
 
     add_submenu_page(
-        'woocommerce',
+        $parent,
         'Te Invit Custom Products',
         'Te Invit Custom Products',
-        'manage_woocommerce',
+        $capability,
         'teinvit-custom-products-wedding',
         function() {
             teinvit_render_custom_products_admin_page( 'wedding' );
@@ -559,10 +570,10 @@ function teinvit_register_custom_products_admin_page() {
         }
 
         add_submenu_page(
-            'woocommerce',
+            $parent,
             $label,
             $label,
-            'manage_woocommerce',
+            $capability,
             $slug,
             function() use ( $vertical ) {
                 teinvit_render_custom_products_admin_page( $vertical );
@@ -573,7 +584,8 @@ function teinvit_register_custom_products_admin_page() {
 add_action( 'admin_menu', 'teinvit_register_custom_products_admin_page', 30 );
 
 function teinvit_render_custom_products_admin_page( $vertical = 'wedding' ) {
-    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+    $capability = function_exists( 'teinvit_admin_capability' ) ? teinvit_admin_capability() : 'manage_woocommerce';
+    if ( ! current_user_can( $capability ) ) {
         wp_die( 'Nu ai acces la această pagină.' );
     }
 
@@ -946,6 +958,7 @@ function teinvit_build_initial_snapshot( $order_id, $token ) {
             'order_id' => $order_id,
             'user_id' => (int) $order->get_user_id(),
             'edits_free_remaining' => 2,
+            'edits_admin_remaining' => 0,
             'edits_paid_remaining' => 0,
             'gifts_free_capacity' => 10,
             'gifts_paid_capacity' => 0,
@@ -1296,6 +1309,7 @@ function teinvit_token_upsert_gifts_allocation( $token, array $allocation ) {
     $summary = teinvit_build_gifts_summary_for_token( $token, $config );
     $config['gifts_base_slots_applied'] = (int) $summary['base_slots'];
     $config['gifts_extra_slots'] = (int) $summary['addon_slots'];
+    $config['gifts_admin_slots'] = (int) ( $summary['admin_slots'] ?? 0 );
     $config['gifts_total_slots_applied'] = (int) $summary['total_slots'];
     $config['gifts_slots_used'] = (int) $summary['used_slots'];
     $config['gifts_slots_available'] = (int) $summary['available_slots'];
@@ -1318,6 +1332,9 @@ function teinvit_credit_paid_edits_for_invitation( $target_token, $qty ) {
     }
 
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+    if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
+        $config = teinvit_config_ensure_edit_balance_keys( $config );
+    }
     $current_paid = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
     $config['edits_paid_remaining'] = max( 0, $current_paid ) + $qty;
 
@@ -1576,6 +1593,9 @@ add_action( 'woocommerce_order_refunded', function( $order_id, $refund_id ) {
             if ( (string) ( $allocation['status'] ?? '' ) !== 'applied' ) {
                 continue;
             }
+            if ( (string) ( $allocation['kind'] ?? '' ) === 'admin_grant' ) {
+                continue;
+            }
             if ( (int) ( $allocation['order_id'] ?? 0 ) !== (int) $order_id ) {
                 continue;
             }
@@ -1599,6 +1619,7 @@ add_action( 'woocommerce_order_refunded', function( $order_id, $refund_id ) {
         $config['gifts_allocations'] = $summary_after['allocations'];
         $config['gifts_base_slots_applied'] = (int) $summary_after['base_slots'];
         $config['gifts_extra_slots'] = (int) $summary_after['addon_slots'];
+        $config['gifts_admin_slots'] = (int) ( $summary_after['admin_slots'] ?? 0 );
         $config['gifts_total_slots_applied'] = (int) $summary_after['total_slots'];
         $config['gifts_slots_used'] = (int) $summary_after['used_slots'];
         $config['gifts_slots_available'] = (int) $summary_after['available_slots'];

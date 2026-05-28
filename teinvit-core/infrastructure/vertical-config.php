@@ -53,6 +53,9 @@ function teinvit_vertical_semantics_registry() {
                 'rsvp_deadline_date' => '',
                 'show_gifts_section' => 0,
                 'gifts_extra_slots' => 0,
+                'edits_free_remaining' => 2,
+                'edits_admin_remaining' => 0,
+                'edits_paid_remaining' => 0,
             ],
             'rsvp_fields' => [
                 'show_attending_civil' => [ 'label' => 'Permite confirmarea pentru cununia civilă', 'question' => 'Veți participa la cununia civilă?', 'storage' => 'attending_civil', 'type' => 'boolean' ],
@@ -119,6 +122,9 @@ function teinvit_vertical_semantics_registry() {
                 'show_special_observations' => 0,
                 'show_gifts_section' => 0,
                 'gifts_extra_slots' => 0,
+                'edits_free_remaining' => 2,
+                'edits_admin_remaining' => 0,
+                'edits_paid_remaining' => 0,
             ],
             'rsvp_fields' => [
                 'show_attending_party' => [ 'label' => 'Permite confirmarea participării la petrecere', 'question' => 'Veți participa la petrecere?', 'storage' => 'attending_party', 'type' => 'boolean' ],
@@ -172,6 +178,9 @@ function teinvit_vertical_semantics_registry() {
                 'show_special_observations' => 0,
                 'show_gifts_section' => 0,
                 'gifts_extra_slots' => 0,
+                'edits_free_remaining' => 2,
+                'edits_admin_remaining' => 0,
+                'edits_paid_remaining' => 0,
             ],
             'rsvp_fields' => [
                 'show_attending_religious' => [ 'label' => 'Permite confirmarea participării la slujba de botez', 'question' => 'Veți participa la slujba de botez?', 'storage' => 'attending_religious', 'type' => 'boolean' ],

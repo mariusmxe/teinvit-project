@@ -95,9 +95,18 @@ if ( $subtitle === '' ) {
 }
 
 $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
-$edits_free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
-$edits_paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
-$edits_remaining = max( 0, $edits_free_remaining ) + max( 0, $edits_paid_remaining );
+if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
+    $edit_balance = teinvit_edit_balance_summary( $config );
+    $edits_free_remaining = (int) $edit_balance['free'];
+    $edits_admin_remaining = (int) $edit_balance['admin'];
+    $edits_paid_remaining = (int) $edit_balance['paid'];
+    $edits_remaining = (int) $edit_balance['total'];
+} else {
+    $edits_free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+    $edits_admin_remaining = isset( $config['edits_admin_remaining'] ) ? (int) $config['edits_admin_remaining'] : 0;
+    $edits_paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
+    $edits_remaining = max( 0, $edits_free_remaining ) + max( 0, $edits_admin_remaining ) + max( 0, $edits_paid_remaining );
+}
 $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
@@ -419,7 +428,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
         <?php endif; ?>
 
                 <?php if ( ! empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
-        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_paid_remaining > 0 ) : ?> (<?php echo (int) $edits_paid_remaining; ?> cumpărate)<?php endif; ?></p>
+        <p id="teinvit-edits-counter"><?php echo (int) $edits_remaining; ?> modificări disponibile<?php if ( $edits_admin_remaining > 0 || $edits_paid_remaining > 0 ) : ?> (<?php if ( $edits_admin_remaining > 0 ) : ?><?php echo (int) $edits_admin_remaining; ?> administrative<?php endif; ?><?php if ( $edits_admin_remaining > 0 && $edits_paid_remaining > 0 ) : ?>, <?php endif; ?><?php if ( $edits_paid_remaining > 0 ) : ?><?php echo (int) $edits_paid_remaining; ?> cumpărate<?php endif; ?>)<?php endif; ?></p>
         <?php endif; ?>
         <?php if ( empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
           <p><em>Editările de conținut și salvarea versiunilor sunt blocate pe pachetul Basic.</em></p>
