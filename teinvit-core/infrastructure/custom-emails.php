@@ -1341,6 +1341,110 @@ function teinvit_email_apply_tags( $text, array $context ) {
     return strtr( strtr( $text, $square_context ), $context );
 }
 
+function teinvit_email_safe_align( $align ) {
+    $align = (string) $align;
+    return in_array( $align, [ 'left', 'center', 'right' ], true ) ? $align : 'center';
+}
+
+function teinvit_email_table_style() {
+    return 'border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;';
+}
+
+function teinvit_email_render_block_wrapper( $inner_html, $align = 'center', $padding = '0 0 14px 0', $td_style = '' ) {
+    $inner_html = (string) $inner_html;
+    if ( trim( $inner_html ) === '' ) {
+        return '';
+    }
+
+    $align = teinvit_email_safe_align( $align );
+
+    return '<table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="width:100%;' . teinvit_email_table_style() . '"><tr><td align="' . esc_attr( $align ) . '" valign="top" style="padding:' . esc_attr( (string) $padding ) . ';text-align:' . esc_attr( $align ) . ';' . (string) $td_style . '">' . $inner_html . '</td></tr></table>';
+}
+
+function teinvit_email_inline_paragraph_margins( $html ) {
+    $html = (string) $html;
+    $updated = preg_replace_callback(
+        '/<p\b([^>]*)>/i',
+        static function( $m ) {
+            $attrs = (string) ( $m[1] ?? '' );
+            if ( stripos( $attrs, 'style=' ) !== false ) {
+                $attrs = preg_replace( '/style=("|\')([^"\']*)\1/i', 'style=$1$2;margin:0 0 12px 0;$1', $attrs, 1 );
+                return '<p' . $attrs . '>';
+            }
+
+            return '<p' . $attrs . ' style="margin:0 0 12px 0;">';
+        },
+        $html
+    );
+
+    return is_string( $updated ) ? $updated : $html;
+}
+
+function teinvit_email_render_image_block_html( $url, $align, $alt, $width, $padding = '0 0 20px 0', $fluid = false, $border_radius = '' ) {
+    $url = esc_url( $url );
+    if ( $url === '' ) {
+        return '';
+    }
+
+    $align = teinvit_email_safe_align( $align );
+    $width = max( 1, (int) $width );
+    $image_width_style = $fluid ? 'width:100%;max-width:' . $width . 'px;' : 'width:' . $width . 'px;max-width:100%;';
+    $radius_style = $border_radius !== '' ? 'border-radius:' . esc_attr( (string) $border_radius ) . ';' : '';
+    $table_width_attr = $fluid ? (string) $width : (string) $width;
+    $table_style = teinvit_email_table_style() . ( $fluid ? 'width:100%;max-width:' . $width . 'px;' : '' );
+
+    $image = '<table role="presentation" align="' . esc_attr( $align ) . '" width="' . esc_attr( $table_width_attr ) . '" border="0" cellpadding="0" cellspacing="0" style="' . $table_style . '"><tr><td align="' . esc_attr( $align ) . '" valign="top"><img src="' . $url . '" alt="' . esc_attr( (string) $alt ) . '" width="' . esc_attr( (string) $width ) . '" border="0" style="display:block;' . $image_width_style . 'height:auto;border:0;outline:none;text-decoration:none;' . $radius_style . '" /></td></tr></table>';
+
+    return teinvit_email_render_block_wrapper( $image, $align, $padding );
+}
+
+function teinvit_email_render_button_block_html( $url, $label, $align, $bg, $color, $border ) {
+    $url   = esc_url( $url );
+    $label = (string) $label;
+    if ( $url === '' || $label === '' ) {
+        return '';
+    }
+
+    $align = teinvit_email_safe_align( $align );
+    $button = '<table role="presentation" align="' . esc_attr( $align ) . '" border="0" cellpadding="0" cellspacing="0" style="' . teinvit_email_table_style() . '"><tr><td align="center" valign="middle" bgcolor="' . esc_attr( (string) $bg ) . '" style="background:' . esc_attr( (string) $bg ) . ';border:1px solid ' . esc_attr( (string) $border ) . ';border-radius:8px;mso-padding-alt:12px 22px;"><a href="' . $url . '" style="display:block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;font-weight:700;color:' . esc_attr( (string) $color ) . ';text-decoration:none;border-radius:8px;-webkit-text-size-adjust:none;">' . esc_html( $label ) . '</a></td></tr></table>';
+
+    return teinvit_email_render_block_wrapper( $button, $align, '4px 0 16px 0' );
+}
+
+function teinvit_email_render_bullets_block_html( array $items, $align ) {
+    $align = teinvit_email_safe_align( $align );
+    $rows  = '';
+    $text  = '';
+
+    foreach ( $items as $item ) {
+        $line = trim( (string) $item );
+        if ( $line === '' ) {
+            continue;
+        }
+
+        $rows .= '<tr><td align="left" valign="top" width="18" style="width:18px;padding:0 8px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;mso-line-height-rule:exactly;color:#2a2a2a;">&bull;</td><td align="left" valign="top" style="padding:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;mso-line-height-rule:exactly;color:#2a2a2a;text-align:left;">' . esc_html( $line ) . '</td></tr>';
+        $text .= '- ' . wp_strip_all_tags( $line ) . "
+";
+    }
+
+    if ( $rows === '' ) {
+        return [ 'html' => '', 'text' => '' ];
+    }
+
+    $list = '<table role="presentation" align="' . esc_attr( $align ) . '" border="0" cellpadding="0" cellspacing="0" style="' . teinvit_email_table_style() . 'max-width:100%;"><tbody>' . $rows . '</tbody></table>';
+
+    return [
+        'html' => teinvit_email_render_block_wrapper( $list, $align, '0 0 14px 0' ),
+        'text' => $text . "
+",
+    ];
+}
+
+function teinvit_email_render_text_block_html( $html_body, $align, $padding, $style ) {
+    $html_body = teinvit_email_inline_paragraph_margins( $html_body );
+    return teinvit_email_render_block_wrapper( $html_body, $align, $padding, $style . 'mso-line-height-rule:exactly;' );
+}
+
 function teinvit_email_render_block( array $block, array $context, $accent ) {
     $type = sanitize_key( (string) ( $block['type'] ?? '' ) );
     if ( $type === '' ) {
@@ -1351,27 +1455,26 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
         return [ 'html' => '', 'text' => '' ];
     }
 
-    $align     = in_array( (string) ( $block['align'] ?? 'center' ), [ 'left', 'center', 'right' ], true ) ? (string) $block['align'] : 'center';
-    $align_css = 'text-align:' . esc_attr( $align ) . ';';
+    $align = teinvit_email_safe_align( (string) ( $block['align'] ?? 'center' ) );
 
     switch ( $type ) {
         case 'logo':
-            $url = esc_url( teinvit_email_apply_tags( $block['url'] ?? '', $context ) );
+            $url = teinvit_email_apply_tags( $block['url'] ?? '', $context );
             if ( $url === '' ) {
                 return [ 'html' => '', 'text' => '' ];
             }
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 20px 0;' . $align_css . '"><img src="' . $url . '" alt="Logo" style="max-width:180px;height:auto;display:inline-block;border:0;"/></td></tr></table>',
+                'html' => teinvit_email_render_image_block_html( $url, $align, 'Logo', 180, '0 0 20px 0', false ),
                 'text' => '',
             ];
 
         case 'banner':
-            $url = esc_url( teinvit_email_apply_tags( $block['url'] ?? '', $context ) );
+            $url = teinvit_email_apply_tags( $block['url'] ?? '', $context );
             if ( $url === '' ) {
                 return [ 'html' => '', 'text' => '' ];
             }
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 20px 0;' . $align_css . '"><img src="' . $url . '" alt="Banner" style="max-width:100%;height:auto;display:inline-block;border:0;border-radius:10px;"/></td></tr></table>',
+                'html' => teinvit_email_render_image_block_html( $url, $align, 'Banner', 560, '0 0 20px 0', true, '10px' ),
                 'text' => '',
             ];
 
@@ -1381,7 +1484,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
                 return [ 'html' => '', 'text' => '' ];
             }
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 14px 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:28px;line-height:34px;font-weight:700;color:#1f1f1f;">' . $text . '</td></tr></table>',
+                'html' => teinvit_email_render_text_block_html( $text, $align, '0 0 14px 0', 'font-family:Arial,Helvetica,sans-serif;font-size:28px;line-height:34px;font-weight:700;color:#1f1f1f;' ),
                 'text' => $text . "
 
 ",
@@ -1393,7 +1496,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
                 return [ 'html' => '', 'text' => '' ];
             }
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 12px 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:700;color:#3a3a3a;">' . $text . '</td></tr></table>',
+                'html' => teinvit_email_render_text_block_html( $text, $align, '0 0 12px 0', 'font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:700;color:#3a3a3a;' ),
                 'text' => $text . "
 ",
             ];
@@ -1417,7 +1520,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
             }
 
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 14px 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#2a2a2a;">' . $html_body . '</td></tr></table>',
+                'html' => teinvit_email_render_text_block_html( $html_body, $align, '0 0 14px 0', 'font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#2a2a2a;' ),
                 'text' => trim( preg_replace( '/\r\n|\r|\n/', "\n", (string) $text_body ) ) . "
 
 ",
@@ -1437,30 +1540,23 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
                 return [ 'html' => '', 'text' => '' ];
             }
 
-            $list_html = '';
-            $list_text = '';
+            $list_items = [];
             foreach ( $items as $item ) {
                 $line = teinvit_email_apply_tags( (string) $item, $context );
                 if ( trim( $line ) === '' ) {
                     continue;
                 }
-                $list_html .= '<li style="margin:0 0 8px 0;">' . esc_html( $line ) . '</li>';
-                $list_text .= '- ' . wp_strip_all_tags( $line ) . "
-";
+                $list_items[] = $line;
             }
-            if ( $list_html === '' ) {
+            if ( empty( $list_items ) ) {
                 return [ 'html' => '', 'text' => '' ];
             }
 
-            return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 14px 0;' . $align_css . '"><ul style="margin:0 0 0 18px;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#2a2a2a;display:inline-block;text-align:left;">' . $list_html . '</ul></td></tr></table>',
-                'text' => $list_text . "
-",
-            ];
+            return teinvit_email_render_bullets_block_html( $list_items, $align );
 
         case 'divider':
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:16px 0;"><div style="border-top:1px solid #e6e6e6;"></div></td></tr></table>',
+                'html' => '<table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="width:100%;' . teinvit_email_table_style() . '"><tr><td valign="top" style="padding:16px 0;"><div style="border-top:1px solid #e6e6e6;line-height:1px;font-size:1px;">&nbsp;</div></td></tr></table>',
                 'text' => "----------------
 ",
             ];
@@ -1476,7 +1572,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
             $color  = $style === 'secondary' ? '#6b4a2c' : '#ffffff';
             $border = $style === 'secondary' ? '#d8c9bb' : $accent;
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:4px 0 16px 0;' . $align_css . '"><table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-table;"><tr><td style="border-radius:8px;background:' . esc_attr( $bg ) . ';border:1px solid ' . esc_attr( $border ) . ';"><a href="' . esc_url( $url ) . '" style="display:inline-block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:' . esc_attr( $color ) . ';text-decoration:none;border-radius:8px;">' . esc_html( $label ) . '</a></td></tr></table></td></tr></table>',
+                'html' => teinvit_email_render_button_block_html( $url, $label, $align, $bg, $color, $border ),
                 'text' => $label . ': ' . $url . "
 
 ",
@@ -1489,7 +1585,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
                 return [ 'html' => '', 'text' => '' ];
             }
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 0 14px 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;"><a href="' . esc_url( $url ) . '" style="color:' . esc_attr( $accent ) . ';text-decoration:underline;">' . esc_html( $label ) . '</a></td></tr></table>',
+                'html' => teinvit_email_render_text_block_html( '<a href="' . esc_url( $url ) . '" style="color:' . esc_attr( $accent ) . ';text-decoration:underline;">' . esc_html( $label ) . '</a>', $align, '0 0 14px 0', 'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;' ),
                 'text' => $label . ': ' . $url . "
 
 ",
@@ -1513,7 +1609,7 @@ function teinvit_email_render_block( array $block, array $context, $accent ) {
             }
 
             return [
-                'html' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:18px 0 0 0;' . $align_css . 'font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#6b6b6b;border-top:1px solid #ececec;">' . $html_body . '</td></tr></table>',
+                'html' => teinvit_email_render_text_block_html( $html_body, $align, '18px 0 0 0', 'font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#6b6b6b;border-top:1px solid #ececec;' ),
                 'text' => trim( preg_replace( '/\r\n|\r|\n/', "\n", (string) $text_body ) ) . "
 ",
             ];
@@ -1554,19 +1650,22 @@ function teinvit_email_theme_wrap_html( $subject, $preheader, $accent, $body_htm
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="x-apple-disable-message-reformatting" />
 <title>' . $subject . '</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f1ed;">
+<body style="margin:0;padding:0;width:100% !important;background:#f4f1ed;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;visibility:hidden;">' . $preheader . '</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ed;padding:24px 0;">
+<table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f4f1ed" style="width:100%;min-width:100%;background:#f4f1ed;' . teinvit_email_table_style() . '">
 <tr>
-<td align="center">
-<table role="presentation" width="620" cellpadding="0" cellspacing="0" style="width:620px;max-width:620px;background:#ffffff;border-radius:14px;border:1px solid #eee4da;overflow:hidden;">
-<tr><td style="height:6px;background:' . esc_attr( $accent ) . ';line-height:6px;font-size:6px;">&nbsp;</td></tr>
+<td align="center" valign="top" style="padding:24px 12px;text-align:center;">
+<!--[if mso]><table role="presentation" align="center" width="620" border="0" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+<table role="presentation" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" style="width:100%;max-width:620px;background:#ffffff;border:1px solid #eee4da;border-radius:14px;overflow:hidden;border-collapse:separate;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+<tr><td bgcolor="' . esc_attr( $accent ) . '" valign="top" style="height:6px;background:' . esc_attr( $accent ) . ';line-height:6px;font-size:6px;">&nbsp;</td></tr>
 <tr>
-<td style="padding:28px 30px 28px 30px;">' . $body_html . '</td>
+<td align="left" valign="top" style="padding:28px 30px 28px 30px;text-align:left;">' . $body_html . '</td>
 </tr>
 </table>
+<!--[if mso]></td></tr></table><![endif]-->
 </td>
 </tr>
 </table>
