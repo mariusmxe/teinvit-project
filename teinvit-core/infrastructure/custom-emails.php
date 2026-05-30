@@ -2968,6 +2968,64 @@ function teinvit_email_read_blocks_from_post() {
     return $data;
 }
 
+function teinvit_email_block_type_options() {
+    return [
+        'logo'     => 'Logo',
+        'banner'   => 'Banner',
+        'title'    => 'Title',
+        'subtitle' => 'Subtitle',
+        'text'     => 'Text',
+        'bullets'  => 'Bullets',
+        'divider'  => 'Divider',
+        'button'   => 'Button',
+        'link'     => 'Link',
+        'footer'   => 'Footer',
+    ];
+}
+
+function teinvit_email_block_field_matrix() {
+    return [
+        'logo'     => [ 'enabled', 'align', 'url' ],
+        'banner'   => [ 'enabled', 'align', 'url' ],
+        'title'    => [ 'enabled', 'align', 'text' ],
+        'subtitle' => [ 'enabled', 'align', 'text' ],
+        'text'     => [ 'enabled', 'align', 'text', 'html' ],
+        'bullets'  => [ 'enabled', 'align', 'items' ],
+        'divider'  => [ 'enabled' ],
+        'button'   => [ 'enabled', 'align', 'label', 'url', 'style' ],
+        'link'     => [ 'enabled', 'align', 'label', 'url' ],
+        'footer'   => [ 'enabled', 'align', 'text', 'html' ],
+    ];
+}
+
+function teinvit_email_block_help_texts() {
+    return [
+        'logo'     => 'Use a direct image URL for the logo.',
+        'banner'   => 'Use a direct image URL for the banner.',
+        'title'    => 'Short headline text.',
+        'subtitle' => 'Short supporting headline text.',
+        'text'     => 'Use Text for plain copy or HTML for formatted content.',
+        'bullets'  => 'Add one bullet item per line.',
+        'divider'  => 'Simple visual separator.',
+        'button'   => 'CTA button with label, URL and style.',
+        'link'     => 'Simple text link with label and URL.',
+        'footer'   => 'Footer copy, legal text or unsubscribe context.',
+    ];
+}
+
+function teinvit_email_block_visible_fields( $type ) {
+    $type   = sanitize_key( (string) $type );
+    $matrix = teinvit_email_block_field_matrix();
+    return isset( $matrix[ $type ] ) ? $matrix[ $type ] : $matrix['text'];
+}
+
+function teinvit_email_block_field_attrs( $type, $field ) {
+    $field   = sanitize_key( (string) $field );
+    $visible = in_array( $field, teinvit_email_block_visible_fields( $type ), true );
+
+    return ' class="teinvit-email-block-field" data-teinvit-block-field="' . esc_attr( $field ) . '"' . ( $visible ? '' : ' hidden' );
+}
+
 add_action(
     'admin_menu',
     function() {
@@ -3257,34 +3315,59 @@ function teinvit_emails_page_new() {
     echo '<tr><th>Se aplică doar pentru produsele (IDs)</th><td><input class="large-text" name="product_ids" value="' . esc_attr( implode( ',', teinvit_email_template_product_ids( is_array( $template ) ? $template : [] ) ) ) . '"/> <p class="description">Ex: 123,456,789. Gol = toate produsele.</p></td></tr>';
     echo '</table>';
 
+    $block_types = teinvit_email_block_type_options();
+    $block_field_matrix = teinvit_email_block_field_matrix();
+    $block_help_texts = teinvit_email_block_help_texts();
+
     echo '<h2>Builder blocuri (Add / Move / Delete)</h2>';
-    echo '<table class="widefat striped"><thead><tr><th>Type</th><th>Config</th><th>Actions</th></tr></thead><tbody>';
+    echo '<style>
+        #teinvit-email-block-builder .teinvit-email-block-type-select{width:100%;max-width:180px;}
+        #teinvit-email-block-builder .teinvit-email-block-heading{margin:0 0 12px 0;padding:0 0 8px 0;border-bottom:1px solid #e2e4e7;}
+        #teinvit-email-block-builder .teinvit-email-block-title{display:block;font-weight:600;}
+        #teinvit-email-block-builder .teinvit-email-block-help{display:block;margin-top:3px;color:#646970;}
+        #teinvit-email-block-builder .teinvit-email-block-field{margin:0 0 10px 0;}
+        #teinvit-email-block-builder .teinvit-email-block-field label{font-weight:600;}
+        #teinvit-email-block-builder .teinvit-email-block-field input.regular-text{max-width:100%;}
+        #teinvit-email-block-builder .teinvit-email-block-actions .button{margin:0 4px 6px 0;}
+    </style>';
+    echo '<table class="widefat striped" id="teinvit-email-block-builder"><thead><tr><th>Type</th><th>Config</th><th>Actions</th></tr></thead><tbody>';
     $blocks = is_array( $template['blocks'] ?? null ) ? $template['blocks'] : [];
     foreach ( $blocks as $i => $block ) {
         $type = sanitize_key( (string) ( $block['type'] ?? 'text' ) );
-        echo '<tr>';
-        echo '<td><select name="block_type[' . (int) $i . ']">';
-        $types = [ 'logo', 'banner', 'title', 'subtitle', 'text', 'bullets', 'divider', 'button', 'link', 'footer' ];
-        foreach ( $types as $t ) {
-            echo '<option value="' . esc_attr( $t ) . '"' . selected( $type, $t, false ) . '>' . esc_html( $t ) . '</option>';
+        if ( ! isset( $block_types[ $type ] ) ) {
+            $type = 'text';
+        }
+
+        echo '<tr data-teinvit-block-row="1" data-teinvit-block-current-type="' . esc_attr( $type ) . '">';
+        echo '<td><select class="teinvit-email-block-type-select" data-teinvit-block-type="1" name="block_type[' . (int) $i . ']">';
+        foreach ( $block_types as $t => $label ) {
+            echo '<option value="' . esc_attr( $t ) . '"' . selected( $type, $t, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></td>';
 
         echo '<td>';
-        echo '<p><label><input type="checkbox" name="block_enabled[' . (int) $i . ']" value="1" ' . checked( ! empty( $block['enabled'] ), true, false ) . '/> Enabled</label> | Align: <select name="block_align[' . (int) $i . ']"><option value="left"' . selected( $block['align'] ?? '', 'left', false ) . '>left</option><option value="center"' . selected( $block['align'] ?? 'center', 'center', false ) . '>center</option><option value="right"' . selected( $block['align'] ?? '', 'right', false ) . '>right</option></select></p>';
-        echo '<p>Text: <input class="regular-text" name="block_text[' . (int) $i . ']" value="' . esc_attr( (string) ( $block['text'] ?? '' ) ) . '"/></p>';
-        echo '<p>HTML: <textarea name="block_html[' . (int) $i . ']" rows="3" class="large-text">' . esc_textarea( (string) ( $block['html'] ?? '' ) ) . '</textarea></p>';
-        echo '<p>Label: <input class="regular-text" name="block_label[' . (int) $i . ']" value="' . esc_attr( (string) ( $block['label'] ?? '' ) ) . '"/> URL: <input class="regular-text" name="block_url[' . (int) $i . ']" value="' . esc_attr( (string) ( $block['url'] ?? '' ) ) . '"/></p>';
-        echo '<p>Style: <select name="block_style[' . (int) $i . ']"><option value="primary"' . selected( $block['style'] ?? 'primary', 'primary', false ) . '>primary</option><option value="secondary"' . selected( $block['style'] ?? '', 'secondary', false ) . '>secondary</option></select></p>';
-        echo '<p>Bullets (un item pe linie):<br><textarea name="block_items[' . (int) $i . ']" rows="4" class="large-text">' . esc_textarea( implode( "\n", is_array( $block['items'] ?? null ) ? $block['items'] : [] ) ) . '</textarea></p>';
+        echo '<div class="teinvit-email-block-heading"><strong class="teinvit-email-block-title" data-teinvit-block-title="1">' . esc_html( ( $block_types[ $type ] ?? 'Text' ) . ' block' ) . '</strong><span class="description teinvit-email-block-help" data-teinvit-block-help="1">' . esc_html( (string) ( $block_help_texts[ $type ] ?? '' ) ) . '</span></div>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'enabled' ) . '><label><input type="checkbox" name="block_enabled[' . (int) $i . ']" value="1" ' . checked( ! empty( $block['enabled'] ), true, false ) . '/> Enabled</label></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'align' ) . '><label>Align</label><br><select name="block_align[' . (int) $i . ']"><option value="left"' . selected( $block['align'] ?? '', 'left', false ) . '>left</option><option value="center"' . selected( $block['align'] ?? 'center', 'center', false ) . '>center</option><option value="right"' . selected( $block['align'] ?? '', 'right', false ) . '>right</option></select></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'text' ) . '><label>Text</label><br><input class="regular-text" name="block_text[' . (int) $i . ']" value="' . esc_attr( (string) ( $block['text'] ?? '' ) ) . '"/></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'html' ) . '><label>HTML</label><br><textarea name="block_html[' . (int) $i . ']" rows="3" class="large-text">' . esc_textarea( (string) ( $block['html'] ?? '' ) ) . '</textarea></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'label' ) . '><label>Label</label><br><input class="regular-text" name="block_label[' . (int) $i . ']" value="' . esc_attr( (string) ( $block['label'] ?? '' ) ) . '"/></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'url' ) . '><label>URL</label><br><input class="regular-text" name="block_url[' . (int) $i . ']" value="' . esc_attr( (string) ( $block['url'] ?? '' ) ) . '"/><span class="description" data-teinvit-url-help="1"></span></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'style' ) . '><label>Style</label><br><select name="block_style[' . (int) $i . ']"><option value="primary"' . selected( $block['style'] ?? 'primary', 'primary', false ) . '>primary</option><option value="secondary"' . selected( $block['style'] ?? '', 'secondary', false ) . '>secondary</option></select></p>';
+        echo '<p' . teinvit_email_block_field_attrs( $type, 'items' ) . '><label>Bullets / items</label><br><textarea name="block_items[' . (int) $i . ']" rows="4" class="large-text">' . esc_textarea( implode( "\n", is_array( $block['items'] ?? null ) ? $block['items'] : [] ) ) . '</textarea><span class="description">Un item pe linie.</span></p>';
         echo '</td>';
 
-        echo '<td><button class="button" name="teinvit_block_up" value="' . (int) $i . '">Move Up</button> <button class="button" name="teinvit_block_down" value="' . (int) $i . '">Move Down</button> <button class="button button-link-delete" name="teinvit_block_delete" value="' . (int) $i . '">Delete</button></td>';
+        echo '<td class="teinvit-email-block-actions"><button class="button" name="teinvit_block_up" value="' . (int) $i . '">Move Up</button> <button class="button" name="teinvit_block_down" value="' . (int) $i . '">Move Down</button> <button class="button button-link-delete" name="teinvit_block_delete" value="' . (int) $i . '">Delete</button></td>';
         echo '</tr>';
     }
     echo '</tbody></table>';
 
-    echo '<p><select name="teinvit_new_block_type"><option value="text">text</option><option value="logo">logo</option><option value="banner">banner</option><option value="title">title</option><option value="subtitle">subtitle</option><option value="bullets">bullets</option><option value="divider">divider</option><option value="button">button</option><option value="link">link</option><option value="footer">footer</option></select> <button type="submit" class="button" name="teinvit_block_add" value="1">Add Block</button></p>';
+    echo '<p><select name="teinvit_new_block_type">';
+    foreach ( $block_types as $t => $label ) {
+        echo '<option value="' . esc_attr( $t ) . '">' . esc_html( $label ) . '</option>';
+    }
+    echo '</select> <button type="submit" class="button" name="teinvit_block_add" value="1">Add Block</button></p>';
+    echo '<script>(function(){const builder=document.getElementById("teinvit-email-block-builder");if(!builder){return;}const matrix=' . wp_json_encode( $block_field_matrix ) . ';const labels=' . wp_json_encode( $block_types ) . ';const help=' . wp_json_encode( $block_help_texts ) . ';const imageTypes=["logo","banner"];function sync(row){if(!row){return;}const select=row.querySelector("[data-teinvit-block-type]");if(!select){return;}const type=select.value||"text";const visible=matrix[type]||matrix.text||[];row.setAttribute("data-teinvit-block-current-type",type);row.querySelectorAll("[data-teinvit-block-field]").forEach(function(field){const key=field.getAttribute("data-teinvit-block-field")||"";field.hidden=visible.indexOf(key)===-1;});const title=row.querySelector("[data-teinvit-block-title]");if(title){title.textContent=(labels[type]||type)+" block";}const helper=row.querySelector("[data-teinvit-block-help]");if(helper){helper.textContent=help[type]||"";}const urlHelp=row.querySelector("[data-teinvit-url-help]");if(urlHelp){urlHelp.textContent=imageTypes.indexOf(type)!==-1?" Direct image URL.":"";}}builder.querySelectorAll("[data-teinvit-block-row]").forEach(sync);builder.addEventListener("change",function(event){const target=event.target;if(target&&target.matches("[data-teinvit-block-type]")){sync(target.closest("[data-teinvit-block-row]"));}});})();</script>';
 
     echo '<p class="submit"><button type="submit" class="button button-primary" name="teinvit_email_save" value="1">Save Email</button> <button type="submit" class="button" name="teinvit_email_send_test" value="1">Send test email</button></p>';
     echo '</form></div>';
