@@ -309,7 +309,21 @@ function teinvit_email_duplicate_template( $template_id ) {
         return '';
     }
 
-    $new_id = sanitize_key( $template_id . '_copy_' . wp_generate_password( 4, false, false ) );
+    $suffix = '_copy_' . strtolower( wp_generate_password( 4, false, false ) );
+    $base   = substr( sanitize_key( (string) $template_id ), 0, max( 1, 64 - strlen( $suffix ) ) );
+    $new_id = sanitize_key( $base . $suffix );
+    $tries  = 0;
+    while ( teinvit_get_email_template( $new_id ) && $tries < 10 ) {
+        $suffix = '_copy_' . strtolower( wp_generate_password( 4, false, false ) );
+        $base   = substr( sanitize_key( (string) $template_id ), 0, max( 1, 64 - strlen( $suffix ) ) );
+        $new_id = sanitize_key( $base . $suffix );
+        $tries++;
+    }
+
+    if ( teinvit_get_email_template( $new_id ) ) {
+        return '';
+    }
+
     $template['id'] = $new_id;
     $template['name'] = (string) ( $template['name'] ?? $template_id ) . ' (Copy)';
     teinvit_update_email_template( $new_id, $template );
@@ -406,8 +420,730 @@ function teinvit_email_payload_semantic_hash( array $payload ) {
     foreach ( $keys as $key ) {
         $norm[ $key ] = isset( $payload[ $key ] ) ? (string) $payload[ $key ] : '';
     }
+    if ( isset( $payload['extra_fields'] ) ) {
+        $extra = is_array( $payload['extra_fields'] ) ? $payload['extra_fields'] : teinvit_email_decode_json_array( $payload['extra_fields'] );
+        $norm['extra_fields'] = wp_json_encode( is_array( $extra ) ? $extra : [] );
+    }
 
     return hash( 'sha256', wp_json_encode( $norm ) );
+}
+
+function teinvit_email_debug_enabled() {
+    if ( defined( 'TEINVIT_EMAIL_DEBUG' ) ) {
+        return (bool) TEINVIT_EMAIL_DEBUG;
+    }
+
+    $value = get_option( 'teinvit_email_debug', '' );
+    if ( is_bool( $value ) ) {
+        return $value;
+    }
+
+    return in_array( strtolower( trim( (string) $value ) ), [ '1', 'yes', 'true', 'on' ], true );
+}
+
+function teinvit_email_bool_label( $value ) {
+    if ( is_string( $value ) ) {
+        $normalized = strtolower( trim( $value ) );
+        if ( in_array( $normalized, [ '1', 'yes', 'true', 'on', 'da' ], true ) ) {
+            return 'Da';
+        }
+        if ( in_array( $normalized, [ '0', 'no', 'false', 'off', 'nu', '' ], true ) ) {
+            return 'Nu';
+        }
+    }
+
+    return ! empty( $value ) ? 'Da' : 'Nu';
+}
+
+function teinvit_email_join_list( $value, $separator = ', ' ) {
+    if ( ! is_array( $value ) ) {
+        return trim( (string) $value );
+    }
+
+    $items = [];
+    foreach ( $value as $item ) {
+        if ( is_array( $item ) ) {
+            $item = $item['name'] ?? ( $item['title'] ?? ( $item['label'] ?? '' ) );
+        }
+
+        $item = trim( (string) $item );
+        if ( $item !== '' ) {
+            $items[] = $item;
+        }
+    }
+
+    return implode( (string) $separator, $items );
+}
+
+function teinvit_email_array_path_value( array $data, $path, $default = '' ) {
+    $current = $data;
+    foreach ( explode( '.', (string) $path ) as $part ) {
+        if ( $part === '' ) {
+            continue;
+        }
+        if ( ! is_array( $current ) || ! array_key_exists( $part, $current ) ) {
+            return $default;
+        }
+        $current = $current[ $part ];
+    }
+
+    return $current;
+}
+
+function teinvit_email_decode_json_array( $raw ) {
+    if ( is_array( $raw ) ) {
+        return $raw;
+    }
+
+    $decoded = json_decode( (string) $raw, true );
+    return is_array( $decoded ) ? $decoded : [];
+}
+
+function teinvit_email_invitation_from_decoded_payload( array $payload ) {
+    foreach ( [ 'invitation', 'snapshot.invitation', 'payload.invitation', 'data.invitation' ] as $path ) {
+        $value = teinvit_email_array_path_value( $payload, $path, [] );
+        if ( is_array( $value ) && ! empty( $value ) ) {
+            return $value;
+        }
+    }
+
+    if ( isset( $payload['events'] ) || isset( $payload['names'] ) || isset( $payload['children'] ) || isset( $payload['celebrants'] ) ) {
+        return $payload;
+    }
+
+    return [];
+}
+
+function teinvit_email_invitation_context_for_token( $token, $vertical = '' ) {
+    $token    = sanitize_text_field( (string) $token );
+    $vertical = sanitize_key( (string) $vertical );
+
+    if ( $vertical === '' && $token !== '' && function_exists( 'teinvit_resolve_token_vertical' ) ) {
+        $vertical = sanitize_key( (string) teinvit_resolve_token_vertical( $token ) );
+    }
+    if ( $vertical === '' ) {
+        $vertical = 'wedding';
+    }
+
+    $record = ( $token !== '' && function_exists( 'teinvit_get_invitation_record' ) ) ? teinvit_get_invitation_record( $token, $vertical ) : null;
+    $record = is_array( $record ) ? $record : [];
+    if ( ! empty( $record['module_key'] ) ) {
+        $vertical = sanitize_key( (string) $record['module_key'] );
+    }
+
+    $config = is_array( $record['config'] ?? null ) ? $record['config'] : [];
+    $invitation = [];
+    $snapshot = ( $token !== '' && function_exists( 'teinvit_get_active_snapshot_for_token_from_storage' ) ) ? teinvit_get_active_snapshot_for_token_from_storage( $token, $vertical ) : null;
+    $snapshot = is_array( $snapshot ) ? $snapshot : [];
+
+    foreach ( [ 'snapshot', 'data_json', 'payload', 'data' ] as $key ) {
+        if ( empty( $snapshot[ $key ] ) ) {
+            continue;
+        }
+
+        $decoded = teinvit_email_decode_json_array( $snapshot[ $key ] );
+        $invitation = teinvit_email_invitation_from_decoded_payload( $decoded );
+        if ( ! empty( $invitation ) ) {
+            break;
+        }
+    }
+
+    if ( empty( $invitation ) ) {
+        $invitation = teinvit_email_invitation_from_decoded_payload( $config );
+    }
+
+    if ( empty( $invitation ) && $token !== '' && function_exists( 'teinvit_get_active_version_data' ) ) {
+        $legacy = teinvit_get_active_version_data( $token );
+        $legacy = is_array( $legacy ) ? $legacy : [];
+        foreach ( [ 'snapshot', 'data_json', 'payload', 'data' ] as $key ) {
+            if ( empty( $legacy[ $key ] ) ) {
+                continue;
+            }
+
+            $decoded = teinvit_email_decode_json_array( $legacy[ $key ] );
+            $invitation = teinvit_email_invitation_from_decoded_payload( $decoded );
+            if ( ! empty( $invitation ) ) {
+                $snapshot = $legacy;
+                break;
+            }
+        }
+    }
+
+    return [
+        'vertical'   => $vertical,
+        'record'     => $record,
+        'config'     => $config,
+        'snapshot'   => $snapshot,
+        'invitation' => is_array( $invitation ) ? $invitation : [],
+    ];
+}
+
+function teinvit_email_invitation_event( array $invitation, $key, array $title_needles = [] ) {
+    $events = is_array( $invitation['events'] ?? null ) ? $invitation['events'] : [];
+    $key    = sanitize_key( (string) $key );
+
+    if ( $key !== '' && isset( $events[ $key ] ) && is_array( $events[ $key ] ) ) {
+        return $events[ $key ];
+    }
+
+    foreach ( $events as $event ) {
+        if ( ! is_array( $event ) ) {
+            continue;
+        }
+
+        $title = strtolower( (string) ( $event['title'] ?? '' ) );
+        foreach ( $title_needles as $needle ) {
+            if ( $needle !== '' && strpos( $title, strtolower( (string) $needle ) ) !== false ) {
+                return $event;
+            }
+        }
+    }
+
+    return [];
+}
+
+function teinvit_email_order_product_names( $order ) {
+    if ( ! $order || ! method_exists( $order, 'get_items' ) ) {
+        return [];
+    }
+
+    $names = [];
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        if ( ! $item || ! is_a( $item, 'WC_Order_Item_Product' ) ) {
+            continue;
+        }
+
+        $name = trim( (string) $item->get_name() );
+        if ( $name !== '' ) {
+            $names[] = $name;
+        }
+    }
+
+    return array_values( array_unique( $names ) );
+}
+
+function teinvit_email_package_type_for_token( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return '';
+    }
+
+    if ( function_exists( 'teinvit_resolve_token_premium_source' ) ) {
+        $source = sanitize_key( (string) teinvit_resolve_token_premium_source( $token ) );
+        if ( strpos( $source, 'basic_upgraded' ) === 0 ) {
+            return 'Basic + Upgrade';
+        }
+        if ( $source === 'basic_pure' ) {
+            return 'Basic';
+        }
+        if ( $source !== '' ) {
+            return 'Premium';
+        }
+    }
+
+    return '';
+}
+
+function teinvit_email_payload_extra_fields( array $payload ) {
+    $extra = [];
+    if ( isset( $payload['extra_fields'] ) ) {
+        $extra = teinvit_email_decode_json_array( $payload['extra_fields'] );
+    }
+
+    foreach ( $payload as $key => $value ) {
+        if ( ! array_key_exists( $key, $extra ) ) {
+            $extra[ $key ] = $value;
+        }
+    }
+
+    return $extra;
+}
+
+function teinvit_email_payload_value( array $payload, array $extra, $key, $default = '' ) {
+    if ( array_key_exists( $key, $payload ) ) {
+        return $payload[ $key ];
+    }
+
+    if ( array_key_exists( $key, $extra ) ) {
+        return $extra[ $key ];
+    }
+
+    return $default;
+}
+
+function teinvit_email_gift_context_for_token( $token, $vertical, array $payload ) {
+    global $wpdb;
+
+    $token    = sanitize_text_field( (string) $token );
+    $vertical = sanitize_key( (string) $vertical );
+    $out      = [
+        'gift_reserved_name'      => '',
+        'gift_reserved_link'      => '',
+        'gift_delivery_address'   => '',
+        'gift_status'             => '',
+        'gift_reserved_list'      => '',
+        'gift_public_count'       => '',
+        'gift_reserved_count'     => '',
+    ];
+
+    if ( $token === '' || ! function_exists( 'teinvit_gifts_table_for_token' ) ) {
+        return $out;
+    }
+
+    $table = teinvit_gifts_table_for_token( $token, $vertical );
+    if ( $table === '' ) {
+        return $out;
+    }
+
+    $public_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE token=%s AND include_in_public=1", $token ) );
+    $reserved_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE token=%s AND status='reserved'", $token ) );
+
+    $selected = [];
+    foreach ( [ 'gift_ids', 'selected_gift_ids', 'reserved_gift_ids', 'gift_id' ] as $key ) {
+        if ( empty( $payload[ $key ] ) ) {
+            continue;
+        }
+        $raw = is_array( $payload[ $key ] ) ? $payload[ $key ] : preg_split( '/[^a-zA-Z0-9_-]+/', (string) $payload[ $key ] );
+        foreach ( (array) $raw as $gift_id ) {
+            $gift_id = sanitize_text_field( (string) $gift_id );
+            if ( $gift_id !== '' ) {
+                $selected[] = $gift_id;
+            }
+        }
+    }
+
+    $selected = array_values( array_unique( $selected ) );
+    $rows = [];
+    if ( ! empty( $selected ) ) {
+        $placeholders = implode( ',', array_fill( 0, count( $selected ), '%s' ) );
+        $sql_args = array_merge( [ $token ], $selected );
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT gift_id,gift_name,gift_link,gift_delivery_address,status FROM {$table} WHERE token=%s AND gift_id IN ($placeholders) ORDER BY id ASC",
+                $sql_args
+            ),
+            ARRAY_A
+        );
+    }
+
+    $out['gift_public_count']   = (string) $public_count;
+    $out['gift_reserved_count'] = (string) $reserved_count;
+
+    if ( ! empty( $rows ) ) {
+        $out['gift_reserved_name']    = teinvit_email_join_list( wp_list_pluck( $rows, 'gift_name' ) );
+        $out['gift_reserved_link']    = teinvit_email_join_list( wp_list_pluck( $rows, 'gift_link' ) );
+        $out['gift_delivery_address'] = teinvit_email_join_list( wp_list_pluck( $rows, 'gift_delivery_address' ), ' | ' );
+        $out['gift_status']           = teinvit_email_join_list( wp_list_pluck( $rows, 'status' ) );
+        $out['gift_reserved_list']    = implode( "\n", array_filter( array_map( static function( $row ) {
+            return trim( (string) ( $row['gift_name'] ?? '' ) . ( ! empty( $row['gift_link'] ) ? ' - ' . (string) $row['gift_link'] : '' ) );
+        }, $rows ) ) );
+    }
+
+    return $out;
+}
+
+function teinvit_email_merge_tags_catalog_registry() {
+    $items = [];
+    $add = static function( $slug, $category, $description, $context, $example, $availability ) use ( &$items ) {
+        $items[ $slug ] = [
+            'tag'          => '{' . $slug . '}',
+            'description'  => $description,
+            'context'      => $context,
+            'category'     => $category,
+            'example'      => $example,
+            'availability' => $availability,
+        ];
+    };
+
+    $add( 'site_name', 'General', 'Numele website-ului.', 'Global', 'TeInvit', 'Toate template-urile' );
+    $add( 'token', 'General', 'Tokenul invitatiei.', 'Global', '1468-abc123', 'Toate template-urile cu token' );
+    $add( 'order_id', 'General', 'ID-ul comenzii WooCommerce.', 'Customer', '1468', 'token_generated, rsvp_saved, guest_consent_1' );
+    $add( 'order_number', 'General', 'Numarul comenzii WooCommerce.', 'Customer', '1468', 'token_generated, rsvp_saved, guest_consent_1' );
+    $add( 'customer_name', 'General', 'Numele complet al clientului.', 'Customer', 'Alex Popescu', 'Emailuri catre customer' );
+    $add( 'customer_first_name', 'General', 'Prenumele clientului.', 'Customer', 'Alex', 'Emailuri catre customer' );
+    $add( 'customer_last_name', 'General', 'Numele de familie al clientului.', 'Customer', 'Popescu', 'Emailuri catre customer' );
+    $add( 'customer_email', 'General', 'Emailul clientului.', 'Customer', 'alex@example.com', 'Emailuri catre customer' );
+    $add( 'product_name', 'General', 'Numele produsului/produselor din comanda.', 'Customer', 'Invitatie Botez Premium', 'Cu order context' );
+    $add( 'product_ids', 'General', 'ID-urile produselor si variatiilor din comanda.', 'Customer', '1067,1150', 'Cu order context' );
+    $add( 'vertical', 'General', 'Verticala tokenului.', 'Global', 'baptism', 'Toate template-urile cu token' );
+    $add( 'package_type', 'General', 'Tipul pachetului tokenului.', 'Global', 'Basic + Upgrade', 'Cand statusul poate fi rezolvat' );
+    $add( 'premium_source', 'General', 'Sursa statutului Premium.', 'Global', 'basic_upgraded_woo', 'Cand resolverul de premium este disponibil' );
+    $add( 'admin_client_url', 'General', 'Link catre administrarea invitatiei.', 'Customer', 'https://site.test/admin-client/token', 'Emailuri catre customer' );
+    $add( 'invitati_url', 'General', 'Link public catre pagina invitatilor.', 'Customer/Guest', 'https://site.test/invitati/token', 'Cu token valid' );
+    $add( 'report_url', 'General', 'Link catre raportul de invitati.', 'Customer', 'https://site.test/admin-client/token#teinvit-report', 'Emailuri catre customer' );
+    $add( 'invitation_pdf_url', 'General', 'Linkul PDF al invitatiei, daca exista.', 'Customer', 'https://site.test/file.pdf', 'Dupa generare PDF' );
+    $add( 'invitation_pdf_status', 'General', 'Statusul PDF al invitatiei.', 'Customer', 'ready', 'Dupa generare PDF' );
+    $add( 'invitation_version_id', 'General', 'ID-ul versiunii de invitatie.', 'Customer', '123', 'invitation_version_saved' );
+    $add( 'invitation_version_index', 'General', 'Numarul versiunii de invitatie.', 'Customer', '1', 'invitation_version_saved' );
+
+    $add( 'wedding_bride_name', 'Wedding', 'Numele miresei, daca poate fi separat din invitatia Wedding.', 'Wedding', 'Ana', 'Wedding' );
+    $add( 'wedding_groom_name', 'Wedding', 'Numele mirelui, daca poate fi separat din invitatia Wedding.', 'Wedding', 'Mihai', 'Wedding' );
+    $add( 'wedding_couple_name', 'Wedding', 'Numele cuplului.', 'Wedding', 'Ana & Mihai', 'Wedding' );
+    $add( 'wedding_message', 'Wedding', 'Mesajul invitatiei Wedding.', 'Wedding', 'Va asteptam cu drag', 'Wedding' );
+    $add( 'wedding_theme', 'Wedding', 'Tema vizuala Wedding.', 'Wedding', 'editorial', 'Wedding' );
+    $add( 'wedding_parents_bride', 'Wedding', 'Parintii miresei.', 'Wedding', 'Maria & Ion', 'Wedding' );
+    $add( 'wedding_parents_groom', 'Wedding', 'Parintii mirelui.', 'Wedding', 'Elena & Andrei', 'Wedding' );
+    $add( 'wedding_nasi', 'Wedding', 'Nasii.', 'Wedding', 'Ioana & Vlad', 'Wedding' );
+    $add( 'wedding_civil_location', 'Wedding', 'Locatia cununiei civile.', 'Wedding', 'Primarie', 'Wedding' );
+    $add( 'wedding_civil_date', 'Wedding', 'Data si ora cununiei civile.', 'Wedding', '12.07.2026, 12:00', 'Wedding' );
+    $add( 'wedding_civil_waze', 'Wedding', 'Link Waze pentru cununia civila.', 'Wedding', 'https://waze.com/...', 'Wedding' );
+    $add( 'wedding_religious_location', 'Wedding', 'Locatia ceremoniei religioase.', 'Wedding', 'Biserica', 'Wedding' );
+    $add( 'wedding_religious_date', 'Wedding', 'Data si ora ceremoniei religioase.', 'Wedding', '12.07.2026, 15:00', 'Wedding' );
+    $add( 'wedding_religious_waze', 'Wedding', 'Link Waze pentru ceremonia religioasa.', 'Wedding', 'https://waze.com/...', 'Wedding' );
+    $add( 'wedding_party_location', 'Wedding', 'Locatia petrecerii.', 'Wedding', 'Restaurant', 'Wedding' );
+    $add( 'wedding_party_date', 'Wedding', 'Data si ora petrecerii.', 'Wedding', '12.07.2026, 19:00', 'Wedding' );
+    $add( 'wedding_party_waze', 'Wedding', 'Link Waze pentru petrecere.', 'Wedding', 'https://waze.com/...', 'Wedding' );
+    $add( 'wedding_rsvp_deadline', 'Wedding', 'Data limita pentru confirmari Wedding.', 'Wedding', '01/07/2026', 'Wedding, daca este configurata' );
+
+    $add( 'baptism_child_names', 'Baptism', 'Numele copilului/copiilor.', 'Baptism', 'Sofia', 'Baptism' );
+    $add( 'baptism_headline', 'Baptism', 'Headline-ul invitatiei de botez.', 'Baptism', 'Sofia', 'Baptism' );
+    $add( 'baptism_message', 'Baptism', 'Mesajul invitatiei de botez.', 'Baptism', 'Va asteptam cu drag', 'Baptism' );
+    $add( 'baptism_theme', 'Baptism', 'Tema vizuala Baptism.', 'Baptism', 'little-princess', 'Baptism' );
+    $add( 'baptism_mother', 'Baptism', 'Numele mamei.', 'Baptism', 'Maria', 'Baptism' );
+    $add( 'baptism_father', 'Baptism', 'Numele tatalui.', 'Baptism', 'Ion', 'Baptism' );
+    $add( 'baptism_godmother', 'Baptism', 'Numele nasei.', 'Baptism', 'Ioana', 'Baptism' );
+    $add( 'baptism_godfather', 'Baptism', 'Numele nasului.', 'Baptism', 'Vlad', 'Baptism' );
+    $add( 'baptism_religious_location', 'Baptism', 'Locatia slujbei de botez.', 'Baptism', 'Biserica', 'Baptism' );
+    $add( 'baptism_religious_date', 'Baptism', 'Data si ora slujbei de botez.', 'Baptism', '20.08.2026, 12:00', 'Baptism' );
+    $add( 'baptism_religious_waze', 'Baptism', 'Link Waze pentru slujba de botez.', 'Baptism', 'https://waze.com/...', 'Baptism' );
+    $add( 'baptism_party_location', 'Baptism', 'Locatia petrecerii de botez.', 'Baptism', 'Restaurant', 'Baptism' );
+    $add( 'baptism_party_date', 'Baptism', 'Data si ora petrecerii de botez.', 'Baptism', '20.08.2026, 15:00', 'Baptism' );
+    $add( 'baptism_party_waze', 'Baptism', 'Link Waze pentru petrecerea de botez.', 'Baptism', 'https://waze.com/...', 'Baptism' );
+    $add( 'baptism_rsvp_deadline', 'Baptism', 'Data limita pentru confirmari Baptism.', 'Baptism', '10/08/2026', 'Baptism, daca este configurata' );
+
+    $add( 'birthday_celebrant_names', 'Birthday', 'Numele sarbatoritului/sarbatoritilor.', 'Birthday', 'Matei', 'Birthday' );
+    $add( 'birthday_headline', 'Birthday', 'Headline-ul invitatiei Birthday.', 'Birthday', 'Matei', 'Birthday' );
+    $add( 'birthday_age', 'Birthday', 'Varsta sarbatoritului.', 'Birthday', '7', 'Birthday, daca este configurata' );
+    $add( 'birthday_age_line', 'Birthday', 'Textul de varsta afisat in invitatie.', 'Birthday', 'Implinesc 7 ani!', 'Birthday' );
+    $add( 'birthday_event_name', 'Birthday', 'Numele evenimentului Birthday.', 'Birthday', 'Petrecerea lui Matei', 'Birthday' );
+    $add( 'birthday_message', 'Birthday', 'Mesajul invitatiei Birthday.', 'Birthday', 'Te astept cu drag', 'Birthday' );
+    $add( 'birthday_theme', 'Birthday', 'Tema vizuala Birthday.', 'Birthday', 'editorial-luxury', 'Birthday' );
+    $add( 'birthday_party_location', 'Birthday', 'Locatia petrecerii Birthday.', 'Birthday', 'Kids Club', 'Birthday' );
+    $add( 'birthday_party_date', 'Birthday', 'Data si ora petrecerii Birthday.', 'Birthday', '30.09.2026, 17:00', 'Birthday' );
+    $add( 'birthday_party_weekday', 'Birthday', 'Ziua saptamanii pentru petrecere.', 'Birthday', 'Sambata', 'Birthday' );
+    $add( 'birthday_party_waze', 'Birthday', 'Link Waze pentru petrecere.', 'Birthday', 'https://waze.com/...', 'Birthday' );
+    $add( 'birthday_rsvp_mode', 'Birthday', 'Modul RSVP Birthday: adult sau child.', 'Birthday', 'child', 'Birthday' );
+    $add( 'birthday_party_theme', 'Birthday', 'Tematica petrecerii Birthday.', 'Birthday', 'Supereroi', 'Birthday, daca este configurata' );
+    $add( 'birthday_dress_code', 'Birthday', 'Dress code-ul Birthday.', 'Birthday', 'Casual', 'Birthday, daca este configurat' );
+    $add( 'birthday_rsvp_deadline', 'Birthday', 'Data limita pentru confirmari Birthday.', 'Birthday', '20/09/2026', 'Birthday, daca este configurata' );
+
+    $add( 'guest_name', 'RSVP', 'Numele complet al invitatului.', 'RSVP', 'Maria Ionescu', 'rsvp_saved, guest_consent_1' );
+    $add( 'guest_full_name', 'RSVP', 'Alias pentru numele complet al invitatului.', 'RSVP', 'Maria Ionescu', 'rsvp_saved, guest_consent_1' );
+    $add( 'guest_first_name', 'RSVP', 'Prenumele invitatului.', 'RSVP', 'Maria', 'rsvp_saved, guest_consent_1' );
+    $add( 'guest_last_name', 'RSVP', 'Numele de familie al invitatului.', 'RSVP', 'Ionescu', 'rsvp_saved, guest_consent_1' );
+    $add( 'guest_email', 'RSVP', 'Emailul invitatului.', 'RSVP/Guest', 'maria@example.com', 'guest_consent_1 si RSVP cu email' );
+    $add( 'guest_phone', 'RSVP', 'Telefonul invitatului.', 'RSVP', '0712345678', 'rsvp_saved' );
+    $add( 'rsvp_attending_status', 'RSVP', 'Status general participare.', 'RSVP', 'Participa', 'rsvp_saved' );
+    $add( 'rsvp_total_people', 'RSVP', 'Numarul total de persoane confirmate.', 'RSVP', '2', 'rsvp_saved' );
+    $add( 'rsvp_adults', 'RSVP', 'Numarul de adulti confirmati.', 'RSVP', '2', 'rsvp_saved' );
+    $add( 'rsvp_children', 'RSVP', 'Numarul de copii confirmati.', 'RSVP', '1', 'rsvp_saved' );
+    $add( 'rsvp_created_at', 'RSVP', 'Data confirmarii RSVP.', 'RSVP', '2026-05-30 12:00:00', 'rsvp_saved' );
+    $add( 'rsvp_message', 'RSVP', 'Mesajul invitatului.', 'RSVP', 'Abia asteptam!', 'rsvp_saved' );
+    $add( 'rsvp_gdpr_accepted', 'RSVP', 'Acordul GDPR din RSVP.', 'RSVP', 'Da', 'rsvp_saved' );
+    $add( 'rsvp_marketing_consent', 'RSVP', 'Acordul marketing din RSVP.', 'Guest', 'Da', 'guest_consent_1' );
+    $add( 'rsvp_bringing_kids', 'RSVP', 'Alias legacy: invitatul vine cu copii.', 'RSVP', 'Nu', 'rsvp_saved' );
+    $add( 'rsvp_attending_civil', 'RSVP', 'Alias legacy: participare la cununia civila.', 'RSVP', 'Da', 'Wedding rsvp_saved' );
+    $add( 'rsvp_attending_religious', 'RSVP', 'Alias legacy: participare la ceremonie/slujba religioasa.', 'RSVP', 'Da', 'Wedding/Baptism rsvp_saved' );
+    $add( 'rsvp_attending_party', 'RSVP', 'Alias legacy: participare la petrecere.', 'RSVP', 'Da', 'rsvp_saved' );
+    $add( 'rsvp_accommodation', 'RSVP', 'Alias legacy: cazare solicitata.', 'RSVP', 'Nu', 'rsvp_saved' );
+    $add( 'rsvp_accommodation_people', 'RSVP', 'Alias legacy: numar persoane cazare.', 'RSVP', '2', 'rsvp_saved' );
+    $add( 'rsvp_vegetarian', 'RSVP', 'Alias legacy: meniu vegetarian solicitat.', 'RSVP', 'Da', 'rsvp_saved' );
+    $add( 'rsvp_vegetarian_menus', 'RSVP', 'Alias legacy: numar meniuri vegetariene.', 'RSVP', '1', 'rsvp_saved' );
+    $add( 'rsvp_has_allergies', 'RSVP', 'Alias legacy: invitatul a declarat alergii.', 'RSVP', 'Nu', 'rsvp_saved' );
+    $add( 'rsvp_allergies', 'RSVP', 'Alias legacy: detalii alergii.', 'RSVP', 'Arahide', 'rsvp_saved' );
+
+    $add( 'rsvp_wedding_attending_civil', 'RSVP Wedding', 'Participare la cununia civila.', 'Wedding RSVP', 'Da', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_attending_religious', 'RSVP Wedding', 'Participare la ceremonia religioasa.', 'Wedding RSVP', 'Da', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_attending_party', 'RSVP Wedding', 'Participare la petrecere.', 'Wedding RSVP', 'Da', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_bringing_kids', 'RSVP Wedding', 'Invitatul vine cu copii.', 'Wedding RSVP', 'Nu', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_kids_count', 'RSVP Wedding', 'Numarul de copii.', 'Wedding RSVP', '1', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_accommodation', 'RSVP Wedding', 'Solicitare cazare.', 'Wedding RSVP', 'Nu', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_accommodation_people', 'RSVP Wedding', 'Numar persoane cazare.', 'Wedding RSVP', '2', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_vegetarian', 'RSVP Wedding', 'Solicitare meniu vegetarian.', 'Wedding RSVP', 'Da', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_vegetarian_menus', 'RSVP Wedding', 'Numar meniuri vegetariene.', 'Wedding RSVP', '1', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_has_allergies', 'RSVP Wedding', 'Invitatul a declarat alergii.', 'Wedding RSVP', 'Nu', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_allergies', 'RSVP Wedding', 'Detalii alergii.', 'Wedding RSVP', 'Arahide', 'Wedding rsvp_saved' );
+    $add( 'rsvp_wedding_message_to_couple', 'RSVP Wedding', 'Mesaj catre miri.', 'Wedding RSVP', 'Casa de piatra!', 'Wedding rsvp_saved' );
+
+    $add( 'rsvp_baptism_attending_religious', 'RSVP Baptism', 'Participare la slujba de botez.', 'Baptism RSVP', 'Da', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_attending_party', 'RSVP Baptism', 'Participare la petrecerea de botez.', 'Baptism RSVP', 'Da', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_adults', 'RSVP Baptism', 'Numarul de adulti.', 'Baptism RSVP', '2', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_children', 'RSVP Baptism', 'Numarul de copii.', 'Baptism RSVP', '1', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_child_menu_requested', 'RSVP Baptism', 'Meniu copil solicitat.', 'Baptism RSVP', 'Da', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_child_menu_count', 'RSVP Baptism', 'Numar meniuri copil.', 'Baptism RSVP', '1', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_child_seat_requested', 'RSVP Baptism', 'Scaun copil solicitat.', 'Baptism RSVP', 'Nu', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_child_seat_count', 'RSVP Baptism', 'Numar scaune copil.', 'Baptism RSVP', '1', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_transport_requested', 'RSVP Baptism', 'Transport solicitat.', 'Baptism RSVP', 'Nu', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_transport_people', 'RSVP Baptism', 'Numar persoane transport.', 'Baptism RSVP', '2', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_accommodation', 'RSVP Baptism', 'Cazare solicitata.', 'Baptism RSVP', 'Nu', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_vegetarian', 'RSVP Baptism', 'Meniu vegetarian solicitat.', 'Baptism RSVP', 'Da', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_vegetarian_menus', 'RSVP Baptism', 'Numar meniuri vegetariene.', 'Baptism RSVP', '1', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_allergies', 'RSVP Baptism', 'Alergii sau restrictii.', 'Baptism RSVP', 'Lactoza', 'Baptism rsvp_saved' );
+    $add( 'rsvp_baptism_message', 'RSVP Baptism', 'Mesaj pentru familie/copil.', 'Baptism RSVP', 'Felicitari!', 'Baptism rsvp_saved' );
+
+    $add( 'rsvp_birthday_adult_guest_count', 'RSVP Birthday Adult', 'Numarul participantilor adulti.', 'Birthday Adult RSVP', '2', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_child_menu_requested', 'RSVP Birthday Adult', 'Meniu copil solicitat in RSVP adult.', 'Birthday Adult RSVP', 'Nu', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_child_menu_count', 'RSVP Birthday Adult', 'Numar meniuri copil in RSVP adult.', 'Birthday Adult RSVP', '1', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_vegetarian', 'RSVP Birthday Adult', 'Meniu vegetarian solicitat.', 'Birthday Adult RSVP', 'Da', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_vegetarian_menus', 'RSVP Birthday Adult', 'Numar meniuri vegetariene.', 'Birthday Adult RSVP', '1', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_allergies', 'RSVP Birthday Adult', 'Alergii sau restrictii.', 'Birthday Adult RSVP', 'Gluten', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_message', 'RSVP Birthday Adult', 'Mesaj catre sarbatorit.', 'Birthday Adult RSVP', 'La multi ani!', 'Birthday adult rsvp_saved' );
+    $add( 'rsvp_birthday_adult_special_observations', 'RSVP Birthday Adult', 'Observatii RSVP adult.', 'Birthday Adult RSVP', 'Ajungem mai tarziu', 'Birthday adult rsvp_saved' );
+
+    $add( 'rsvp_birthday_child_participants_count', 'RSVP Birthday Child', 'Numarul de copii participanti.', 'Birthday Child RSVP', '1', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_accompanying_adult_stays', 'RSVP Birthday Child', 'Adultul insotitor ramane la petrecere.', 'Birthday Child RSVP', 'Da', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_accompanying_adults_count', 'RSVP Birthday Child', 'Numarul adultilor insotitori.', 'Birthday Child RSVP', '1', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_vegetarian', 'RSVP Birthday Child', 'Meniu vegetarian solicitat.', 'Birthday Child RSVP', 'Nu', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_vegetarian_menus', 'RSVP Birthday Child', 'Numar meniuri vegetariene.', 'Birthday Child RSVP', '1', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_allergies', 'RSVP Birthday Child', 'Alergii sau restrictii copil.', 'Birthday Child RSVP', 'Arahide', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_special_observations', 'RSVP Birthday Child', 'Observatii organizator pentru RSVP copil.', 'Birthday Child RSVP', 'Prefera activitati linistite', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_pickup_time', 'RSVP Birthday Child', 'Ora de preluare copil.', 'Birthday Child RSVP', '20:00', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_restricted_activities', 'RSVP Birthday Child', 'Activitati restrictionate pentru copil.', 'Birthday Child RSVP', 'Trambulina', 'Birthday child rsvp_saved' );
+    $add( 'rsvp_birthday_child_message', 'RSVP Birthday Child', 'Mesaj catre sarbatorit.', 'Birthday Child RSVP', 'La multi ani!', 'Birthday child rsvp_saved' );
+
+    $add( 'gift_reserved_name', 'Gifts', 'Numele cadoului rezervat/selectat.', 'RSVP/Gifts', 'Set lego', 'Cand RSVP transmite cadou selectat' );
+    $add( 'gift_reserved_link', 'Gifts', 'Linkul cadoului rezervat/selectat.', 'RSVP/Gifts', 'https://shop.test/cadou', 'Cand RSVP transmite cadou selectat' );
+    $add( 'gift_delivery_address', 'Gifts', 'Adresa de livrare pentru cadou.', 'RSVP/Gifts', 'Str. Exemplu 1', 'Cand cadoul are adresa' );
+    $add( 'gift_status', 'Gifts', 'Statusul cadoului.', 'RSVP/Gifts', 'reserved', 'Cand RSVP transmite cadou selectat' );
+    $add( 'gift_reserved_list', 'Gifts', 'Lista cadourilor selectate in RSVP.', 'RSVP/Gifts', 'Set lego - https://shop.test/cadou', 'Cand RSVP transmite cadouri selectate' );
+    $add( 'gift_public_count', 'Gifts', 'Numarul cadourilor publice pentru token.', 'Gifts', '20', 'Cu token valid' );
+    $add( 'gift_reserved_count', 'Gifts', 'Numarul cadourilor rezervate pentru token.', 'Gifts', '3', 'Cu token valid' );
+
+    $add( 'unsubscribe_url', 'Email/Links', 'Link de dezabonare pentru emailuri marketing.', 'Guest', 'https://site.test/u/send/signature', 'Emailuri guest/marketing' );
+    $add( 'why_received_text', 'Email/Links', 'Text scurt despre motivul primirii emailului.', 'Guest', 'Primesti acest email...', 'Emailuri guest/marketing' );
+    $add( 'update_rsvp_url', 'Email/Links', 'Link catre pagina publica pentru actualizare/recompletare RSVP.', 'Guest', 'https://site.test/invitati/token', 'Cu token valid' );
+    $add( 'rsvp_form_url', 'Email/Links', 'Link catre formularul RSVP public.', 'Guest/Customer', 'https://site.test/invitati/token', 'Cu token valid' );
+
+    return $items;
+}
+
+function teinvit_email_context_values_registry( array $args ) {
+    $token    = (string) ( $args['token'] ?? '' );
+    $order_id = (int) ( $args['order_id'] ?? 0 );
+    $payload  = is_array( $args['payload'] ?? null ) ? $args['payload'] : [];
+    $send_id  = (string) ( $args['send_id'] ?? '' );
+
+    if ( $order_id <= 0 && ! empty( $payload['order_id'] ) ) {
+        $order_id = (int) $payload['order_id'];
+    }
+
+    $vertical = sanitize_key( (string) ( $payload['vertical'] ?? '' ) );
+    if ( $vertical === '' && $token !== '' && function_exists( 'teinvit_resolve_token_vertical' ) ) {
+        $vertical = sanitize_key( (string) teinvit_resolve_token_vertical( $token ) );
+    }
+    if ( $vertical === '' ) {
+        $vertical = 'wedding';
+    }
+
+    $order = ( $order_id > 0 && function_exists( 'wc_get_order' ) ) ? wc_get_order( $order_id ) : null;
+    $first_name = $order ? (string) $order->get_billing_first_name() : '';
+    $last_name  = $order ? (string) $order->get_billing_last_name() : '';
+    $order_no   = $order ? (string) $order->get_order_number() : '';
+    $customer_email = $order ? sanitize_email( (string) $order->get_billing_email() ) : '';
+    $product_names = teinvit_email_order_product_names( $order );
+    $product_ids = function_exists( 'teinvit_email_order_product_ids_for_context' ) ? teinvit_email_order_product_ids_for_context( $order_id, $token ) : [];
+
+    $recipient = sanitize_email( (string) ( $args['recipient_email'] ?? '' ) );
+    $unsubscribe = '';
+    if ( $recipient !== '' && $send_id !== '' ) {
+        $sig = teinvit_email_sign( $send_id . '|' . strtolower( $recipient ) );
+        $unsubscribe = home_url( '/u/' . rawurlencode( $send_id ) . '/' . rawurlencode( $sig ) . '/?e=' . rawurlencode( $recipient ) );
+    }
+
+    $inv_ctx = teinvit_email_invitation_context_for_token( $token, $vertical );
+    $vertical = sanitize_key( (string) ( $inv_ctx['vertical'] ?? $vertical ) );
+    $invitation = is_array( $inv_ctx['invitation'] ?? null ) ? $inv_ctx['invitation'] : [];
+    $config = is_array( $inv_ctx['config'] ?? null ) ? $inv_ctx['config'] : [];
+    $extra = teinvit_email_payload_extra_fields( $payload );
+
+    $wedding_couple = teinvit_email_join_list( $invitation['names'] ?? '' );
+    $name_parts = $wedding_couple !== '' ? preg_split( '/\s*&\s*/', $wedding_couple ) : [];
+    if ( ! is_array( $name_parts ) ) {
+        $name_parts = [];
+    }
+    $wedding_civil = teinvit_email_invitation_event( $invitation, 'civil', [ 'civil' ] );
+    $wedding_religious = teinvit_email_invitation_event( $invitation, 'religious', [ 'relig' ] );
+    $wedding_party = teinvit_email_invitation_event( $invitation, 'party', [ 'petrec', 'party' ] );
+
+    $baptism_religious = teinvit_email_invitation_event( $invitation, 'religious', [ 'relig' ] );
+    $baptism_party = teinvit_email_invitation_event( $invitation, 'party', [ 'petrec', 'party' ] );
+    $birthday_party = teinvit_email_invitation_event( $invitation, 'party', [ 'petrec', 'party' ] );
+
+    $guest_name = trim( (string) ( ( $payload['guest_first_name'] ?? '' ) . ' ' . ( $payload['guest_last_name'] ?? '' ) ) );
+    $message = (string) teinvit_email_payload_value( $payload, $extra, 'message_to_couple', '' );
+    if ( $message === '' ) {
+        $message = (string) teinvit_email_payload_value( $payload, $extra, 'message_to_family', '' );
+    }
+    if ( $message === '' ) {
+        $message = (string) teinvit_email_payload_value( $payload, $extra, 'message_to_celebrants', '' );
+    }
+
+    $adults = (int) ( $payload['attending_people_count'] ?? 0 );
+    $children = (int) ( $payload['kids_count'] ?? teinvit_email_payload_value( $payload, $extra, 'child_participants_count', 0 ) );
+    $total_people = max( 0, $adults + $children );
+    if ( $total_people <= 0 && ! empty( $payload['attending_party'] ) ) {
+        $total_people = max( 1, $adults );
+    }
+
+    $rsvp_form_url = $token !== '' ? home_url( '/invitati/' . rawurlencode( $token ) ) : '';
+    $birthday_mode = sanitize_key( (string) teinvit_email_payload_value( $payload, $extra, 'birthday_rsvp_mode', ( $config['birthday_rsvp_mode'] ?? '' ) ) );
+    $gift_values = teinvit_email_gift_context_for_token( $token, $vertical, $payload );
+
+    return array_merge(
+        [
+            'site_name' => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+            'token' => $token,
+            'order_id' => (string) $order_id,
+            'order_number' => $order_no,
+            'customer_name' => trim( $first_name . ' ' . $last_name ),
+            'customer_first_name' => $first_name,
+            'customer_last_name' => $last_name,
+            'customer_email' => $customer_email,
+            'product_name' => teinvit_email_join_list( $product_names ),
+            'product_ids' => implode( ',', array_map( 'strval', $product_ids ) ),
+            'vertical' => $vertical,
+            'package_type' => teinvit_email_package_type_for_token( $token ),
+            'premium_source' => ( $token !== '' && function_exists( 'teinvit_resolve_token_premium_source' ) ) ? sanitize_key( (string) teinvit_resolve_token_premium_source( $token ) ) : '',
+            'admin_client_url' => $token !== '' ? home_url( '/admin-client/' . rawurlencode( $token ) ) : '',
+            'invitati_url' => $rsvp_form_url,
+            'report_url' => $token !== '' ? home_url( '/admin-client/' . rawurlencode( $token ) . '#teinvit-report' ) : '',
+            'invitation_version_id' => (string) ( $payload['version_id'] ?? '' ),
+            'invitation_version_index' => (string) ( $payload['version_index'] ?? '' ),
+            'invitation_pdf_url' => (string) ( $payload['pdf_url'] ?? '' ),
+            'invitation_pdf_status' => (string) ( $payload['pdf_status'] ?? '' ),
+
+            'wedding_bride_name' => (string) ( $name_parts[0] ?? '' ),
+            'wedding_groom_name' => (string) ( $name_parts[1] ?? '' ),
+            'wedding_couple_name' => $wedding_couple,
+            'wedding_message' => (string) ( $invitation['message'] ?? '' ),
+            'wedding_theme' => (string) ( $invitation['theme'] ?? '' ),
+            'wedding_parents_bride' => (string) teinvit_email_array_path_value( $invitation, 'parents.mireasa', '' ),
+            'wedding_parents_groom' => (string) teinvit_email_array_path_value( $invitation, 'parents.mire', '' ),
+            'wedding_nasi' => teinvit_email_join_list( $invitation['nasi'] ?? '' ),
+            'wedding_civil_location' => (string) ( $wedding_civil['loc'] ?? '' ),
+            'wedding_civil_date' => (string) ( $wedding_civil['date'] ?? '' ),
+            'wedding_civil_waze' => (string) ( $wedding_civil['waze'] ?? '' ),
+            'wedding_religious_location' => (string) ( $wedding_religious['loc'] ?? '' ),
+            'wedding_religious_date' => (string) ( $wedding_religious['date'] ?? '' ),
+            'wedding_religious_waze' => (string) ( $wedding_religious['waze'] ?? '' ),
+            'wedding_party_location' => (string) ( $wedding_party['loc'] ?? '' ),
+            'wedding_party_date' => (string) ( $wedding_party['date'] ?? '' ),
+            'wedding_party_waze' => (string) ( $wedding_party['waze'] ?? '' ),
+            'wedding_rsvp_deadline' => (string) ( $config['rsvp_deadline_text'] ?? ( $config['rsvp_deadline_date'] ?? '' ) ),
+
+            'baptism_child_names' => teinvit_email_join_list( $invitation['children'] ?? ( $invitation['name_units'] ?? [] ) ),
+            'baptism_headline' => (string) ( $invitation['headline'] ?? '' ),
+            'baptism_message' => (string) ( $invitation['message'] ?? '' ),
+            'baptism_theme' => (string) ( $invitation['theme'] ?? '' ),
+            'baptism_mother' => (string) teinvit_email_array_path_value( $invitation, 'parents.mother', '' ),
+            'baptism_father' => (string) teinvit_email_array_path_value( $invitation, 'parents.father', '' ),
+            'baptism_godmother' => (string) teinvit_email_array_path_value( $invitation, 'godparents.godmother', '' ),
+            'baptism_godfather' => (string) teinvit_email_array_path_value( $invitation, 'godparents.godfather', '' ),
+            'baptism_religious_location' => (string) ( $baptism_religious['loc'] ?? '' ),
+            'baptism_religious_date' => (string) ( $baptism_religious['date'] ?? '' ),
+            'baptism_religious_waze' => (string) ( $baptism_religious['waze'] ?? '' ),
+            'baptism_party_location' => (string) ( $baptism_party['loc'] ?? '' ),
+            'baptism_party_date' => (string) ( $baptism_party['date'] ?? '' ),
+            'baptism_party_waze' => (string) ( $baptism_party['waze'] ?? '' ),
+            'baptism_rsvp_deadline' => (string) ( $config['rsvp_deadline_text'] ?? ( $config['rsvp_deadline_date'] ?? '' ) ),
+
+            'birthday_celebrant_names' => teinvit_email_join_list( $invitation['celebrants'] ?? ( $invitation['name_units'] ?? [] ) ),
+            'birthday_headline' => (string) ( $invitation['headline'] ?? '' ),
+            'birthday_age' => (string) teinvit_email_array_path_value( $invitation, 'age.value', '' ),
+            'birthday_age_line' => (string) teinvit_email_array_path_value( $invitation, 'age.line', '' ),
+            'birthday_event_name' => (string) teinvit_email_array_path_value( $invitation, 'event_name.value', '' ),
+            'birthday_message' => (string) ( $invitation['message'] ?? '' ),
+            'birthday_theme' => (string) ( $invitation['theme'] ?? '' ),
+            'birthday_party_location' => (string) ( $birthday_party['loc'] ?? '' ),
+            'birthday_party_date' => (string) ( $birthday_party['date'] ?? '' ),
+            'birthday_party_weekday' => (string) ( $birthday_party['weekday'] ?? '' ),
+            'birthday_party_waze' => (string) ( $birthday_party['waze'] ?? '' ),
+            'birthday_rsvp_mode' => $birthday_mode,
+            'birthday_party_theme' => ( ! empty( $config['show_birthday_party_theme'] ) || ! empty( $config['birthday_show_party_theme'] ) ) ? (string) ( $config['birthday_party_theme_text'] ?? '' ) : '',
+            'birthday_dress_code' => ( ! empty( $config['show_birthday_dress_code'] ) || ! empty( $config['birthday_show_dress_code'] ) ) ? (string) ( $config['birthday_dress_code_text'] ?? '' ) : '',
+            'birthday_rsvp_deadline' => (string) ( $config['rsvp_deadline_text'] ?? ( $config['rsvp_deadline_date'] ?? '' ) ),
+
+            'guest_name' => $guest_name,
+            'guest_full_name' => $guest_name,
+            'guest_first_name' => (string) ( $payload['guest_first_name'] ?? '' ),
+            'guest_last_name' => (string) ( $payload['guest_last_name'] ?? '' ),
+            'guest_email' => (string) ( $payload['guest_email'] ?? '' ),
+            'guest_phone' => (string) ( $payload['guest_phone'] ?? '' ),
+            'rsvp_attending_status' => ! empty( $payload['attending_party'] ) || ! empty( $payload['attending_religious'] ) || ! empty( $payload['attending_civil'] ) ? 'Participa' : 'Nu participa',
+            'rsvp_total_people' => (string) $total_people,
+            'rsvp_adults' => (string) $adults,
+            'rsvp_children' => (string) $children,
+            'rsvp_created_at' => (string) ( $payload['created_at'] ?? current_time( 'mysql' ) ),
+            'rsvp_message' => $message,
+            'rsvp_gdpr_accepted' => teinvit_email_bool_label( $payload['gdpr_accepted'] ?? '' ),
+            'rsvp_marketing_consent' => teinvit_email_bool_label( $payload['marketing_consent'] ?? '' ),
+            'rsvp_bringing_kids' => teinvit_email_bool_label( $payload['bringing_kids'] ?? '' ),
+            'rsvp_attending_civil' => teinvit_email_bool_label( $payload['attending_civil'] ?? '' ),
+            'rsvp_attending_religious' => teinvit_email_bool_label( $payload['attending_religious'] ?? '' ),
+            'rsvp_attending_party' => teinvit_email_bool_label( $payload['attending_party'] ?? '' ),
+            'rsvp_accommodation' => teinvit_email_bool_label( $payload['needs_accommodation'] ?? '' ),
+            'rsvp_accommodation_people' => (string) ( $payload['accommodation_people_count'] ?? '' ),
+            'rsvp_vegetarian' => teinvit_email_bool_label( $payload['vegetarian_requested'] ?? '' ),
+            'rsvp_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+            'rsvp_has_allergies' => teinvit_email_bool_label( $payload['has_allergies'] ?? '' ),
+            'rsvp_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
+
+            'rsvp_wedding_attending_civil' => teinvit_email_bool_label( $payload['attending_civil'] ?? '' ),
+            'rsvp_wedding_attending_religious' => teinvit_email_bool_label( $payload['attending_religious'] ?? '' ),
+            'rsvp_wedding_attending_party' => teinvit_email_bool_label( $payload['attending_party'] ?? '' ),
+            'rsvp_wedding_bringing_kids' => teinvit_email_bool_label( $payload['bringing_kids'] ?? '' ),
+            'rsvp_wedding_kids_count' => (string) ( $payload['kids_count'] ?? '' ),
+            'rsvp_wedding_accommodation' => teinvit_email_bool_label( $payload['needs_accommodation'] ?? '' ),
+            'rsvp_wedding_accommodation_people' => (string) ( $payload['accommodation_people_count'] ?? '' ),
+            'rsvp_wedding_vegetarian' => teinvit_email_bool_label( $payload['vegetarian_requested'] ?? '' ),
+            'rsvp_wedding_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+            'rsvp_wedding_has_allergies' => teinvit_email_bool_label( $payload['has_allergies'] ?? '' ),
+            'rsvp_wedding_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
+            'rsvp_wedding_message_to_couple' => (string) ( $payload['message_to_couple'] ?? '' ),
+
+            'rsvp_baptism_attending_religious' => teinvit_email_bool_label( $payload['attending_religious'] ?? '' ),
+            'rsvp_baptism_attending_party' => teinvit_email_bool_label( $payload['attending_party'] ?? '' ),
+            'rsvp_baptism_adults' => (string) ( $payload['attending_people_count'] ?? '' ),
+            'rsvp_baptism_children' => (string) ( $payload['kids_count'] ?? '' ),
+            'rsvp_baptism_child_menu_requested' => teinvit_email_bool_label( teinvit_email_payload_value( $payload, $extra, 'child_menu_requested', '' ) ),
+            'rsvp_baptism_child_menu_count' => (string) teinvit_email_payload_value( $payload, $extra, 'child_menu_count', '' ),
+            'rsvp_baptism_child_seat_requested' => teinvit_email_bool_label( teinvit_email_payload_value( $payload, $extra, 'child_seat_requested', '' ) ),
+            'rsvp_baptism_child_seat_count' => (string) teinvit_email_payload_value( $payload, $extra, 'child_seat_count', '' ),
+            'rsvp_baptism_transport_requested' => teinvit_email_bool_label( teinvit_email_payload_value( $payload, $extra, 'transport_requested', '' ) ),
+            'rsvp_baptism_transport_people' => (string) teinvit_email_payload_value( $payload, $extra, 'transport_people_count', '' ),
+            'rsvp_baptism_accommodation' => teinvit_email_bool_label( $payload['needs_accommodation'] ?? '' ),
+            'rsvp_baptism_vegetarian' => teinvit_email_bool_label( $payload['vegetarian_requested'] ?? '' ),
+            'rsvp_baptism_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+            'rsvp_baptism_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
+            'rsvp_baptism_message' => (string) teinvit_email_payload_value( $payload, $extra, 'message_to_family', $message ),
+
+            'rsvp_birthday_adult_guest_count' => (string) ( $payload['attending_people_count'] ?? '' ),
+            'rsvp_birthday_adult_child_menu_requested' => teinvit_email_bool_label( teinvit_email_payload_value( $payload, $extra, 'child_menu_requested', '' ) ),
+            'rsvp_birthday_adult_child_menu_count' => (string) teinvit_email_payload_value( $payload, $extra, 'child_menu_count', '' ),
+            'rsvp_birthday_adult_vegetarian' => teinvit_email_bool_label( $payload['vegetarian_requested'] ?? '' ),
+            'rsvp_birthday_adult_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+            'rsvp_birthday_adult_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
+            'rsvp_birthday_adult_message' => (string) teinvit_email_payload_value( $payload, $extra, 'message_to_celebrants', $message ),
+            'rsvp_birthday_adult_special_observations' => (string) teinvit_email_payload_value( $payload, $extra, 'special_observations', '' ),
+
+            'rsvp_birthday_child_participants_count' => (string) teinvit_email_payload_value( $payload, $extra, 'child_participants_count', '' ),
+            'rsvp_birthday_child_accompanying_adult_stays' => teinvit_email_bool_label( teinvit_email_payload_value( $payload, $extra, 'child_accompanying_adult_stays', '' ) ),
+            'rsvp_birthday_child_accompanying_adults_count' => (string) teinvit_email_payload_value( $payload, $extra, 'child_accompanying_adults_count', '' ),
+            'rsvp_birthday_child_vegetarian' => teinvit_email_bool_label( $payload['vegetarian_requested'] ?? '' ),
+            'rsvp_birthday_child_vegetarian_menus' => (string) ( $payload['vegetarian_menus_count'] ?? '' ),
+            'rsvp_birthday_child_allergies' => (string) ( $payload['allergy_details'] ?? '' ),
+            'rsvp_birthday_child_special_observations' => (string) teinvit_email_payload_value( $payload, $extra, 'child_special_observations_other', teinvit_email_payload_value( $payload, $extra, 'special_observations', '' ) ),
+            'rsvp_birthday_child_pickup_time' => (string) teinvit_email_payload_value( $payload, $extra, 'child_pickup_time', '' ),
+            'rsvp_birthday_child_restricted_activities' => (string) teinvit_email_payload_value( $payload, $extra, 'child_restricted_activities', '' ),
+            'rsvp_birthday_child_message' => (string) teinvit_email_payload_value( $payload, $extra, 'message_to_celebrants', $message ),
+
+            'unsubscribe_url' => $unsubscribe,
+            'why_received_text' => 'Primesti acest email deoarece ai bifat acordul de marketing in formularul RSVP.',
+            'update_rsvp_url' => $rsvp_form_url,
+            'rsvp_form_url' => $rsvp_form_url,
+        ],
+        $gift_values
+    );
 }
 
 function teinvit_email_is_suppressed( $email, $scope = 'marketing' ) {
@@ -470,6 +1206,8 @@ function teinvit_email_remove_suppression( $email, $scope = 'marketing', $reason
 
 
 function teinvit_email_merge_tags_catalog() {
+    return teinvit_email_merge_tags_catalog_registry();
+
     return [
         'site_name' => [ 'tag' => '{site_name}', 'description' => 'Numele website-ului', 'context' => 'Global', 'category' => 'Global', 'example' => 'TeInvit' ],
         'order_number' => [ 'tag' => '{order_number}', 'description' => 'Numărul comenzii Woo', 'context' => 'Customer', 'category' => 'Date comandă', 'example' => '512' ],
@@ -509,6 +1247,8 @@ function teinvit_email_merge_tags_catalog() {
 }
 
 function teinvit_email_context_values( array $args ) {
+    return teinvit_email_context_values_registry( $args );
+
     $token    = (string) ( $args['token'] ?? '' );
     $order_id = (int) ( $args['order_id'] ?? 0 );
     $payload  = is_array( $args['payload'] ?? null ) ? $args['payload'] : [];
@@ -1304,13 +2044,15 @@ function teinvit_email_dispatch_wc( $send_id ) {
     $ok = $emails[ $wc_id ]->trigger( $send_id );
     $failed_send = teinvit_email_get_send( $send_id );
     $already_failed = is_array( $failed_send ) && ( $failed_send['status'] ?? '' ) === 'failed';
+    $existing_note = (string) ( $send['error_message'] ?? '' );
+    $sent_note = strpos( $existing_note, 'test_context' ) === 0 ? $existing_note : null;
 
     if ( $ok && ! $already_failed ) {
         $wpdb->update(
             teinvit_email_tables()['sends'],
             [
                 'status'        => 'sent',
-                'error_message' => null,
+                'error_message' => $sent_note,
                 'sent_at'       => current_time( 'mysql' ),
                 'updated_at'    => current_time( 'mysql' ),
             ],
@@ -1460,15 +2202,76 @@ function teinvit_email_order_product_ids( $order_id ) {
     return array_values( array_unique( $product_ids ) );
 }
 
-function teinvit_email_order_matches_template_products( $order_id, array $template ) {
-    $allowed = teinvit_email_template_product_ids( $template );
-    if ( empty( $allowed ) ) {
-        return [ 'match' => true, 'allowed' => [], 'order_products' => [] ];
+function teinvit_email_related_order_ids_for_token( $token, $base_order_id = 0 ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    $ids   = [];
+    $base_order_id = (int) $base_order_id;
+    if ( $base_order_id > 0 ) {
+        $ids[] = $base_order_id;
     }
 
-    $order_products = teinvit_email_order_product_ids( (int) $order_id );
+    if ( $token === '' ) {
+        return array_values( array_unique( $ids ) );
+    }
+
+    $meta_rows = $wpdb->get_col(
+        $wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
+            '_teinvit_token_target',
+            $token
+        )
+    );
+    foreach ( (array) $meta_rows as $order_id ) {
+        $order_id = (int) $order_id;
+        if ( $order_id > 0 ) {
+            $ids[] = $order_id;
+        }
+    }
+
+    $items_table = $wpdb->prefix . 'woocommerce_order_items';
+    $itemmeta_table = $wpdb->prefix . 'woocommerce_order_itemmeta';
+    $item_rows = $wpdb->get_col(
+        $wpdb->prepare(
+            "SELECT DISTINCT oi.order_id
+            FROM {$items_table} oi
+            INNER JOIN {$itemmeta_table} oim ON oim.order_item_id = oi.order_item_id
+            WHERE oi.order_item_type = 'line_item'
+              AND oim.meta_key = %s
+              AND oim.meta_value = %s",
+            '_teinvit_token_target',
+            $token
+        )
+    );
+    foreach ( (array) $item_rows as $order_id ) {
+        $order_id = (int) $order_id;
+        if ( $order_id > 0 ) {
+            $ids[] = $order_id;
+        }
+    }
+
+    return array_values( array_unique( $ids ) );
+}
+
+function teinvit_email_order_product_ids_for_context( $order_id, $token = '' ) {
+    $products = [];
+    foreach ( teinvit_email_related_order_ids_for_token( $token, (int) $order_id ) as $related_order_id ) {
+        $products = array_merge( $products, teinvit_email_order_product_ids( $related_order_id ) );
+    }
+
+    return array_values( array_unique( array_map( 'intval', $products ) ) );
+}
+
+function teinvit_email_order_matches_template_products( $order_id, array $template, array $args = [] ) {
+    $allowed = teinvit_email_template_product_ids( $template );
+    if ( empty( $allowed ) ) {
+        return [ 'match' => true, 'allowed' => [], 'order_products' => [], 'reason' => 'all_products' ];
+    }
+
+    $order_products = teinvit_email_order_product_ids_for_context( (int) $order_id, (string) ( $args['token'] ?? '' ) );
     if ( empty( $order_products ) ) {
-        return [ 'match' => false, 'allowed' => $allowed, 'order_products' => [] ];
+        return [ 'match' => false, 'allowed' => $allowed, 'order_products' => [], 'reason' => 'missing_order_products' ];
     }
 
     $intersection = array_values( array_intersect( $allowed, $order_products ) );
@@ -1477,6 +2280,7 @@ function teinvit_email_order_matches_template_products( $order_id, array $templa
         'allowed' => $allowed,
         'order_products' => $order_products,
         'matched' => $intersection,
+        'reason' => ! empty( $intersection ) ? 'matched' : 'product_mismatch',
     ];
 }
 
@@ -1515,13 +2319,16 @@ function teinvit_email_log_skipped_queue( array $template, array $args, $recipie
 }
 
 function teinvit_email_queue_template( $template_id, array $args ) {
-    $template_id = teinvit_email_resolve_template_id(
-        $template_id,
-        [
-            'trigger'  => $args['trigger'] ?? '',
-            'audience' => $args['audience'] ?? '',
-        ]
-    );
+    $template_id = sanitize_key( (string) $template_id );
+    if ( empty( $args['exact_template'] ) ) {
+        $template_id = teinvit_email_resolve_template_id(
+            $template_id,
+            [
+                'trigger'  => $args['trigger'] ?? '',
+                'audience' => $args['audience'] ?? '',
+            ]
+        );
+    }
 
     $template = teinvit_get_email_template( $template_id );
     if ( ! $template || ( $template['status'] ?? 'draft' ) !== 'active' ) {
@@ -1537,17 +2344,34 @@ function teinvit_email_queue_template( $template_id, array $args ) {
     }
 
     $bypass_product_filter = ! empty( $args['bypass_product_filter'] ) || ! empty( $args['is_preview_test'] );
-    $product_match = teinvit_email_order_matches_template_products( (int) ( $args['order_id'] ?? 0 ), $template );
+    $product_match = teinvit_email_order_matches_template_products(
+        (int) ( $args['order_id'] ?? 0 ),
+        $template,
+        [
+            'token'           => $args['token'] ?? '',
+            'is_preview_test' => ! empty( $args['is_preview_test'] ),
+        ]
+    );
     if ( $bypass_product_filter ) {
-        error_log( '[TeInvit Emails] bypass product filter: template=' . (string) $template_id . ' trigger=' . (string) ( $template['trigger'] ?? '' ) . ' audience=' . (string) ( $template['audience'] ?? '' ) );
+        if ( teinvit_email_debug_enabled() ) {
+            error_log( '[TeInvit Emails] test context: bypass product filter template=' . (string) $template_id . ' trigger=' . (string) ( $template['trigger'] ?? '' ) . ' audience=' . (string) ( $template['audience'] ?? '' ) );
+        }
     } elseif ( empty( $product_match['match'] ) ) {
         $details = 'allowed=' . implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ) . ' order_products=' . implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) );
-        error_log( '[TeInvit Emails] skipped queue: product mismatch for template ' . (string) $template_id . ' ' . $details );
-        teinvit_email_log_skipped_queue( $template, $args, $recipient, 'product_mismatch', $details );
+        $reason = (string) ( $product_match['reason'] ?? 'product_mismatch' );
+        if ( $reason === 'missing_order_products' ) {
+            error_log( '[TeInvit Emails] skipped queue: missing order products for runtime template ' . (string) $template_id . ' token=' . (string) ( $args['token'] ?? '' ) . ' order_id=' . (string) ( $args['order_id'] ?? 0 ) . ' ' . $details );
+            teinvit_email_log_skipped_queue( $template, $args, $recipient, 'missing_order_products', $details );
+        } else {
+            if ( teinvit_email_debug_enabled() ) {
+                error_log( '[TeInvit Emails] skipped queue: product mismatch for template ' . (string) $template_id . ' ' . $details );
+            }
+            teinvit_email_log_skipped_queue( $template, $args, $recipient, 'product_mismatch', $details );
+        }
         return null;
     }
 
-    if ( ! empty( $template['is_marketing'] ) ) {
+    if ( ! empty( $template['is_marketing'] ) || ! empty( $template['require_consent'] ) ) {
         if ( empty( $args['marketing_consent'] ) ) {
             error_log( '[TeInvit Emails] skipped queue: missing marketing consent for template ' . (string) $template_id );
             teinvit_email_log_skipped_queue( $template, $args, $recipient, 'no_consent' );
@@ -1600,6 +2424,7 @@ function teinvit_email_queue_template( $template_id, array $args ) {
     global $wpdb;
     $tables = teinvit_email_tables();
     $now    = current_time( 'mysql' );
+    $queue_note = ! empty( $args['is_preview_test'] ) ? 'test_context | product_scope_bypassed' : null;
 
     $wpdb->insert(
         $tables['sends'],
@@ -1622,6 +2447,7 @@ function teinvit_email_queue_template( $template_id, array $args ) {
             'body_rendered_hash' => hash( 'sha256', (string) $rendered['body_html'] ),
             'semantic_hash'      => sanitize_text_field( $semantic_hash ),
             'status'             => 'queued',
+            'error_message'      => $queue_note,
             'scheduled_at'       => ! empty( $args['scheduled_at'] ) ? gmdate( 'Y-m-d H:i:s', (int) $args['scheduled_at'] ) : null,
             'created_at'         => $now,
             'updated_at'         => $now,
@@ -1653,6 +2479,22 @@ function teinvit_email_customer_for_order( $order_id ) {
         $user = get_user_by( 'id', $user_id );
         if ( $user && is_email( $user->user_email ) ) {
             return sanitize_email( $user->user_email );
+        }
+    }
+
+    return '';
+}
+
+function teinvit_email_customer_for_context( $token, $order_id ) {
+    $recipient = teinvit_email_customer_for_order( (int) $order_id );
+    if ( $recipient !== '' ) {
+        return $recipient;
+    }
+
+    foreach ( teinvit_email_related_order_ids_for_token( $token, (int) $order_id ) as $related_order_id ) {
+        $recipient = teinvit_email_customer_for_order( $related_order_id );
+        if ( $recipient !== '' ) {
+            return $recipient;
         }
     }
 
@@ -1705,16 +2547,39 @@ function teinvit_email_resolve_order_token_context( $order_id ) {
 }
 
 function teinvit_email_order_id_by_token( $token ) {
-    return function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return 0;
+    }
+
+    $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
+    if ( $order_id > 0 ) {
+        return $order_id;
+    }
+
+    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? sanitize_key( (string) teinvit_resolve_token_vertical( $token ) ) : '';
+    $record = function_exists( 'teinvit_get_invitation_record' ) ? teinvit_get_invitation_record( $token, $vertical ) : null;
+    if ( is_array( $record ) && ! empty( $record['order_id'] ) ) {
+        return (int) $record['order_id'];
+    }
+
+    return 0;
 }
 
-function teinvit_email_get_previous_rsvp_for_phone( $token, $phone, $exclude_id ) {
+function teinvit_email_get_previous_rsvp_for_phone( $token, $phone, $exclude_id, $vertical = '' ) {
     global $wpdb;
-    $t = teinvit_db_tables();
+    $table = '';
+    if ( function_exists( 'teinvit_rsvp_table_for_token' ) ) {
+        $table = teinvit_rsvp_table_for_token( $token, $vertical );
+    }
+    if ( $table === '' ) {
+        $t = teinvit_db_tables();
+        $table = $t['rsvp'];
+    }
 
     return $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT * FROM {$t['rsvp']} WHERE token=%s AND guest_phone=%s AND id<>%d ORDER BY id DESC LIMIT 1",
+            "SELECT * FROM {$table} WHERE token=%s AND guest_phone=%s AND id<>%d ORDER BY id DESC LIMIT 1",
             $token,
             $phone,
             (int) $exclude_id
@@ -1742,7 +2607,9 @@ function teinvit_email_rsvp_payload_from_row( array $row ) {
         'has_allergies'              => (int) ( $row['has_allergies'] ?? 0 ),
         'allergy_details'            => (string) ( $row['allergy_details'] ?? '' ),
         'message_to_couple'          => (string) ( $row['message_to_couple'] ?? '' ),
+        'gdpr_accepted'              => (int) ( $row['gdpr_accepted'] ?? 0 ),
         'marketing_consent'          => (int) ( $row['marketing_consent'] ?? 0 ),
+        'extra_fields'               => teinvit_email_decode_json_array( $row['extra_fields'] ?? '' ),
     ];
 }
 
@@ -1828,12 +2695,16 @@ add_action(
         $rsvp_id = (int) $rsvp_id;
         $payload = is_array( $payload ) ? $payload : [];
         $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
-        if ( $vertical !== 'wedding' ) {
-            return;
+        $vertical = sanitize_key( (string) $vertical );
+        if ( $vertical === '' ) {
+            $vertical = 'wedding';
         }
+        $order_id  = teinvit_email_order_id_by_token( $token );
+        $payload['vertical'] = $vertical;
+        $payload['order_id'] = $order_id;
 
         $phone = teinvit_email_normalize_phone( (string) ( $payload['guest_phone'] ?? '' ) );
-        $prev  = $phone !== '' ? teinvit_email_get_previous_rsvp_for_phone( $token, $phone, $rsvp_id ) : null;
+        $prev  = $phone !== '' ? teinvit_email_get_previous_rsvp_for_phone( $token, $phone, $rsvp_id, $vertical ) : null;
 
         $current_hash = teinvit_email_payload_semantic_hash( $payload );
         $prev_hash    = is_array( $prev ) ? teinvit_email_payload_semantic_hash( teinvit_email_rsvp_payload_from_row( $prev ) ) : '';
@@ -1841,9 +2712,9 @@ add_action(
             return;
         }
 
-        $order_id  = teinvit_email_order_id_by_token( $token );
-        $recipient = teinvit_email_customer_for_order( $order_id );
+        $recipient = teinvit_email_customer_for_context( $token, $order_id );
         if ( $recipient === '' ) {
+            error_log( '[TeInvit Emails] RSVP customer skipped: missing customer recipient token=' . $token . ' vertical=' . $vertical . ' order_id=' . (string) $order_id );
             return;
         }
 
@@ -1878,8 +2749,9 @@ add_action(
         $rsvp_id = (int) $rsvp_id;
         $payload = is_array( $payload ) ? $payload : [];
         $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
-        if ( $vertical !== 'wedding' ) {
-            return;
+        $vertical = sanitize_key( (string) $vertical );
+        if ( $vertical === '' ) {
+            $vertical = 'wedding';
         }
 
         $email = sanitize_email( (string) ( $payload['guest_email'] ?? '' ) );
@@ -1889,6 +2761,14 @@ add_action(
 
         $order_id = teinvit_email_order_id_by_token( $token );
         $consent  = ! empty( $payload['marketing_consent'] );
+        if ( ! $consent ) {
+            return;
+        }
+        if ( teinvit_email_is_suppressed( $email, 'marketing' ) ) {
+            return;
+        }
+        $payload['vertical'] = $vertical;
+        $payload['order_id'] = $order_id;
         $hash     = teinvit_email_payload_semantic_hash( $payload );
         $template_ids = teinvit_email_active_templates_for_event( 'guest_consent_1', 'guest' );
 
@@ -2254,7 +3134,7 @@ function teinvit_emails_page_new() {
 
     if ( $_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer( 'teinvit_email_new' ) ) {
         $posted_original_id = sanitize_key( (string) ( $_POST['original_template_id'] ?? '' ) );
-        $posted_id = sanitize_key( (string) ( $_POST['template_id'] ?? '' ) );
+        $posted_id = substr( sanitize_key( (string) ( $_POST['template_id'] ?? '' ) ), 0, 64 );
 
         $is_edit_mode = ( $posted_original_id !== '' && ! empty( $templates[ $posted_original_id ] ) );
         if ( $is_edit_mode ) {
@@ -2327,9 +3207,12 @@ function teinvit_emails_page_new() {
                         'semantic_hash' => hash( 'sha256', $id . '|' . time() ),
                         'trigger' => $template['trigger'],
                         'audience' => $template['audience'],
+                        'exact_template' => 1,
+                        'is_preview_test' => 1,
+                        'bypass_product_filter' => 1,
                     ]
                 );
-                echo '<div class="notice notice-success"><p>Test email pus în coadă către admin email.</p></div>';
+                echo '<div class="notice notice-success"><p>Test email pus în coadă către admin email. Context de test: product scope este bypassed.</p></div>';
             } else {
                 echo '<div class="notice notice-error"><p>Nu există admin email valid pentru test.</p></div>';
             }
@@ -2371,7 +3254,7 @@ function teinvit_emails_page_new() {
     echo '<tr><th>Marketing</th><td><label><input type="checkbox" name="is_marketing" value="1" ' . checked( ! empty( $template['is_marketing'] ), true, false ) . '/> Is marketing</label> <label style="margin-left:16px;"><input type="checkbox" name="require_consent" value="1" ' . checked( ! empty( $template['require_consent'] ), true, false ) . '/> Require consent</label></td></tr>';
     echo '<tr><th>Rate limit</th><td><label><input type="checkbox" name="apply_rate_limit" value="1" ' . checked( ! empty( $template['apply_rate_limit'] ), true, false ) . '/> Enable rate limit for this template</label></td></tr>';
     echo '<tr><th>Rate limit values</th><td><input type="number" min="1" name="rate_limit_count" value="' . esc_attr( (string) $template['rate_limit_count'] ) . '"/> emails / <input type="number" min="1" name="rate_limit_days" value="' . esc_attr( (string) $template['rate_limit_days'] ) . '"/> zile</td></tr>';
-    echo '<tr><th>Se aplică doar pentru produsele (IDs)</th><td><input class="regular-text" name="product_ids" value="' . esc_attr( implode( ',', teinvit_email_template_product_ids( is_array( $template ) ? $template : [] ) ) ) . '"/> <p class="description">Ex: 123,456,789. Gol = toate produsele.</p></td></tr>';
+    echo '<tr><th>Se aplică doar pentru produsele (IDs)</th><td><input class="large-text" name="product_ids" value="' . esc_attr( implode( ',', teinvit_email_template_product_ids( is_array( $template ) ? $template : [] ) ) ) . '"/> <p class="description">Ex: 123,456,789. Gol = toate produsele.</p></td></tr>';
     echo '</table>';
 
     echo '<h2>Builder blocuri (Add / Move / Delete)</h2>';
@@ -2427,17 +3310,18 @@ function teinvit_emails_page_merge_tags() {
         $groups[ $category ][] = $meta;
     }
 
-    echo '<table class="widefat striped" id="teinvit-tags-table"><thead><tr><th>Tag</th><th>Descriere</th><th>Categorie</th><th>Context</th><th>Exemplu output</th><th>Copy</th></tr></thead><tbody>';
+    echo '<table class="widefat striped" id="teinvit-tags-table"><thead><tr><th>Tag</th><th>Descriere</th><th>Categorie</th><th>Context</th><th>Disponibilitate</th><th>Exemplu output</th><th>Copy</th></tr></thead><tbody>';
 
     foreach ( $groups as $category => $items ) {
-        echo '<tr class="teinvit-tag-category-row"><td colspan="6"><strong>' . esc_html( $category ) . '</strong></td></tr>';
+        echo '<tr class="teinvit-tag-category-row"><td colspan="7"><strong>' . esc_html( $category ) . '</strong></td></tr>';
         foreach ( $items as $meta ) {
             $tag = (string) ( $meta['tag'] ?? '' );
-            echo '<tr data-search="' . esc_attr( strtolower( $tag . ' ' . (string) ( $meta['description'] ?? '' ) . ' ' . (string) ( $meta['category'] ?? '' ) . ' ' . (string) ( $meta['context'] ?? '' ) ) ) . '">';
+            echo '<tr data-search="' . esc_attr( strtolower( $tag . ' ' . (string) ( $meta['description'] ?? '' ) . ' ' . (string) ( $meta['category'] ?? '' ) . ' ' . (string) ( $meta['context'] ?? '' ) . ' ' . (string) ( $meta['availability'] ?? '' ) ) ) . '">';
             echo '<td><code>' . esc_html( $tag ) . '</code></td>';
             echo '<td>' . esc_html( (string) ( $meta['description'] ?? '' ) ) . '</td>';
             echo '<td>' . esc_html( (string) ( $meta['category'] ?? '' ) ) . '</td>';
             echo '<td>' . esc_html( (string) ( $meta['context'] ?? '' ) ) . '</td>';
+            echo '<td>' . esc_html( (string) ( $meta['availability'] ?? '' ) ) . '</td>';
             echo '<td>' . esc_html( (string) ( $meta['example'] ?? '' ) ) . '</td>';
             echo '<td><button type="button" class="button teinvit-copy-tag" data-tag="' . esc_attr( $tag ) . '">Copy</button></td>';
             echo '</tr>';
@@ -2456,19 +3340,39 @@ function teinvit_emails_page_logs() {
 
     global $wpdb;
     $tables = teinvit_email_tables();
+    $view = isset( $_GET['log_view'] ) ? sanitize_key( (string) wp_unslash( $_GET['log_view'] ) ) : 'operational';
+    if ( ! in_array( $view, [ 'operational', 'skipped' ], true ) ) {
+        $view = 'operational';
+    }
+
+    $statuses = $view === 'skipped'
+        ? [ 'skipped' ]
+        : [ 'queued', 'pending', 'processing', 'sent', 'failed' ];
+    $placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 
     $rows = $wpdb->get_results(
-        "SELECT s.*,
+        $wpdb->prepare(
+            "SELECT s.*,
         (SELECT COUNT(*) FROM {$tables['events']} e WHERE e.send_id=s.send_id AND e.event_type='open') AS opens_count,
         (SELECT COUNT(*) FROM {$tables['events']} e WHERE e.send_id=s.send_id AND e.event_type='click') AS clicks_count
         FROM {$tables['sends']} s
+        WHERE s.status IN ($placeholders)
         ORDER BY s.id DESC
         LIMIT 300",
+            $statuses
+        ),
         ARRAY_A
     );
 
     echo '<div class="wrap"><h1>Custom Emails Logs</h1>';
     teinvit_emails_admin_tabs( 'logs' );
+    $operational_url = teinvit_emails_admin_tab_url( 'logs', [ 'log_view' => 'operational' ] );
+    $skipped_url = teinvit_emails_admin_tab_url( 'logs', [ 'log_view' => 'skipped' ] );
+    echo '<p class="subsubsub">';
+    echo '<a href="' . esc_url( $operational_url ) . '" class="' . ( $view === 'operational' ? 'current' : '' ) . '">Operational</a>';
+    echo ' | ';
+    echo '<a href="' . esc_url( $skipped_url ) . '" class="' . ( $view === 'skipped' ? 'current' : '' ) . '">Skipped / Debug</a>';
+    echo '</p><br class="clear" />';
     echo '<table class="widefat striped"><thead><tr><th>Send ID</th><th>Template / Trigger</th><th>Order/Token</th><th>Recipient</th><th>Status</th><th>Reason</th><th>Opens</th><th>Clicks</th><th>Created</th><th>Sent</th></tr></thead><tbody>';
     foreach ( $rows as $row ) {
         $order_token = ! empty( $row['order_id'] ) ? ( 'Order #' . (int) $row['order_id'] ) : ( 'Token: ' . (string) ( $row['token'] ?? '-' ) );
@@ -2484,6 +3388,9 @@ function teinvit_emails_page_logs() {
         echo '<td>' . esc_html( $row['created_at'] ) . '</td>';
         echo '<td>' . esc_html( (string) $row['sent_at'] ) . '</td>';
         echo '</tr>';
+    }
+    if ( empty( $rows ) ) {
+        echo '<tr><td colspan="10">Nu exista loguri pentru filtrul curent.</td></tr>';
     }
     echo '</tbody></table></div>';
 }
