@@ -441,6 +441,92 @@ function teinvit_email_debug_enabled() {
     return in_array( strtolower( trim( (string) $value ) ), [ '1', 'yes', 'true', 'on' ], true );
 }
 
+function teinvit_email_log_context_value( $key, $value ) {
+    $key = sanitize_key( (string) $key );
+
+    if ( is_bool( $value ) ) {
+        return $value ? '1' : '0';
+    }
+
+    if ( is_int( $value ) || is_float( $value ) ) {
+        return (string) $value;
+    }
+
+    if ( is_wp_error( $value ) ) {
+        return sanitize_text_field( $value->get_error_message() );
+    }
+
+    if ( $value instanceof Throwable ) {
+        return sanitize_text_field( get_class( $value ) . ': ' . $value->getMessage() );
+    }
+
+    if ( is_array( $value ) || is_object( $value ) ) {
+        return '[redacted]';
+    }
+
+    $value = (string) $value;
+
+    if ( in_array( $key, [ 'email', 'recipient', 'recipient_email' ], true ) ) {
+        $email = sanitize_email( $value );
+        return $email !== '' ? hash( 'sha256', strtolower( $email ) ) : '';
+    }
+
+    if ( $key === 'token' ) {
+        return $value !== '' ? hash( 'sha256', $value ) : '';
+    }
+
+    if ( in_array( $key, [ 'url', 'href', 'link', 'body', 'body_html', 'body_text', 'payload', 'context', 'request', 'unsubscribe_url', 'update_rsvp_url', 'rsvp_form_url' ], true ) ) {
+        return '[redacted]';
+    }
+
+    if ( stripos( $key, 'html' ) !== false || stripos( $key, 'body' ) !== false || stripos( $key, 'payload' ) !== false ) {
+        return '[redacted]';
+    }
+
+    return sanitize_text_field( wp_strip_all_tags( $value ) );
+}
+
+function teinvit_email_log( $level, $event, array $context = [] ) {
+    $level = sanitize_key( (string) $level );
+    if ( ! in_array( $level, [ 'debug', 'info', 'warning', 'error', 'critical' ], true ) ) {
+        $level = 'debug';
+    }
+
+    if ( in_array( $level, [ 'debug', 'info' ], true ) && ! teinvit_email_debug_enabled() ) {
+        return;
+    }
+
+    $event = sanitize_key( (string) $event );
+    if ( $event === '' ) {
+        $event = 'event';
+    }
+
+    $parts = [
+        '[TeInvit Emails]',
+        'level=' . $level,
+        'event=' . $event,
+    ];
+
+    foreach ( $context as $key => $value ) {
+        $key = sanitize_key( (string) $key );
+        if ( $key === '' ) {
+            continue;
+        }
+
+        $safe_value = teinvit_email_log_context_value( $key, $value );
+
+        if ( in_array( $key, [ 'email', 'recipient', 'recipient_email' ], true ) ) {
+            $key = 'recipient_hash';
+        } elseif ( $key === 'token' ) {
+            $key = 'token_hash';
+        }
+
+        $parts[] = $key . '=' . $safe_value;
+    }
+
+    error_log( implode( ' ', $parts ) );
+}
+
 function teinvit_email_bool_label( $value ) {
     if ( is_string( $value ) ) {
         $normalized = strtolower( trim( $value ) );
@@ -1169,7 +1255,7 @@ function teinvit_email_add_suppression( $email, $scope = 'marketing', $reason = 
     }
 
     $tables = teinvit_email_tables();
-    $wpdb->replace(
+    $replaced = $wpdb->replace(
         $tables['suppression'],
         [
             'email'          => $email,
@@ -1180,6 +1266,9 @@ function teinvit_email_add_suppression( $email, $scope = 'marketing', $reason = 
             'created_at'     => current_time( 'mysql' ),
         ]
     );
+    if ( false === $replaced ) {
+        teinvit_email_log( 'error', 'suppression_write_failed', [ 'recipient_email' => $email, 'scope' => $scope, 'reason' => $reason, 'send_id' => $source_send_id ?: '', 'error_message' => $wpdb->last_error ] );
+    }
 
     do_action( 'teinvit_email_suppression_added', $email, sanitize_key( $scope ), sanitize_key( $reason ), $source_send_id ? sanitize_text_field( $source_send_id ) : '' );
 }
@@ -1194,7 +1283,12 @@ function teinvit_email_remove_suppression( $email, $scope = 'marketing', $reason
 
     $scope  = sanitize_key( $scope );
     $tables = teinvit_email_tables();
-    $deleted = (int) $wpdb->delete( $tables['suppression'], [ 'email' => $email, 'scope' => $scope ] );
+    $deleted = $wpdb->delete( $tables['suppression'], [ 'email' => $email, 'scope' => $scope ] );
+    if ( false === $deleted ) {
+        teinvit_email_log( 'error', 'suppression_delete_failed', [ 'recipient_email' => $email, 'scope' => $scope, 'reason' => $reason, 'error_message' => $wpdb->last_error ] );
+        return false;
+    }
+    $deleted = (int) $deleted;
 
     if ( $deleted > 0 ) {
         do_action( 'teinvit_email_suppression_removed', $email, $scope, sanitize_key( $reason ) );
@@ -1732,7 +1826,7 @@ function teinvit_email_log_event( $send_id, $event_type, $url = null ) {
         }
     }
 
-    $wpdb->insert(
+    $inserted = $wpdb->insert(
         $tables['events'],
         [
             'send_id'    => $send_id,
@@ -1744,6 +1838,9 @@ function teinvit_email_log_event( $send_id, $event_type, $url = null ) {
             'meta_json'  => null,
         ]
     );
+    if ( false === $inserted ) {
+        teinvit_email_log( 'error', 'event_insert_failed', [ 'send_id' => $send_id, 'event_type' => $event_type, 'error_message' => $wpdb->last_error ] );
+    }
 }
 
 function teinvit_email_rate_limit_details( array $template, $recipient_email, $token = '' ) {
@@ -1815,7 +1912,7 @@ function teinvit_email_save_send( array $template, array $rendered, array $args,
     $now       = current_time( 'mysql' );
     $recipient = sanitize_email( (string) ( $args['recipient_email'] ?? '' ) );
 
-    $wpdb->insert(
+    $inserted = $wpdb->insert(
         $tables['sends'],
         [
             'send_id'            => $send_id,
@@ -1841,6 +1938,9 @@ function teinvit_email_save_send( array $template, array $rendered, array $args,
             'updated_at'         => $now,
         ]
     );
+    if ( false === $inserted ) {
+        teinvit_email_log( 'error', 'send_insert_failed', [ 'send_id' => $send_id, 'template_id' => $template['id'] ?? '', 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'error_message' => $wpdb->last_error ] );
+    }
 
     return $send_id;
 }
@@ -2107,30 +2207,71 @@ function teinvit_email_dispatch_wc( $send_id ) {
 
     $send = teinvit_email_get_send( $send_id );
     if ( ! $send ) {
+        teinvit_email_log( 'warning', 'dispatch_missing_send', [ 'send_id' => $send_id ] );
         return;
     }
 
     $recipient = sanitize_email( (string) ( $send['recipient_email'] ?? '' ) );
     if ( $recipient === '' || ! is_email( $recipient ) ) {
+        teinvit_email_log(
+            'warning',
+            'dispatch_invalid_recipient',
+            [
+                'send_id' => $send_id,
+                'template_id' => $send['template_id'] ?? '',
+                'trigger_key' => $send['trigger_key'] ?? '',
+                'audience_type' => $send['audience_type'] ?? '',
+                'order_id' => $send['order_id'] ?? 0,
+                'rsvp_id' => $send['rsvp_id'] ?? 0,
+                'recipient_email' => $recipient,
+                'token' => $send['token'] ?? '',
+            ]
+        );
         return;
     }
 
     $wc_id = teinvit_email_wc_id_for_template_id( (string) ( $send['template_id'] ?? '' ) );
     if ( $wc_id === '' ) {
+        teinvit_email_log(
+            'warning',
+            'dispatch_missing_wc_id',
+            [
+                'send_id' => $send_id,
+                'template_id' => $send['template_id'] ?? '',
+                'trigger_key' => $send['trigger_key'] ?? '',
+                'audience_type' => $send['audience_type'] ?? '',
+            ]
+        );
         return;
     }
 
     if ( ! function_exists( 'WC' ) || ! WC() ) {
+        teinvit_email_log( 'error', 'dispatch_wc_unavailable', [ 'send_id' => $send_id, 'template_id' => $send['template_id'] ?? '', 'wc_id' => $wc_id ] );
         return;
     }
 
     $mailer = WC()->mailer();
     $emails = $mailer->get_emails();
     if ( empty( $emails[ $wc_id ] ) ) {
+        teinvit_email_log( 'error', 'dispatch_wc_email_missing', [ 'send_id' => $send_id, 'template_id' => $send['template_id'] ?? '', 'wc_id' => $wc_id ] );
         return;
     }
 
-    error_log( '[TeInvit Emails] dispatch start send_id=' . (string) $send_id . ' template_id=' . (string) ( $send['template_id'] ?? '' ) . ' wc_id=' . $wc_id . ' recipient=' . $recipient );
+    teinvit_email_log(
+        'debug',
+        'dispatch_start',
+        [
+            'send_id' => $send_id,
+            'template_id' => $send['template_id'] ?? '',
+            'trigger_key' => $send['trigger_key'] ?? '',
+            'audience_type' => $send['audience_type'] ?? '',
+            'order_id' => $send['order_id'] ?? 0,
+            'rsvp_id' => $send['rsvp_id'] ?? 0,
+            'wc_id' => $wc_id,
+            'recipient_email' => $recipient,
+            'token' => $send['token'] ?? '',
+        ]
+    );
     teinvit_email_set_dispatch_context(
         [
             'send_id'   => sanitize_text_field( (string) $send_id ),
@@ -2147,7 +2288,7 @@ function teinvit_email_dispatch_wc( $send_id ) {
     $sent_note = strpos( $existing_note, 'test_context' ) === 0 ? $existing_note : null;
 
     if ( $ok && ! $already_failed ) {
-        $wpdb->update(
+        $updated = $wpdb->update(
             teinvit_email_tables()['sends'],
             [
                 'status'        => 'sent',
@@ -2157,8 +2298,11 @@ function teinvit_email_dispatch_wc( $send_id ) {
             ],
             [ 'send_id' => $send_id ]
         );
+        if ( false === $updated ) {
+            teinvit_email_log( 'error', 'send_status_update_failed', [ 'send_id' => $send_id, 'template_id' => $send['template_id'] ?? '', 'status' => 'sent', 'recipient_email' => $recipient, 'token' => $send['token'] ?? '', 'error_message' => $wpdb->last_error ] );
+        }
     } elseif ( ! $ok && ! $already_failed ) {
-        $wpdb->update(
+        $updated = $wpdb->update(
             teinvit_email_tables()['sends'],
             [
                 'status'        => 'failed',
@@ -2168,22 +2312,55 @@ function teinvit_email_dispatch_wc( $send_id ) {
             ],
             [ 'send_id' => $send_id ]
         );
+        if ( false === $updated ) {
+            teinvit_email_log( 'error', 'send_status_update_failed', [ 'send_id' => $send_id, 'template_id' => $send['template_id'] ?? '', 'status' => 'failed', 'error_code' => 'wc_mailer_send_failed', 'recipient_email' => $recipient, 'token' => $send['token'] ?? '', 'error_message' => $wpdb->last_error ] );
+        }
     }
 
-    error_log( '[TeInvit Emails] dispatch result send_id=' . (string) $send_id . ' ok=' . ( $ok ? '1' : '0' ) . ' already_failed=' . ( $already_failed ? '1' : '0' ) );
+    teinvit_email_log(
+        $ok ? 'debug' : 'error',
+        'dispatch_result',
+        [
+            'send_id' => $send_id,
+            'template_id' => $send['template_id'] ?? '',
+            'trigger_key' => $send['trigger_key'] ?? '',
+            'audience_type' => $send['audience_type'] ?? '',
+            'order_id' => $send['order_id'] ?? 0,
+            'rsvp_id' => $send['rsvp_id'] ?? 0,
+            'status' => $ok ? 'sent' : 'failed',
+            'result' => $ok ? 1 : 0,
+            'already_failed' => $already_failed ? 1 : 0,
+            'error_code' => $ok ? '' : 'wc_mailer_send_failed',
+            'recipient_email' => $recipient,
+            'token' => $send['token'] ?? '',
+        ]
+    );
     teinvit_email_clear_dispatch_context();
 }
 
 function teinvit_email_schedule_send( $send_id, $timestamp = null ) {
     $timestamp = $timestamp ? (int) $timestamp : time();
-    error_log( '[TeInvit Emails] schedule send_id=' . (string) $send_id . ' timestamp=' . (string) $timestamp . ' gmt=' . gmdate( 'Y-m-d H:i:s', $timestamp ) );
+    teinvit_email_log( 'debug', 'schedule_send', [ 'send_id' => $send_id, 'timestamp' => $timestamp, 'gmt' => gmdate( 'Y-m-d H:i:s', $timestamp ) ] );
 
     if ( function_exists( 'as_schedule_single_action' ) ) {
-        as_schedule_single_action( $timestamp, 'teinvit_email_process_send', [ 'send_id' => $send_id ], 'teinvit-emails' );
+        try {
+            $scheduled = as_schedule_single_action( $timestamp, 'teinvit_email_process_send', [ 'send_id' => $send_id ], 'teinvit-emails' );
+        } catch ( Throwable $e ) {
+            teinvit_email_log( 'error', 'action_scheduler_schedule_exception', [ 'send_id' => $send_id, 'error_message' => $e ] );
+            throw $e;
+        }
+        if ( is_wp_error( $scheduled ) ) {
+            teinvit_email_log( 'error', 'action_scheduler_schedule_failed', [ 'send_id' => $send_id, 'error_message' => $scheduled->get_error_message() ] );
+        } elseif ( empty( $scheduled ) ) {
+            teinvit_email_log( 'error', 'action_scheduler_schedule_failed', [ 'send_id' => $send_id, 'error_code' => 'empty_action_id' ] );
+        }
         return;
     }
 
-    wp_schedule_single_event( $timestamp, 'teinvit_email_process_send', [ $send_id ] );
+    $scheduled = wp_schedule_single_event( $timestamp, 'teinvit_email_process_send', [ $send_id ] );
+    if ( false === $scheduled ) {
+        teinvit_email_log( 'error', 'wp_cron_schedule_failed', [ 'send_id' => $send_id, 'error_code' => 'wp_schedule_single_event_false' ] );
+    }
 }
 
 add_action(
@@ -2193,8 +2370,13 @@ add_action(
             $send_id = $send_id['send_id'];
         }
         $send_id = sanitize_text_field( (string) $send_id );
-        error_log( '[TeInvit Emails] process_send send_id=' . $send_id );
-        teinvit_email_dispatch_wc( $send_id );
+        teinvit_email_log( 'debug', 'process_send', [ 'send_id' => $send_id ] );
+        try {
+            teinvit_email_dispatch_wc( $send_id );
+        } catch ( Throwable $e ) {
+            teinvit_email_log( 'critical', 'process_send_exception', [ 'send_id' => $send_id, 'error_message' => $e ] );
+            throw $e;
+        }
     },
     10,
     1
@@ -2234,9 +2416,18 @@ add_action(
         }
 
         $message = teinvit_email_failure_message( $error );
-        error_log( '[TeInvit Emails] wp_mail_failed send_id=' . (string) $context['send_id'] . ' message=' . $message );
+        teinvit_email_log(
+            'error',
+            'wp_mail_failed',
+            [
+                'send_id' => $context['send_id'],
+                'wc_id' => $context['wc_id'] ?? '',
+                'recipient_email' => $context['recipient'] ?? '',
+                'error_message' => $message,
+            ]
+        );
 
-        $wpdb->update(
+        $updated = $wpdb->update(
             teinvit_email_tables()['sends'],
             [
                 'status'        => 'failed',
@@ -2246,6 +2437,9 @@ add_action(
             ],
             [ 'send_id' => sanitize_text_field( (string) $context['send_id'] ) ]
         );
+        if ( false === $updated ) {
+            teinvit_email_log( 'error', 'send_status_update_failed', [ 'send_id' => $context['send_id'], 'status' => 'failed', 'error_code' => 'wp_mail_failed', 'recipient_email' => $context['recipient'] ?? '', 'error_message' => $wpdb->last_error ] );
+        }
     },
     10,
     1
@@ -2388,7 +2582,7 @@ function teinvit_email_log_skipped_queue( array $template, array $args, $recipie
     $tables = teinvit_email_tables();
     $now    = current_time( 'mysql' );
 
-    $wpdb->insert(
+    $inserted = $wpdb->insert(
         $tables['sends'],
         [
             'send_id'            => teinvit_email_uuid_v4(),
@@ -2415,6 +2609,9 @@ function teinvit_email_log_skipped_queue( array $template, array $args, $recipie
             'updated_at'         => $now,
         ]
     );
+    if ( false === $inserted ) {
+        teinvit_email_log( 'error', 'skipped_send_insert_failed', [ 'template_id' => $template['id'] ?? '', 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'reason' => $reason, 'error_message' => $wpdb->last_error ] );
+    }
 }
 
 function teinvit_email_queue_template( $template_id, array $args ) {
@@ -2431,16 +2628,18 @@ function teinvit_email_queue_template( $template_id, array $args ) {
 
     $template = teinvit_get_email_template( $template_id );
     if ( ! $template || ( $template['status'] ?? 'draft' ) !== 'active' ) {
-        error_log( '[TeInvit Emails] skipped queue: template missing/inactive for ' . (string) $template_id );
+        teinvit_email_log( 'warning', 'queue_template_missing_or_inactive', [ 'template_id' => $template_id, 'trigger_key' => $args['trigger'] ?? '', 'audience_type' => $args['audience'] ?? '' ] );
         return null;
     }
 
     $recipient = sanitize_email( (string) ( $args['recipient_email'] ?? '' ) );
     if ( $recipient === '' || ! is_email( $recipient ) ) {
-        error_log( '[TeInvit Emails] skipped queue: invalid recipient for template ' . (string) $template_id );
+        teinvit_email_log( 'warning', 'queue_invalid_recipient', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '' ] );
         teinvit_email_log_skipped_queue( $template, $args, $recipient, 'invalid_recipient' );
         return null;
     }
+
+    teinvit_email_log( 'debug', 'queue_template_selected', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '' ] );
 
     $bypass_product_filter = ! empty( $args['bypass_product_filter'] ) || ! empty( $args['is_preview_test'] );
     $product_match = teinvit_email_order_matches_template_products(
@@ -2451,20 +2650,17 @@ function teinvit_email_queue_template( $template_id, array $args ) {
             'is_preview_test' => ! empty( $args['is_preview_test'] ),
         ]
     );
+    teinvit_email_log( 'debug', 'queue_product_scope', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'bypass' => $bypass_product_filter ? 1 : 0, 'match' => ! empty( $product_match['match'] ) ? 1 : 0, 'reason' => $product_match['reason'] ?? '', 'allowed_products' => implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ), 'order_products' => implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) ) ] );
     if ( $bypass_product_filter ) {
-        if ( teinvit_email_debug_enabled() ) {
-            error_log( '[TeInvit Emails] test context: bypass product filter template=' . (string) $template_id . ' trigger=' . (string) ( $template['trigger'] ?? '' ) . ' audience=' . (string) ( $template['audience'] ?? '' ) );
-        }
+        teinvit_email_log( 'debug', 'queue_test_bypass_product_filter', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '' ] );
     } elseif ( empty( $product_match['match'] ) ) {
         $details = 'allowed=' . implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ) . ' order_products=' . implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) );
         $reason = (string) ( $product_match['reason'] ?? 'product_mismatch' );
         if ( $reason === 'missing_order_products' ) {
-            error_log( '[TeInvit Emails] skipped queue: missing order products for runtime template ' . (string) $template_id . ' token=' . (string) ( $args['token'] ?? '' ) . ' order_id=' . (string) ( $args['order_id'] ?? 0 ) . ' ' . $details );
+            teinvit_email_log( 'warning', 'queue_missing_order_products', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'allowed_products' => implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ), 'order_products' => implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) ) ] );
             teinvit_email_log_skipped_queue( $template, $args, $recipient, 'missing_order_products', $details );
         } else {
-            if ( teinvit_email_debug_enabled() ) {
-                error_log( '[TeInvit Emails] skipped queue: product mismatch for template ' . (string) $template_id . ' ' . $details );
-            }
+            teinvit_email_log( 'debug', 'queue_product_mismatch', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'allowed_products' => implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ), 'order_products' => implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) ) ] );
             teinvit_email_log_skipped_queue( $template, $args, $recipient, 'product_mismatch', $details );
         }
         return null;
@@ -2472,12 +2668,12 @@ function teinvit_email_queue_template( $template_id, array $args ) {
 
     if ( ! empty( $template['is_marketing'] ) || ! empty( $template['require_consent'] ) ) {
         if ( empty( $args['marketing_consent'] ) ) {
-            error_log( '[TeInvit Emails] skipped queue: missing marketing consent for template ' . (string) $template_id );
+            teinvit_email_log( 'debug', 'queue_no_consent', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '' ] );
             teinvit_email_log_skipped_queue( $template, $args, $recipient, 'no_consent' );
             return null;
         }
         if ( teinvit_email_is_suppressed( $recipient, 'marketing' ) ) {
-            error_log( '[TeInvit Emails] skipped queue: recipient suppressed for template ' . (string) $template_id );
+            teinvit_email_log( 'debug', 'queue_suppressed', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '' ] );
             teinvit_email_log_skipped_queue( $template, $args, $recipient, 'suppressed' );
             return null;
         }
@@ -2485,21 +2681,14 @@ function teinvit_email_queue_template( $template_id, array $args ) {
 
     $rate_limit = teinvit_email_rate_limit_details( $template, $recipient, (string) ( $args['token'] ?? '' ) );
     if ( ! empty( $rate_limit['enabled'] ) && ! empty( $rate_limit['hit'] ) ) {
-        error_log(
-            '[TeInvit Emails] skipped queue: rate limited for template ' . (string) $template_id .
-            ' recipient ' . $recipient .
-            ' key=' . (string) ( $rate_limit['key'] ?? '' ) .
-            ' count=' . (string) ( $rate_limit['count'] ?? 0 ) .
-            ' limit=' . (string) ( $rate_limit['limit'] ?? 0 ) .
-            ' window_days=' . (string) ( $rate_limit['days'] ?? 0 )
-        );
+        teinvit_email_log( 'debug', 'queue_rate_limited', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'count' => $rate_limit['count'] ?? 0, 'limit' => $rate_limit['limit'] ?? 0, 'window_days' => $rate_limit['days'] ?? 0 ] );
         teinvit_email_log_skipped_queue( $template, $args, $recipient, 'rate_limited' );
         return null;
     }
 
     $semantic_hash = (string) ( $args['semantic_hash'] ?? '' );
     if ( teinvit_email_has_recent_duplicate( $template, $recipient, $semantic_hash ) ) {
-        error_log( '[TeInvit Emails] skipped queue: dedupe hit for template ' . (string) $template_id . ' recipient ' . $recipient );
+        teinvit_email_log( 'debug', 'queue_dedupe', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'semantic_hash' => $semantic_hash ] );
         teinvit_email_log_skipped_queue( $template, $args, $recipient, 'dedupe' );
         return null;
     }
@@ -2525,7 +2714,7 @@ function teinvit_email_queue_template( $template_id, array $args ) {
     $now    = current_time( 'mysql' );
     $queue_note = ! empty( $args['is_preview_test'] ) ? 'test_context | product_scope_bypassed' : null;
 
-    $wpdb->insert(
+    $inserted = $wpdb->insert(
         $tables['sends'],
         [
             'send_id'            => $send_id,
@@ -2552,6 +2741,9 @@ function teinvit_email_queue_template( $template_id, array $args ) {
             'updated_at'         => $now,
         ]
     );
+    if ( false === $inserted ) {
+        teinvit_email_log( 'error', 'queued_send_insert_failed', [ 'send_id' => $send_id, 'template_id' => $template['id'] ?? '', 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'error_message' => $wpdb->last_error ] );
+    }
 
     teinvit_email_schedule_send( $send_id, $args['scheduled_at'] ?? null );
 
@@ -2813,7 +3005,7 @@ add_action(
 
         $recipient = teinvit_email_customer_for_context( $token, $order_id );
         if ( $recipient === '' ) {
-            error_log( '[TeInvit Emails] RSVP customer skipped: missing customer recipient token=' . $token . ' vertical=' . $vertical . ' order_id=' . (string) $order_id );
+            teinvit_email_log( 'warning', 'rsvp_missing_customer_recipient', [ 'token' => $token, 'vertical' => $vertical, 'order_id' => $order_id, 'rsvp_id' => $rsvp_id ] );
             return;
         }
 
@@ -2906,7 +3098,7 @@ add_action(
         $order_id = (int) $order_id;
         $recipient = teinvit_email_customer_for_order( $order_id );
         if ( $recipient === '' ) {
-            error_log( '[TeInvit Emails] product_purchased skipped: invalid recipient order_id=' . (string) $order_id );
+            teinvit_email_log( 'warning', 'product_purchased_invalid_recipient', [ 'order_id' => $order_id ] );
             return;
         }
 
@@ -2922,14 +3114,19 @@ add_action(
             $template = teinvit_get_email_template( $template_id );
             $allowed_products = teinvit_email_template_product_ids( is_array( $template ) ? $template : [] );
 
-            error_log(
-                '[TeInvit Emails] queue trigger_key=product_purchased order_id=' . (string) $order_id .
-                ' template_id=' . (string) $template_id .
-                ' recipient=' . $recipient .
-                ' order_products=' . implode( ',', array_map( 'strval', $order_products ) ) .
-                ' allowed_products=' . implode( ',', array_map( 'strval', $allowed_products ) ) .
-                ' token_source=' . (string) ( $token_context['source'] ?? 'none' ) .
-                ' token=' . (string) ( $token_context['token'] ?? '' )
+            teinvit_email_log(
+                'debug',
+                'product_purchased_queue',
+                [
+                    'trigger_key' => 'product_purchased',
+                    'order_id' => $order_id,
+                    'template_id' => $template_id,
+                    'recipient_email' => $recipient,
+                    'order_products' => implode( ',', array_map( 'strval', $order_products ) ),
+                    'allowed_products' => implode( ',', array_map( 'strval', $allowed_products ) ),
+                    'token_source' => $token_context['source'] ?? 'none',
+                    'token' => $token_context['token'] ?? '',
+                ]
             );
 
             teinvit_email_queue_template(
@@ -3643,7 +3840,7 @@ add_action(
 
         $emails = $mailer->get_emails();
         $keys   = is_array( $emails ) ? array_keys( $emails ) : [];
-        error_log( '[TeInvit Emails][WC mailer keys] ' . implode( ',', array_map( 'strval', $keys ) ) );
+        teinvit_email_log( 'debug', 'wc_mailer_keys', [ 'keys' => implode( ',', array_map( 'strval', $keys ) ) ] );
         $logged = true;
     },
     20
@@ -3745,7 +3942,17 @@ add_filter(
 
                 protected function teinvit_debug_content_path( $path ) {
                     $is_plain = $this->get_email_type() === 'plain';
-                    error_log( '[TeInvit Emails][WC content path] ' . $this->teinvit_debug_identity() . ' path=' . sanitize_key( (string) $path ) . ' email_type=' . (string) $this->get_email_type() . ' is_plain=' . ( $is_plain ? '1' : '0' ) . ' ' . teinvit_email_debug_request_context() );
+                    teinvit_email_log(
+                        'debug',
+                        'wc_content_path',
+                        [
+                            'identity' => $this->teinvit_debug_identity(),
+                            'path' => sanitize_key( (string) $path ),
+                            'email_type' => $this->get_email_type(),
+                            'is_plain' => $is_plain ? 1 : 0,
+                            'request' => teinvit_email_debug_request_context(),
+                        ]
+                    );
                 }
 
                 public function get_content_type( $default_content_type = '' ) {
@@ -3774,24 +3981,39 @@ add_filter(
                     if ( ! $send ) {
                         $template_id = $this->get_teinvit_template_id();
                         if ( $template_id === '' ) {
+                            teinvit_email_log( 'warning', 'wc_test_missing_template_id', [ 'wc_id' => $this->id ] );
                             return false;
                         }
 
                         $template = teinvit_get_email_template( $template_id );
                         if ( ! $template ) {
+                            teinvit_email_log( 'warning', 'wc_test_missing_template', [ 'wc_id' => $this->id, 'template_id' => $template_id ] );
                             return false;
                         }
 
                         $sample    = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                         $render    = teinvit_email_render_template( $template, $sample );
                         $recipient = sanitize_email( (string) $sample['recipient_email'] );
-                        error_log( '[TeInvit Emails][WC test trigger] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' ' . teinvit_email_debug_mailer_registry() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                        teinvit_email_log(
+                            'debug',
+                            'wc_test_trigger',
+                            [
+                                'identity' => $this->teinvit_debug_identity(),
+                                'wc_id' => $this->id,
+                                'section' => teinvit_email_current_wc_settings_section_id(),
+                                'template_id' => $template_id,
+                                'request' => teinvit_email_debug_request_context(),
+                                'mailer_registry' => teinvit_email_debug_mailer_registry(),
+                                'subject_hash' => hash( 'sha256', (string) ( $render['subject'] ?? '' ) ),
+                            ]
+                        );
                         if ( $recipient === '' || ! is_email( $recipient ) ) {
+                            teinvit_email_log( 'warning', 'wc_test_invalid_recipient', [ 'wc_id' => $this->id, 'template_id' => $template_id, 'recipient_email' => $recipient ] );
                             return false;
                         }
 
                         $result = (bool) $this->send( $recipient, (string) $render['subject'], (string) $render['body_html'], $this->get_headers(), $this->get_attachments() );
-                        error_log( '[TeInvit Emails][WC test trigger] send_result=' . ( $result ? '1' : '0' ) . ' recipient=' . $recipient . ' wc_id=' . (string) $this->id );
+                        teinvit_email_log( $result ? 'debug' : 'error', 'wc_test_trigger_result', [ 'result' => $result ? 1 : 0, 'recipient_email' => $recipient, 'wc_id' => $this->id, 'template_id' => $template_id ] );
                         return $result;
                     }
 
@@ -3818,7 +4040,22 @@ add_filter(
                     }
 
                     $result = (bool) $this->send( $recipient, $subject, $content, $this->get_headers(), $this->get_attachments() );
-                    error_log( '[TeInvit Emails][WC send] send_id=' . sanitize_text_field( (string) $send_id ) . ' result=' . ( $result ? '1' : '0' ) . ' recipient=' . $recipient . ' wc_id=' . (string) $this->id );
+                    teinvit_email_log(
+                        $result ? 'debug' : 'error',
+                        'wc_send_result',
+                        [
+                            'send_id' => sanitize_text_field( (string) $send_id ),
+                            'template_id' => $send['template_id'] ?? '',
+                            'trigger_key' => $send['trigger_key'] ?? '',
+                            'audience_type' => $send['audience_type'] ?? '',
+                            'order_id' => $send['order_id'] ?? 0,
+                            'rsvp_id' => $send['rsvp_id'] ?? 0,
+                            'result' => $result ? 1 : 0,
+                            'recipient_email' => $recipient,
+                            'wc_id' => $this->id,
+                            'token' => $send['token'] ?? '',
+                        ]
+                    );
                     return $result;
                 }
 
@@ -3832,7 +4069,19 @@ add_filter(
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
                     $this->teinvit_debug_content_path( 'get_content_html' );
-                    error_log( '[TeInvit Emails][WC preview html] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' ' . teinvit_email_debug_mailer_registry() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    teinvit_email_log(
+                        'debug',
+                        'wc_preview_html',
+                        [
+                            'identity' => $this->teinvit_debug_identity(),
+                            'wc_id' => $this->id,
+                            'section' => teinvit_email_current_wc_settings_section_id(),
+                            'template_id' => $template_id,
+                            'request' => teinvit_email_debug_request_context(),
+                            'mailer_registry' => teinvit_email_debug_mailer_registry(),
+                            'subject_hash' => hash( 'sha256', (string) ( $render['subject'] ?? '' ) ),
+                        ]
+                    );
 
                     return (string) ( $render['body_html'] ?? '' );
                 }
@@ -3847,7 +4096,19 @@ add_filter(
                     $sample = teinvit_email_sample_context_args( $template_id, sanitize_email( get_option( 'admin_email' ) ) );
                     $render = teinvit_email_render_template( $template, $sample );
                     $this->teinvit_debug_content_path( 'get_content_plain' );
-                    error_log( '[TeInvit Emails][WC preview plain] ' . $this->teinvit_debug_identity() . ' wc_id=' . (string) $this->id . ' section=' . teinvit_email_current_wc_settings_section_id() . ' template_id=' . (string) $template_id . ' ' . teinvit_email_debug_request_context() . ' ' . teinvit_email_debug_mailer_registry() . ' subject=' . substr( (string) ( $render['subject'] ?? '' ), 0, 80 ) );
+                    teinvit_email_log(
+                        'debug',
+                        'wc_preview_plain',
+                        [
+                            'identity' => $this->teinvit_debug_identity(),
+                            'wc_id' => $this->id,
+                            'section' => teinvit_email_current_wc_settings_section_id(),
+                            'template_id' => $template_id,
+                            'request' => teinvit_email_debug_request_context(),
+                            'mailer_registry' => teinvit_email_debug_mailer_registry(),
+                            'subject_hash' => hash( 'sha256', (string) ( $render['subject'] ?? '' ) ),
+                        ]
+                    );
 
                     if ( $this->teinvit_is_wc_settings_request() ) {
                         return (string) ( $render['body_html'] ?? '' );
