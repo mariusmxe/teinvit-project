@@ -1357,7 +1357,13 @@ function teinvit_credit_paid_edits_for_invitation( $target_token, $qty ) {
     $current_paid = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
     $config['edits_paid_remaining'] = max( 0, $current_paid ) + $qty;
 
-    teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+    $saved = teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+    if ( $saved === false ) {
+        return false;
+    }
+    if ( function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $target_token, $config );
+    }
 
     return true;
 }
@@ -1491,12 +1497,6 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
         if ( in_array( $product_id, $edits_product_ids, true ) ) {
             if ( $state !== 'basic_pure' ) {
                 teinvit_credit_paid_edits_for_invitation( $target_token, $qty );
-                $settings = teinvit_get_settings( $target_token );
-                if ( $settings ) {
-                    teinvit_update_settings( $target_token, [
-                        'edits_paid_remaining' => (int) $settings['edits_paid_remaining'] + $qty,
-                    ] );
-                }
                 $did_update = true;
             }
             $processed[] = (int) $item_id;
@@ -1564,20 +1564,14 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
                 }
                 if ( $inv ) {
                     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
-                    $apply_default_included_edits = empty( $config['default_included_edits_applied'] );
                     $config['premium_upgrade_active'] = 1;
                     $config['premium_upgrade_last_order_id'] = (int) $order_id;
                     if ( function_exists( 'teinvit_config_apply_default_included_edits' ) ) {
                         $config = teinvit_config_apply_default_included_edits( $config, $catalog, 'woo_upgrade', (int) $order_id );
                     }
-                    teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
-                    if ( $apply_default_included_edits && ! empty( $config['default_included_edits_applied'] ) && function_exists( 'teinvit_get_settings' ) && function_exists( 'teinvit_update_settings' ) ) {
-                        $settings = teinvit_get_settings( $target_token );
-                        if ( $settings ) {
-                            teinvit_update_settings( $target_token, [
-                                'edits_free_remaining' => max( 0, (int) ( $config['edits_free_remaining'] ?? 0 ) ),
-                            ] );
-                        }
+                    $saved = teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+                    if ( $saved !== false && function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+                        teinvit_sync_legacy_edit_balance_from_config( $target_token, $config );
                     }
                     $did_update = true;
                 }

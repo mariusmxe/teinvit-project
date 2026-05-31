@@ -1101,6 +1101,9 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
     }
 
     teinvit_save_invitation_config_for_token( $token, [ 'config' => $config ], 'birthday' );
+    if ( function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $token, $config );
+    }
 
     do_action( 'teinvit_invitation_version_saved', $token, $version_id, [
         'token' => $token,

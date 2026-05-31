@@ -1467,6 +1467,9 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     teinvit_save_invitation_config( $token, [
         'config' => $config,
     ] );
+    if ( function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $token, $config );
+    }
 
     if ( $version_id > 0 ) {
         $product_ids = [];

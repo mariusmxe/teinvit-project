@@ -162,6 +162,69 @@ function teinvit_config_consume_one_edit( array $config ) {
     return $config;
 }
 
+function teinvit_config_has_edit_balance_keys( array $config ) {
+    return array_key_exists( 'edits_free_remaining', $config )
+        || array_key_exists( 'edits_admin_remaining', $config )
+        || array_key_exists( 'edits_paid_remaining', $config );
+}
+
+function teinvit_get_edit_balance_for_token( $token ) {
+    $token = teinvit_token_grants_normalize_token( $token );
+    if ( $token === '' ) {
+        return null;
+    }
+
+    if ( function_exists( 'teinvit_get_invitation' ) ) {
+        $inv = teinvit_get_invitation( $token );
+        if ( is_array( $inv ) && is_array( $inv['config'] ?? null ) ) {
+            return teinvit_edit_balance_summary( $inv['config'] );
+        }
+    }
+
+    if ( function_exists( 'teinvit_get_settings' ) ) {
+        $settings = teinvit_get_settings( $token );
+        if ( is_array( $settings ) ) {
+            $balance = [
+                'free' => max( 0, (int) ( $settings['edits_free_remaining'] ?? 0 ) ),
+                'admin' => max( 0, (int) ( $settings['edits_admin_remaining'] ?? 0 ) ),
+                'paid' => max( 0, (int) ( $settings['edits_paid_remaining'] ?? 0 ) ),
+            ];
+            $balance['total'] = $balance['free'] + $balance['admin'] + $balance['paid'];
+            return $balance;
+        }
+    }
+
+    return null;
+}
+
+function teinvit_sync_legacy_edit_balance_from_config( $token, $config ) {
+    $token = teinvit_token_grants_normalize_token( $token );
+    if ( $token === '' || ! is_array( $config ) || ! teinvit_config_has_edit_balance_keys( $config ) ) {
+        return false;
+    }
+
+    if ( ! function_exists( 'teinvit_get_settings' ) || ! function_exists( 'teinvit_update_settings' ) ) {
+        return false;
+    }
+
+    $settings = teinvit_get_settings( $token );
+    if ( ! is_array( $settings ) ) {
+        return false;
+    }
+
+    $balance = teinvit_edit_balance_with_defaults( $config );
+    $updated = teinvit_update_settings(
+        $token,
+        [
+            'edits_free_remaining' => (int) $balance['free'],
+            'edits_admin_remaining' => (int) $balance['admin'],
+            'edits_paid_remaining' => (int) $balance['paid'],
+        ]
+    );
+
+    return $updated !== false;
+}
+
 function teinvit_token_has_premium_admin_grant( $token ) {
     $token = teinvit_token_grants_normalize_token( $token );
     if ( $token === '' || ! function_exists( 'teinvit_get_invitation' ) ) {
@@ -418,22 +481,16 @@ function teinvit_token_grants_add_order_note( $order, $grant_id ) {
 }
 
 function teinvit_token_grants_sync_legacy_edit_balance( $token, $qty ) {
-    if ( ! function_exists( 'teinvit_get_settings' ) || ! function_exists( 'teinvit_update_settings' ) ) {
-        return;
+    if ( ! function_exists( 'teinvit_get_invitation' ) || ! function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        return false;
     }
 
-    $settings = teinvit_get_settings( $token );
-    if ( ! is_array( $settings ) ) {
-        return;
+    $inv = teinvit_get_invitation( $token );
+    if ( ! is_array( $inv ) || ! is_array( $inv['config'] ?? null ) ) {
+        return false;
     }
 
-    $current_admin = max( 0, (int) ( $settings['edits_admin_remaining'] ?? 0 ) );
-    teinvit_update_settings(
-        $token,
-        [
-            'edits_admin_remaining' => $current_admin + max( 0, (int) $qty ),
-        ]
-    );
+    return teinvit_sync_legacy_edit_balance_from_config( $token, $inv['config'] );
 }
 
 function teinvit_token_grants_redirect_for_record_error( $token, WP_Error $error ) {
@@ -520,7 +577,7 @@ function teinvit_token_grants_handle_edit_grant() {
         teinvit_token_grants_transaction_rollback();
         teinvit_token_grants_redirect( $ctx['token'], [ 'grant_error' => 'save_failed' ] );
     }
-    teinvit_token_grants_sync_legacy_edit_balance( $ctx['token'], $qty );
+    teinvit_sync_legacy_edit_balance_from_config( $ctx['token'], $config );
     teinvit_token_grants_transaction_commit();
 
     teinvit_token_grants_add_order_note( $ctx['order'], $grant_id );
@@ -620,7 +677,6 @@ function teinvit_token_grants_handle_premium_grant() {
     $inv = $ctx['invitation'];
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
     $before = teinvit_token_grants_balance_snapshot( $ctx['token'], $config );
-    $apply_default_included_edits = empty( $config['default_included_edits_applied'] );
     $config['premium_admin_grant_active'] = 1;
     $config['premium_admin_grant_id'] = 0;
     $config['premium_admin_granted_at'] = current_time( 'mysql' );
@@ -657,14 +713,7 @@ function teinvit_token_grants_handle_premium_grant() {
         teinvit_token_grants_transaction_rollback();
         teinvit_token_grants_redirect( $ctx['token'], [ 'grant_error' => 'save_failed' ] );
     }
-    if ( $apply_default_included_edits && ! empty( $config['default_included_edits_applied'] ) && function_exists( 'teinvit_get_settings' ) && function_exists( 'teinvit_update_settings' ) ) {
-        $settings = teinvit_get_settings( $ctx['token'] );
-        if ( is_array( $settings ) ) {
-            teinvit_update_settings( $ctx['token'], [
-                'edits_free_remaining' => max( 0, (int) ( $config['edits_free_remaining'] ?? 0 ) ),
-            ] );
-        }
-    }
+    teinvit_sync_legacy_edit_balance_from_config( $ctx['token'], $config );
     teinvit_token_grants_transaction_commit();
 
     teinvit_token_grants_add_order_note( $ctx['order'], $grant_id );
