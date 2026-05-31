@@ -44,6 +44,7 @@ function teinvit_baptism_config_with_defaults( array $config = [] ) {
     $defaults = function_exists( 'teinvit_default_rsvp_config_for_vertical' )
         ? teinvit_default_rsvp_config_for_vertical( 'baptism' )
         : [];
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
 
     $defaults = array_merge(
         [
@@ -66,7 +67,7 @@ function teinvit_baptism_config_with_defaults( array $config = [] ) {
             'show_special_observations' => 0,
             'show_gifts_section' => 0,
             'gifts_extra_slots' => 0,
-            'edits_free_remaining' => 2,
+            'edits_free_remaining' => $default_included_edits,
             'edits_admin_remaining' => 0,
             'edits_paid_remaining' => 0,
         ],
@@ -879,7 +880,8 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
         $paid_remaining = (int) $edit_balance['paid'];
         $remaining = (int) $edit_balance['total'];
     } else {
-        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? $default_included_edits ) );
         $admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
         $paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
         $remaining = $free_remaining + $admin_remaining + $paid_remaining;

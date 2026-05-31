@@ -614,6 +614,7 @@ function teinvit_render_custom_products_admin_page( $vertical = 'wedding' ) {
             'extra_gifts_addon_ids' => $extra_gifts_addon_ids,
             'extra_gifts_addon_slots' => $extra_gifts_addon_slots,
             'default_free_gift_slots' => max( 0, (int) ( $_POST['default_free_gift_slots'] ?? 20 ) ),
+            'default_included_edits' => function_exists( 'teinvit_normalize_nonnegative_catalog_int' ) ? teinvit_normalize_nonnegative_catalog_int( wp_unslash( $_POST['default_included_edits'] ?? 2 ), 2 ) : max( 0, (int) ( $_POST['default_included_edits'] ?? 2 ) ),
         ];
 
         update_option( 'teinvit_custom_products_catalog', $catalog_all, false );
@@ -644,6 +645,7 @@ function teinvit_render_custom_products_admin_page( $vertical = 'wedding' ) {
     echo '<tr><th scope="row"><label for="extra_gifts_addon_ids">Addon cadouri extra (ID-uri)</label></th><td><input type="text" id="extra_gifts_addon_ids" name="extra_gifts_addon_ids" value="' . esc_attr( teinvit_catalog_ids_to_csv( $catalog['extra_gifts_addon_ids'] ?? [] ) ) . '" class="regular-text" /><p class="description">Ex: 298,702</p></td></tr>';
     echo '<tr><th scope="row"><label for="extra_gifts_addon_slots">Sloturi cadouri / addon</label></th><td><input type="text" id="extra_gifts_addon_slots" name="extra_gifts_addon_slots" value="' . esc_attr( teinvit_catalog_slots_map_to_csv( $catalog['extra_gifts_addon_slots'] ?? [] ) ) . '" class="regular-text" /><p class="description">Format: product_id:sloturi,product_id:sloturi. Ex: 298:10,702:20. Dacă lipsește pentru un ID, fallback-ul este 10.</p></td></tr>';
     echo '<tr><th scope="row"><label for="default_free_gift_slots">Sloturi cadouri gratuite (default)</label></th><td><input type="number" min="0" step="1" id="default_free_gift_slots" name="default_free_gift_slots" value="' . esc_attr( (string) max( 0, (int) ( $catalog['default_free_gift_slots'] ?? 20 ) ) ) . '" class="small-text" /><p class="description">Valoare curentă per verticală. Se snapshot-uiește istoric la completed pentru comenzile principale.</p></td></tr>';
+    echo '<tr><th scope="row"><label for="default_included_edits">Modificări incluse în Premium (default)</label></th><td><input type="number" min="0" step="1" id="default_included_edits" name="default_included_edits" value="' . esc_attr( (string) ( function_exists( 'teinvit_catalog_default_included_edits' ) ? teinvit_catalog_default_included_edits( $catalog, 2 ) : max( 0, (int) ( $catalog['default_included_edits'] ?? 2 ) ) ) ) . '" class="small-text" /><p class="description">Numărul de modificări gratuite incluse implicit pentru tokenurile Premium ale acestei verticale. Se aplică tokenurilor Premium noi și upgrade-urilor viitoare.</p></td></tr>';
     echo '</table>';
 
     submit_button( 'Salvează' );
@@ -951,15 +953,32 @@ function teinvit_build_initial_snapshot( $order_id, $token ) {
 
     $settings = teinvit_get_settings( $token );
     if ( ! $settings ) {
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+        $legacy_edit_config = [
+            'edits_free_remaining' => $default_included_edits,
+            'edits_admin_remaining' => 0,
+            'edits_paid_remaining' => 0,
+        ];
+        if ( function_exists( 'teinvit_get_catalog_for_order' ) && function_exists( 'teinvit_order_should_receive_initial_included_edits' ) && function_exists( 'teinvit_config_apply_initial_edit_entitlement' ) ) {
+            $catalog_entry = teinvit_get_catalog_for_order( $order );
+            $legacy_edit_config = teinvit_config_apply_initial_edit_entitlement(
+                $legacy_edit_config,
+                $catalog_entry,
+                teinvit_order_should_receive_initial_included_edits( $order, $catalog_entry ),
+                'token_generated',
+                (int) $order_id
+            );
+        }
+
         global $wpdb;
         $t = teinvit_tables();
         $wpdb->insert( $t['settings'], [
             'token' => $token,
             'order_id' => $order_id,
             'user_id' => (int) $order->get_user_id(),
-            'edits_free_remaining' => 2,
-            'edits_admin_remaining' => 0,
-            'edits_paid_remaining' => 0,
+            'edits_free_remaining' => max( 0, (int) ( $legacy_edit_config['edits_free_remaining'] ?? $default_included_edits ) ),
+            'edits_admin_remaining' => max( 0, (int) ( $legacy_edit_config['edits_admin_remaining'] ?? 0 ) ),
+            'edits_paid_remaining' => max( 0, (int) ( $legacy_edit_config['edits_paid_remaining'] ?? 0 ) ),
             'gifts_free_capacity' => 10,
             'gifts_paid_capacity' => 0,
             'rsvp_flags' => wp_json_encode( teinvit_default_flags() ),
@@ -1536,11 +1555,30 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
         if ( in_array( $product_id, $premium_upgrade_product_ids, true ) ) {
             if ( function_exists( 'teinvit_get_invitation' ) && function_exists( 'teinvit_save_invitation_config' ) ) {
                 $inv = teinvit_get_invitation( $target_token );
+                if ( ! $inv && function_exists( 'teinvit_seed_invitation_if_missing' ) && function_exists( 'teinvit_get_order_id_by_token' ) ) {
+                    $target_order_id = (int) teinvit_get_order_id_by_token( $target_token );
+                    if ( $target_order_id > 0 ) {
+                        teinvit_seed_invitation_if_missing( $target_token, $target_order_id );
+                        $inv = teinvit_get_invitation( $target_token );
+                    }
+                }
                 if ( $inv ) {
                     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+                    $apply_default_included_edits = empty( $config['default_included_edits_applied'] );
                     $config['premium_upgrade_active'] = 1;
                     $config['premium_upgrade_last_order_id'] = (int) $order_id;
+                    if ( function_exists( 'teinvit_config_apply_default_included_edits' ) ) {
+                        $config = teinvit_config_apply_default_included_edits( $config, $catalog, 'woo_upgrade', (int) $order_id );
+                    }
                     teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+                    if ( $apply_default_included_edits && ! empty( $config['default_included_edits_applied'] ) && function_exists( 'teinvit_get_settings' ) && function_exists( 'teinvit_update_settings' ) ) {
+                        $settings = teinvit_get_settings( $target_token );
+                        if ( $settings ) {
+                            teinvit_update_settings( $target_token, [
+                                'edits_free_remaining' => max( 0, (int) ( $config['edits_free_remaining'] ?? 0 ) ),
+                            ] );
+                        }
+                    }
                     $did_update = true;
                 }
             }

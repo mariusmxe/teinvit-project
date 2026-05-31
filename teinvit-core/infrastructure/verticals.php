@@ -120,11 +120,15 @@ function teinvit_resolve_vertical_for_order( $order ) {
 
     foreach ( $order->get_items() as $item ) {
         $product_id = (int) $item->get_product_id();
-        if ( $product_id <= 0 || ! function_exists( 'teinvit_find_catalog_vertical_for_product_id' ) ) {
+        $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+        if ( ( $product_id <= 0 && $variation_id <= 0 ) || ! function_exists( 'teinvit_find_catalog_vertical_for_product_id' ) ) {
             continue;
         }
 
         $candidate = teinvit_find_catalog_vertical_for_product_id( $product_id );
+        if ( $candidate === '' && $variation_id > 0 ) {
+            $candidate = teinvit_find_catalog_vertical_for_product_id( $variation_id );
+        }
         if ( $candidate !== '' ) {
             return teinvit_normalize_vertical_key( $candidate );
         }

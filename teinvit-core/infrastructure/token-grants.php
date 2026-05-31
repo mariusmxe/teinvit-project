@@ -125,8 +125,10 @@ function teinvit_token_grants_resolve_token_context( $token, $seed_if_missing = 
 }
 
 function teinvit_edit_balance_with_defaults( array $config ) {
+    $free_fallback = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+
     return [
-        'free' => max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) ),
+        'free' => max( 0, (int) ( $config['edits_free_remaining'] ?? $free_fallback ) ),
         'admin' => max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) ),
         'paid' => max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) ),
     ];
@@ -618,10 +620,15 @@ function teinvit_token_grants_handle_premium_grant() {
     $inv = $ctx['invitation'];
     $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
     $before = teinvit_token_grants_balance_snapshot( $ctx['token'], $config );
+    $apply_default_included_edits = empty( $config['default_included_edits_applied'] );
     $config['premium_admin_grant_active'] = 1;
     $config['premium_admin_grant_id'] = 0;
     $config['premium_admin_granted_at'] = current_time( 'mysql' );
     $config['premium_admin_granted_by'] = (int) get_current_user_id();
+    if ( function_exists( 'teinvit_get_catalog_for_token' ) && function_exists( 'teinvit_config_apply_default_included_edits' ) ) {
+        $catalog = teinvit_get_catalog_for_token( $ctx['token'] );
+        $config = teinvit_config_apply_default_included_edits( $config, $catalog, 'admin_premium_grant' );
+    }
     $after = teinvit_token_grants_balance_snapshot( $ctx['token'], $config );
 
     teinvit_token_grants_transaction_begin();
@@ -642,10 +649,21 @@ function teinvit_token_grants_handle_premium_grant() {
     }
 
     $config['premium_admin_grant_id'] = (int) $grant_id;
+    if ( ! empty( $config['default_included_edits_applied'] ) && (string) ( $config['default_included_edits_applied_source'] ?? '' ) === 'admin_premium_grant' ) {
+        $config['default_included_edits_applied_grant_id'] = (int) $grant_id;
+    }
     $saved = teinvit_save_invitation_config_for_token( $ctx['token'], [ 'config' => $config ], $ctx['vertical'] );
     if ( $saved === false ) {
         teinvit_token_grants_transaction_rollback();
         teinvit_token_grants_redirect( $ctx['token'], [ 'grant_error' => 'save_failed' ] );
+    }
+    if ( $apply_default_included_edits && ! empty( $config['default_included_edits_applied'] ) && function_exists( 'teinvit_get_settings' ) && function_exists( 'teinvit_update_settings' ) ) {
+        $settings = teinvit_get_settings( $ctx['token'] );
+        if ( is_array( $settings ) ) {
+            teinvit_update_settings( $ctx['token'], [
+                'edits_free_remaining' => max( 0, (int) ( $config['edits_free_remaining'] ?? 0 ) ),
+            ] );
+        }
     }
     teinvit_token_grants_transaction_commit();
 

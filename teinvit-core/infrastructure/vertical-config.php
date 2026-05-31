@@ -26,6 +26,8 @@ function teinvit_join_ro_names( array $names ) {
 }
 
 function teinvit_vertical_semantics_registry() {
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+
     return [
         'wedding' => [
             'label' => 'Nuntă',
@@ -53,7 +55,7 @@ function teinvit_vertical_semantics_registry() {
                 'rsvp_deadline_date' => '',
                 'show_gifts_section' => 0,
                 'gifts_extra_slots' => 0,
-                'edits_free_remaining' => 2,
+                'edits_free_remaining' => $default_included_edits,
                 'edits_admin_remaining' => 0,
                 'edits_paid_remaining' => 0,
             ],
@@ -122,7 +124,7 @@ function teinvit_vertical_semantics_registry() {
                 'show_special_observations' => 0,
                 'show_gifts_section' => 0,
                 'gifts_extra_slots' => 0,
-                'edits_free_remaining' => 2,
+                'edits_free_remaining' => $default_included_edits,
                 'edits_admin_remaining' => 0,
                 'edits_paid_remaining' => 0,
             ],
@@ -178,7 +180,7 @@ function teinvit_vertical_semantics_registry() {
                 'show_special_observations' => 0,
                 'show_gifts_section' => 0,
                 'gifts_extra_slots' => 0,
-                'edits_free_remaining' => 2,
+                'edits_free_remaining' => $default_included_edits,
                 'edits_admin_remaining' => 0,
                 'edits_paid_remaining' => 0,
             ],

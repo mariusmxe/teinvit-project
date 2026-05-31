@@ -65,6 +65,7 @@ function teinvit_birthday_config_with_defaults( array $config = [] ) {
     $defaults = function_exists( 'teinvit_default_rsvp_config_for_vertical' )
         ? teinvit_default_rsvp_config_for_vertical( 'birthday' )
         : [];
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
 
     $defaults['birthday_rsvp_mode'] = 'adult';
     $defaults = array_merge( $defaults, teinvit_birthday_child_rsvp_config_defaults() );
@@ -82,7 +83,7 @@ function teinvit_birthday_config_with_defaults( array $config = [] ) {
         $config['show_guest_count'] = ! empty( $config['show_attending_people_count'] ) ? 1 : 0;
     }
     if ( ! isset( $config['edits_free_remaining'] ) ) {
-        $config['edits_free_remaining'] = 2;
+        $config['edits_free_remaining'] = $default_included_edits;
     }
     if ( ! isset( $config['edits_admin_remaining'] ) ) {
         $config['edits_admin_remaining'] = 0;
@@ -1014,7 +1015,8 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
         $paid_remaining = (int) $edit_balance['paid'];
         $remaining = (int) $edit_balance['total'];
     } else {
-        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? $default_included_edits ) );
         $admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
         $paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
         $remaining = $free_remaining + $admin_remaining + $paid_remaining;

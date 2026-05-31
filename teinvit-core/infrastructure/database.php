@@ -765,6 +765,18 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         $snapshot_id = (int) $wpdb->insert_id;
     }
 
+    $default_config = function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( $module_key ) : teinvit_default_rsvp_config();
+    if ( $order && function_exists( 'teinvit_get_catalog_for_order' ) && function_exists( 'teinvit_order_should_receive_initial_included_edits' ) && function_exists( 'teinvit_config_apply_initial_edit_entitlement' ) ) {
+        $catalog_entry = teinvit_get_catalog_for_order( $order );
+        $default_config = teinvit_config_apply_initial_edit_entitlement(
+            is_array( $default_config ) ? $default_config : [],
+            $catalog_entry,
+            teinvit_order_should_receive_initial_included_edits( $order, $catalog_entry ),
+            'token_generated',
+            (int) $order_id
+        );
+    }
+
     $wpdb->insert( $t['invitations'], [
         'token'             => $token,
         'order_id'          => (int) $order_id,
@@ -774,7 +786,7 @@ function teinvit_seed_invitation_if_missing( $token, $order_id ) {
         'event_date'        => null,
         'last_activity_at'  => current_time( 'mysql' ),
         'gifts_locked'      => 0,
-        'config'            => wp_json_encode( function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( $module_key ) : teinvit_default_rsvp_config() ),
+        'config'            => wp_json_encode( $default_config ),
         'created_at'        => current_time( 'mysql' ),
         'updated_at'        => current_time( 'mysql' ),
     ] );
@@ -797,6 +809,8 @@ function teinvit_default_rsvp_config() {
         return teinvit_default_rsvp_config_for_vertical( 'wedding' );
     }
 
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+
     return [
         'show_attending_civil' => 1,
         'show_attending_religious' => 1,
@@ -809,7 +823,7 @@ function teinvit_default_rsvp_config() {
         'rsvp_deadline_text' => '',
         'show_gifts_section' => 0,
         'gifts_extra_slots' => 0,
-        'edits_free_remaining' => 2,
+        'edits_free_remaining' => $default_included_edits,
         'edits_admin_remaining' => 0,
         'edits_paid_remaining' => 0,
     ];

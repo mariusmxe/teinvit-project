@@ -110,7 +110,8 @@ if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
     $edits_paid_remaining = (int) $edit_balance['paid'];
     $edits_remaining = (int) $edit_balance['total'];
 } else {
-    $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+    $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? $default_included_edits ) );
     $edits_admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
     $edits_paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
     $edits_remaining = $edits_free_remaining + $edits_admin_remaining + $edits_paid_remaining;

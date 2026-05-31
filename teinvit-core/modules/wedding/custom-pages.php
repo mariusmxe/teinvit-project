@@ -1199,8 +1199,9 @@ add_action( 'admin_post_teinvit_save_invitation_info', function() {
     if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
         $config = teinvit_config_ensure_edit_balance_keys( $config );
     } else {
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
         if ( ! isset( $config['edits_free_remaining'] ) ) {
-            $config['edits_free_remaining'] = 2;
+            $config['edits_free_remaining'] = $default_included_edits;
         }
         if ( ! isset( $config['edits_paid_remaining'] ) ) {
             $config['edits_paid_remaining'] = 0;
@@ -1223,8 +1224,9 @@ add_action( 'admin_post_teinvit_save_rsvp_config', function() {
     if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
         $config = teinvit_config_ensure_edit_balance_keys( $config );
     } else {
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
         if ( ! isset( $config['edits_free_remaining'] ) ) {
-            $config['edits_free_remaining'] = 2;
+            $config['edits_free_remaining'] = $default_included_edits;
         }
         if ( ! isset( $config['edits_paid_remaining'] ) ) {
             $config['edits_paid_remaining'] = 0;
@@ -1387,7 +1389,8 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         $paid_remaining = (int) $edit_balance['paid'];
         $remaining = (int) $edit_balance['total'];
     } else {
-        $free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : 2;
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+        $free_remaining = isset( $config['edits_free_remaining'] ) ? (int) $config['edits_free_remaining'] : $default_included_edits;
         $admin_remaining = isset( $config['edits_admin_remaining'] ) ? (int) $config['edits_admin_remaining'] : 0;
         $paid_remaining = isset( $config['edits_paid_remaining'] ) ? (int) $config['edits_paid_remaining'] : 0;
         $remaining = max( 0, $free_remaining ) + max( 0, $admin_remaining ) + max( 0, $paid_remaining );
