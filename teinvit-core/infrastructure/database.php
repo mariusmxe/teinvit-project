@@ -771,6 +771,14 @@ function teinvit_build_order_token_context_from_row( array $row ) {
     if ( $package_type === 'unknown' ) {
         $package_type = teinvit_order_token_package_type_for_product( $product_id, $variation_id, $vertical );
     }
+    $product_state = 'missing';
+    if ( $package_type === 'premium' ) {
+        $product_state = 'premium_native';
+    } elseif ( $package_type === 'basic' ) {
+        $product_state = function_exists( 'teinvit_token_has_premium_upgrade_addon' ) && teinvit_token_has_premium_upgrade_addon( $token )
+            ? 'basic_upgraded'
+            : 'basic_pure';
+    }
 
     $product_context = teinvit_order_token_product_context( $product_id, $variation_id, $row['product_slug'], $row['product_name'] );
     $active_snapshot = teinvit_order_token_active_snapshot( $token, $vertical );
@@ -778,6 +786,12 @@ function teinvit_build_order_token_context_from_row( array $row ) {
     if ( $pdf_status === '' && is_array( $active_snapshot ) && ! empty( $active_snapshot['pdf_status'] ) ) {
         $pdf_status = sanitize_key( (string) $active_snapshot['pdf_status'] );
     }
+    $pdf_url = is_array( $active_snapshot ) && ! empty( $active_snapshot['pdf_url'] )
+        ? esc_url_raw( (string) $active_snapshot['pdf_url'] )
+        : '';
+    $pdf_filename = is_array( $active_snapshot ) && ! empty( $active_snapshot['pdf_filename'] )
+        ? sanitize_file_name( (string) $active_snapshot['pdf_filename'] )
+        : '';
 
     return [
         'valid' => true,
@@ -797,7 +811,10 @@ function teinvit_build_order_token_context_from_row( array $row ) {
         'quantity_index' => $row['quantity_index'],
         'vertical' => $vertical,
         'package_type' => $package_type,
+        'product_state' => $product_state,
         'status' => $row['status'],
+        'pdf_url' => $pdf_url,
+        'pdf_filename' => $pdf_filename,
         'pdf_status' => $pdf_status,
         'capabilities' => null,
         'active_snapshot' => $active_snapshot,

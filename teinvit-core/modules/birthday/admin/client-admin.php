@@ -1068,7 +1068,7 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
     $version_index = max( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$tables['versions']} WHERE token = %s AND id <= %d", $token, $version_id ) ) - 1 );
 
     if ( function_exists( 'teinvit_pdf_filename_for_version' ) && function_exists( 'teinvit_generate_pdf_for_version' ) ) {
-        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index );
+        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index, $token, $version_id );
         $wpdb->update( $tables['versions'], [
             'pdf_status' => 'processing',
             'pdf_filename' => $pdf_filename,
@@ -1078,8 +1078,9 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
         if ( is_wp_error( $pdf_result ) ) {
             $pdf_status = 'failed';
         } else {
-            $pdf_status = 'ready';
+            $pdf_status = 'generated';
             $pdf_url = (string) ( $pdf_result['pdf_url'] ?? '' );
+            $pdf_filename = sanitize_file_name( (string) ( $pdf_result['pdf_filename'] ?? $pdf_filename ) );
         }
 
         $wpdb->update( $tables['versions'], [

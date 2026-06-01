@@ -1263,15 +1263,11 @@ function teinvit_wedding_pdf_public_url_from_filename( $order_id, $filename ) {
         return '';
     }
 
-    $base_url = defined( 'TEINVIT_NODE_ENDPOINT' )
-        ? preg_replace( '#/api/render/?$#', '', (string) TEINVIT_NODE_ENDPOINT )
+    $base_url = function_exists( 'teinvit_pdf_public_base_url' )
+        ? teinvit_pdf_public_base_url()
         : 'https://pdf.teinvit.com';
-    $base_url = rtrim( (string) $base_url, '/' );
-    if ( $base_url === '' ) {
-        $base_url = 'https://pdf.teinvit.com';
-    }
 
-    return esc_url_raw( $base_url . '/wp-content/uploads/teinvit/orders/' . $order_id . '/' . rawurlencode( $filename ) );
+    return esc_url_raw( rtrim( $base_url, '/' ) . '/pdf/' . $order_id . '/' . rawurlencode( $filename ) );
 }
 
 add_action( 'admin_post_teinvit_download_variant_pdf', function() {
@@ -1432,7 +1428,7 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     $version_index = 0;
     if ( $version_id > 0 && function_exists( 'teinvit_pdf_filename_for_version' ) && function_exists( 'teinvit_generate_pdf_for_version' ) ) {
         $version_index = max( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t['versions']} WHERE token = %s AND id <= %d", $token, $version_id ) ) - 1 );
-        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index );
+        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index, $token, $version_id );
         $wpdb->update( $t['versions'], [
             'pdf_status' => 'processing',
             'pdf_filename' => $pdf_filename,
@@ -1442,8 +1438,9 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
         if ( is_wp_error( $pdf_result ) ) {
             $pdf_status = 'failed';
         } else {
-            $pdf_status = 'ready';
+            $pdf_status = 'generated';
             $pdf_url = (string) ( $pdf_result['pdf_url'] ?? '' );
+            $pdf_filename = sanitize_file_name( (string) ( $pdf_result['pdf_filename'] ?? $pdf_filename ) );
         }
 
         $wpdb->update( $t['versions'], [

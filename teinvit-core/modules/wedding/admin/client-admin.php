@@ -333,6 +333,26 @@ function teinvit_resolve_token_product_state( $token ) {
         return 'premium_native';
     }
 
+    if ( function_exists( 'teinvit_get_order_token_row' ) ) {
+        $order_token_row = teinvit_get_order_token_row( $token );
+        if ( is_array( $order_token_row ) ) {
+            $package_type = sanitize_key( (string) ( $order_token_row['package_type'] ?? '' ) );
+            if ( ( $package_type === '' || $package_type === 'unknown' ) && function_exists( 'teinvit_order_token_package_type_for_product' ) ) {
+                $package_type = teinvit_order_token_package_type_for_product(
+                    (int) ( $order_token_row['product_id'] ?? 0 ),
+                    (int) ( $order_token_row['variation_id'] ?? 0 ),
+                    (string) ( $order_token_row['vertical'] ?? '' )
+                );
+            }
+            if ( $package_type === 'premium' ) {
+                return 'premium_native';
+            }
+            if ( $package_type === 'basic' ) {
+                return teinvit_token_has_premium_upgrade_addon( $token ) ? 'basic_upgraded' : 'basic_pure';
+            }
+        }
+    }
+
     $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
     $basic_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'basic_product_ids' ) : [];
     $premium_native_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' ) : [];
@@ -1148,7 +1168,13 @@ add_action( 'init', function() {
     }
 }, 5 );
 
-function teinvit_pdf_filename_for_version( WC_Order $order, $version ) {
+function teinvit_pdf_filename_for_version( WC_Order $order, $version, $token = '', $version_id = 0 ) {
+    $token = sanitize_text_field( (string) $token );
+    $version_id = (int) $version_id;
+    if ( $token !== '' && $version_id > 0 && function_exists( 'teinvit_phase4_pdf_filename_for_version' ) ) {
+        return teinvit_phase4_pdf_filename_for_version( $token, $version_id, max( 0, (int) $version ) );
+    }
+
     $items = $order->get_items();
     $product_name = 'Produs';
     if ( ! empty( $items ) ) {
@@ -1163,7 +1189,21 @@ function teinvit_pdf_filename_for_version( WC_Order $order, $version ) {
 }
 
 function teinvit_generate_pdf_for_version( $token, $order_id, $filename, $version_id = 0 ) {
-    $payload = [ 'token' => $token, 'order_id' => (int) $order_id, 'filename' => $filename ];
+    if ( function_exists( 'teinvit_generate_pdf_for_token_version' ) && (int) $version_id > 0 ) {
+        $result = teinvit_generate_pdf_for_token_version( $token, (int) $version_id, true );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return [
+            'pdf_url' => esc_url_raw( (string) ( $result['pdf_url'] ?? '' ) ),
+            'pdf_path' => '/pdf/' . (int) $order_id . '/' . sanitize_file_name( (string) ( $result['pdf_filename'] ?? $filename ) ),
+            'pdf_filename' => sanitize_file_name( (string) ( $result['pdf_filename'] ?? $filename ) ),
+            'variant_number' => (int) ( $result['variant_number'] ?? 0 ),
+        ];
+    }
+
+    $payload = [ 'token' => $token, 'order_id' => (int) $order_id, 'filename' => sanitize_file_name( (string) $filename ) ];
     if ( (int) $version_id > 0 ) {
         $payload['version_id'] = (int) $version_id;
     }
@@ -1179,10 +1219,13 @@ function teinvit_generate_pdf_for_version( $token, $order_id, $filename, $versio
     if ( empty( $data['status'] ) || $data['status'] !== 'ok' ) {
         return new WP_Error( 'pdf_error', 'PDF generation failed.' );
     }
-    $pdf_url = esc_url_raw( 'https://pdf.teinvit.com' . $data['pdf_url'] );
+    $pdf_url = ! empty( $data['pdf_url'] )
+        ? esc_url_raw( teinvit_pdf_public_base_url() . $data['pdf_url'] )
+        : teinvit_pdf_public_url_from_filename( (int) $order_id, $filename );
     return [
         'pdf_url' => $pdf_url,
-        'pdf_path' => '/wp-content/uploads/teinvit/orders/' . (int) $order_id . '/' . $filename,
+        'pdf_path' => '/pdf/' . (int) $order_id . '/' . sanitize_file_name( (string) $filename ),
+        'pdf_filename' => sanitize_file_name( (string) $filename ),
     ];
 }
 

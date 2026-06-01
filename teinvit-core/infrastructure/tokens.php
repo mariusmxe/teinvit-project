@@ -826,6 +826,10 @@ function teinvit_attach_order_tokens_on_completed_phase3( $order_id ) {
     ), 'completed_scan_summary' );
 
     $order->save();
+
+    if ( $reused_count > 0 && function_exists( 'teinvit_generate_pdfs_for_order_tokens' ) ) {
+        teinvit_generate_pdfs_for_order_tokens( $order_id, false );
+    }
 }
 
 /**
