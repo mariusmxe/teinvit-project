@@ -166,10 +166,41 @@ function teinvit_build_invitation_payload_from_order_item( $vertical_key, WC_Ord
 
 function teinvit_build_invitation_payload_from_order( $vertical_key, WC_Order $order, $token = '' ) {
     $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
+    $token = sanitize_text_field( (string) $token );
+    $token_context = [];
+    $token_order_item = null;
+    $token_product_id = 0;
+    $token_variation_id = 0;
+    $token_effective_product_id = 0;
+
+    if ( $token !== '' && function_exists( 'teinvit_resolve_token_context' ) ) {
+        $candidate_context = teinvit_resolve_token_context( $token );
+        $candidate_order_id = is_array( $candidate_context ) ? max( 0, (int) ( $candidate_context['order_id'] ?? 0 ) ) : 0;
+        $current_order_id = method_exists( $order, 'get_id' ) ? max( 0, (int) $order->get_id() ) : 0;
+        if ( is_array( $candidate_context ) && ! empty( $candidate_context['valid'] ) && ( $candidate_order_id <= 0 || $candidate_order_id === $current_order_id ) ) {
+            $token_context = $candidate_context;
+            $token_product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
+            $token_variation_id = max( 0, (int) ( $token_context['variation_id'] ?? 0 ) );
+            $token_effective_product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+            if ( ! empty( $token_context['order_item'] ) && $token_context['order_item'] instanceof WC_Order_Item_Product ) {
+                $token_order_item = $token_context['order_item'];
+            } elseif ( ! empty( $token_context['order_item_id'] ) && method_exists( $order, 'get_item' ) ) {
+                $maybe_item = $order->get_item( (int) $token_context['order_item_id'] );
+                if ( $maybe_item instanceof WC_Order_Item_Product ) {
+                    $token_order_item = $maybe_item;
+                }
+            }
+        }
+    }
+
+    if ( $token_order_item instanceof WC_Order_Item_Product ) {
+        return teinvit_build_invitation_payload_from_order_item( $vertical_key, $order, $token_order_item, $token, $token_context );
+    }
 
     if ( $vertical_key === 'wedding' ) {
         $wapf_map = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
-        $defs = function_exists( 'teinvit_get_wapf_defs_for_product' ) ? teinvit_get_wapf_defs_for_product( teinvit_get_order_primary_product_id( $order ) ) : [];
+        $defs_product_id = $token_effective_product_id > 0 ? $token_effective_product_id : teinvit_get_order_primary_product_id( $order );
+        $defs = function_exists( 'teinvit_get_wapf_defs_for_product' ) ? teinvit_get_wapf_defs_for_product( $defs_product_id ) : [];
         $built = function_exists( 'teinvit_build_invitation_from_wapf_map_canonical' ) ? teinvit_build_invitation_from_wapf_map_canonical( $wapf_map, $defs ) : [
             'invitation' => TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order ),
             'wapf_map' => $wapf_map,
@@ -191,8 +222,13 @@ function teinvit_build_invitation_payload_from_order( $vertical_key, WC_Order $o
 
     $result = call_user_func( $provider, [
         'order' => $order,
-        'token' => sanitize_text_field( (string) $token ),
+        'token' => $token,
         'vertical' => $vertical_key,
+        'token_context' => $token_context,
+        'order_item' => $token_order_item,
+        'order_item_id' => isset( $token_context['order_item_id'] ) ? max( 0, (int) $token_context['order_item_id'] ) : 0,
+        'product_id' => $token_product_id,
+        'variation_id' => $token_variation_id,
     ] );
 
     if ( ! is_array( $result ) ) {

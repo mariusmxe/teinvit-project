@@ -751,6 +751,54 @@ function teinvit_order_token_capabilities_for_legacy_token( $token ) {
     return is_array( $capabilities ) ? $capabilities : null;
 }
 
+function teinvit_order_token_capabilities_for_state( $product_state, $package_type = '' ) {
+    $product_state = sanitize_key( (string) $product_state );
+    $package_type = sanitize_key( (string) $package_type );
+
+    if ( $product_state === '' || $product_state === 'missing' ) {
+        $product_state = $package_type === 'basic' ? 'basic_pure' : 'premium_native';
+    }
+
+    $capabilities = [
+        'state' => $product_state,
+        'can_save_invitation_info' => true,
+        'can_save_rsvp_config' => true,
+        'can_share_invitation' => true,
+        'can_set_active_version' => true,
+        'can_save_version_snapshot' => true,
+        'can_manage_gifts' => true,
+        'can_buy_extra_edits' => true,
+        'can_buy_extra_gifts' => true,
+        'can_buy_premium_upgrade' => false,
+    ];
+
+    if ( $product_state === 'basic_pure' ) {
+        $capabilities['can_save_invitation_info'] = false;
+        $capabilities['can_save_rsvp_config'] = false;
+        $capabilities['can_share_invitation'] = false;
+        $capabilities['can_set_active_version'] = false;
+        $capabilities['can_save_version_snapshot'] = false;
+        $capabilities['can_manage_gifts'] = false;
+        $capabilities['can_buy_extra_edits'] = false;
+        $capabilities['can_buy_extra_gifts'] = false;
+        $capabilities['can_buy_premium_upgrade'] = true;
+    }
+
+    return $capabilities;
+}
+
+function teinvit_order_token_capabilities_for_context( $token, $product_state, $package_type = '' ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token !== '' && function_exists( 'teinvit_capabilities_for_token' ) ) {
+        $capabilities = teinvit_capabilities_for_token( $token );
+        if ( is_array( $capabilities ) ) {
+            return $capabilities;
+        }
+    }
+
+    return teinvit_order_token_capabilities_for_state( $product_state, $package_type );
+}
+
 function teinvit_build_order_token_context_from_row( array $row ) {
     $row = teinvit_normalize_order_token_row( $row );
     $token = $row['token'];
@@ -816,7 +864,7 @@ function teinvit_build_order_token_context_from_row( array $row ) {
         'pdf_url' => $pdf_url,
         'pdf_filename' => $pdf_filename,
         'pdf_status' => $pdf_status,
-        'capabilities' => null,
+        'capabilities' => teinvit_order_token_capabilities_for_context( $token, $product_state, $package_type ),
         'active_snapshot' => $active_snapshot,
         'storage_tables' => teinvit_order_token_storage_tables( $token, $vertical ),
         'addons' => teinvit_get_order_token_addons( $token ),

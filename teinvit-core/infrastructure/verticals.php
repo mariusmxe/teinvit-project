@@ -168,17 +168,17 @@ function teinvit_resolve_token_vertical( $token ) {
         return teinvit_default_vertical_key();
     }
 
-    if ( function_exists( 'teinvit_get_invitation' ) ) {
-        $inv = teinvit_get_invitation( $token );
-        if ( is_array( $inv ) && ! empty( $inv['module_key'] ) ) {
-            return teinvit_normalize_vertical_key( $inv['module_key'] );
-        }
-    }
-
     if ( function_exists( 'teinvit_get_order_token_row' ) ) {
         $order_token_row = teinvit_get_order_token_row( $token );
         if ( is_array( $order_token_row ) && ! empty( $order_token_row['vertical'] ) ) {
             return teinvit_normalize_vertical_key( $order_token_row['vertical'] );
+        }
+    }
+
+    if ( function_exists( 'teinvit_get_invitation' ) ) {
+        $inv = teinvit_get_invitation( $token );
+        if ( is_array( $inv ) && ! empty( $inv['module_key'] ) ) {
+            return teinvit_normalize_vertical_key( $inv['module_key'] );
         }
     }
 

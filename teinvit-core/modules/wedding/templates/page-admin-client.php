@@ -16,14 +16,37 @@ if ( ! $order ) {
     return;
 }
 
+$token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+$token_order_item = null;
+if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
+    if ( ! empty( $token_context['order'] ) && $token_context['order'] instanceof WC_Order ) {
+        $order = $token_context['order'];
+    }
+    if ( ! empty( $token_context['order_item'] ) && $token_context['order_item'] instanceof WC_Order_Item_Product ) {
+        $token_order_item = $token_context['order_item'];
+    } elseif ( ! empty( $token_context['order_item_id'] ) && method_exists( $order, 'get_item' ) ) {
+        $maybe_item = $order->get_item( (int) $token_context['order_item_id'] );
+        if ( $maybe_item instanceof WC_Order_Item_Product ) {
+            $token_order_item = $maybe_item;
+        }
+    }
+}
+$token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+$token_variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+$token_effective_product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+
 $versions = teinvit_get_versions_for_token( $token );
 usort( $versions, static function( $a, $b ) {
     return (int) $a['id'] <=> (int) $b['id'];
 } );
 
-$order_wapf = TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
-$order_invitation = TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order );
-$order_pdf_url = (string) $order->get_meta( '_teinvit_pdf_url' );
+$order_wapf = $token_order_item && method_exists( 'TeInvit_Wedding_Preview_Renderer', 'get_order_item_wapf_field_map' )
+    ? TeInvit_Wedding_Preview_Renderer::get_order_item_wapf_field_map( $token_order_item )
+    : TeInvit_Wedding_Preview_Renderer::get_order_wapf_field_map( $order );
+$order_invitation = $token_order_item && method_exists( 'TeInvit_Wedding_Preview_Renderer', 'get_order_item_invitation_data' )
+    ? TeInvit_Wedding_Preview_Renderer::get_order_item_invitation_data( $token_order_item )
+    : TeInvit_Wedding_Preview_Renderer::get_order_invitation_data( $order );
+$order_pdf_url = is_array( $token_context ) && ! empty( $token_context['legacy'] ) ? (string) $order->get_meta( '_teinvit_pdf_url' ) : '';
 
 $variants = [];
 foreach ( $versions as $index => $row ) {
@@ -246,7 +269,7 @@ $admin_toggle_fields = [
 ];
 
 $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
-$product_id = teinvit_get_order_primary_product_id( $order );
+$product_id = $token_effective_product_id > 0 ? $token_effective_product_id : teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];

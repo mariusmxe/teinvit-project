@@ -14,7 +14,16 @@ if ( $deadline_raw !== '' && preg_match( '/^(\d{2})\/(\d{2})\/(\d{4})$/', $deadl
 }
 $deadline_expired = $deadline_active && $deadline_ts > 0 && time() > $deadline_ts;
 
-$background_product_id = (int) ( $inv['product_id'] ?? 0 );
+$token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+$background_product_id = is_array( $token_context ) && ! empty( $token_context['valid'] )
+    ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) )
+    : 0;
+if ( $background_product_id <= 0 && is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
+    $background_product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
+}
+if ( $background_product_id <= 0 ) {
+    $background_product_id = (int) ( $inv['product_id'] ?? 0 );
+}
 if ( $background_product_id <= 0 && function_exists( 'wc_get_order' ) ) {
     $order_for_bg = wc_get_order( (int) ( $inv['order_id'] ?? 0 ) );
     if ( $order_for_bg && function_exists( 'teinvit_get_order_primary_product_id' ) ) {

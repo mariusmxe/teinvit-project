@@ -130,6 +130,7 @@ function teinvit_birthday_admin_post_guard( $token, $required_capability = '' ) 
     return [
         'order_id' => (int) $ctx[0],
         'order' => $ctx[1],
+        'token_context' => isset( $ctx[2] ) && is_array( $ctx[2] ) ? $ctx[2] : [],
         'invitation' => $inv,
         'capabilities' => $caps,
     ];
@@ -1005,6 +1006,18 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
     $order_id = (int) $ctx['order_id'];
     $order = $ctx['order'];
     $inv = $ctx['invitation'];
+    $token_context = is_array( $ctx['token_context'] ?? null ) ? $ctx['token_context'] : [];
+    if ( empty( $token_context['valid'] ) && function_exists( 'teinvit_resolve_token_context' ) ) {
+        $token_context = teinvit_resolve_token_context( $token );
+    }
+    $token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+    $token_variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+    $token_order_item_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['order_item_id'] ?? 0 ) ) : 0;
+    $token_effective_product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+    $version_product_ids = array_values( array_filter( [ $token_product_id, $token_variation_id ] ) );
+    if ( empty( $version_product_ids ) ) {
+        $version_product_ids = teinvit_birthday_order_product_ids( $order );
+    }
 
     $config = teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] );
     if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
@@ -1026,7 +1039,7 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
     }
 
     $wapf = function_exists( 'teinvit_extract_posted_wapf_map' ) ? teinvit_extract_posted_wapf_map( $_POST ) : [];
-    $product_id = function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0;
+    $product_id = $token_effective_product_id > 0 ? $token_effective_product_id : ( function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0 );
     $built = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
         ? teinvit_build_invitation_payload_from_wapf_map( 'birthday', $wapf, $product_id )
         : [ 'invitation' => [], 'wapf_fields' => $wapf ];
@@ -1042,6 +1055,9 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
         'wapf_fields' => $snapshot_wapf,
         'meta' => [
             'order_id' => $order_id,
+            'order_item_id' => $token_order_item_id,
+            'product_id' => $token_product_id,
+            'variation_id' => $token_variation_id,
             'vertical' => 'birthday',
         ],
     ];
@@ -1118,7 +1134,13 @@ add_action( 'admin_post_teinvit_birthday_save_version_snapshot', function() {
         'pdf_filename' => $pdf_filename,
         'admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
         'invitati_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
-        'product_ids' => teinvit_birthday_order_product_ids( $order ),
+        'order_item_id' => $token_order_item_id,
+        'product_id' => $token_product_id,
+        'variation_id' => $token_variation_id,
+        'product_name' => is_array( $token_context ) && ! empty( $token_context['product_name'] ) ? (string) $token_context['product_name'] : '',
+        'product_slug' => is_array( $token_context ) && ! empty( $token_context['product_slug'] ) ? (string) $token_context['product_slug'] : '',
+        'package_type' => is_array( $token_context ) && ! empty( $token_context['package_type'] ) ? (string) $token_context['package_type'] : '',
+        'product_ids' => $version_product_ids,
         'snapshot_hash' => hash( 'sha256', (string) $snapshot_json ),
     ] );
 

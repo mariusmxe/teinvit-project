@@ -97,6 +97,18 @@ $vertical_key = isset( $GLOBALS['teinvit_tokenized_vertical'] ) ? (string) $GLOB
 $vertical_key = $vertical_key !== '' && function_exists( 'teinvit_normalize_vertical_key' )
     ? teinvit_normalize_vertical_key( $vertical_key )
     : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
+$token_context = $token !== '' && function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) && ! empty( $token_context['vertical'] ) ) {
+    $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $token_context['vertical'] ) : (string) $token_context['vertical'];
+}
+$token_order_id = is_array( $token_context ) && ! empty( $token_context['valid'] ) ? max( 0, (int) ( $token_context['order_id'] ?? 0 ) ) : 0;
+$token_order = is_array( $token_context ) && ! empty( $token_context['order'] ) && $token_context['order'] instanceof WC_Order ? $token_context['order'] : null;
+if ( ! $token_order && $token_order_id > 0 ) {
+    $token_order = wc_get_order( $token_order_id );
+}
+$token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+$token_variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+$token_effective_product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
 
 $post = $post_id ? get_post( $post_id ) : null;
 if ( ! $post || $post->post_type !== 'teinvit_invitation' ) {
@@ -112,9 +124,12 @@ setup_postdata( $post );
 
 $preview_html = '';
 $preview_invitation_data = [];
-if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_order_id_by_token' ) ) {
-    $order_id = (int) teinvit_get_order_id_by_token( $token );
-    $order = $order_id ? wc_get_order( $order_id ) : null;
+if ( $mode === 'invitati' && $token !== '' ) {
+    $order = $token_order;
+    if ( ! $order && function_exists( 'teinvit_get_order_id_by_token' ) ) {
+        $order_id = (int) teinvit_get_order_id_by_token( $token );
+        $order = $order_id ? wc_get_order( $order_id ) : null;
+    }
     if ( $order ) {
         $payload = function_exists( 'teinvit_ensure_active_snapshot_payload' )
             ? teinvit_ensure_active_snapshot_payload( $token, $order )
@@ -125,7 +140,7 @@ if ( $mode === 'invitati' && $token !== '' && function_exists( 'teinvit_get_orde
             if ( $vertical_key === 'wedding' ) {
                 $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
             } else {
-                $product_id = function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0;
+                $product_id = $token_effective_product_id > 0 ? $token_effective_product_id : ( function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0 );
                 $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
                     ? teinvit_render_invitation_html_for_vertical( $vertical_key, $payload['invitation'], $order, 'preview', $product_id )
                     : '';
@@ -157,9 +172,14 @@ teinvit_render_layout_header();
           include TEINVIT_WEDDING_MODULE_PATH . 'templates/page-admin-client.php';
       } elseif ( $vertical_key === 'birthday' && defined( 'TEINVIT_BIRTHDAY_MODULE_PATH' ) && file_exists( TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-admin-client.php' ) ) {
           include TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-admin-client.php';
+      } elseif ( $vertical_key === 'baptism' && defined( 'TEINVIT_BAPTISM_MODULE_PATH' ) && file_exists( TEINVIT_BAPTISM_MODULE_PATH . 'templates/page-admin-client.php' ) ) {
+          include TEINVIT_BAPTISM_MODULE_PATH . 'templates/page-admin-client.php';
       } elseif ( function_exists( 'teinvit_render_vertical_admin_client_foundation' ) ) {
-          $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
-          $order = $order_id ? wc_get_order( $order_id ) : null;
+          $order = $token_order;
+          if ( ! $order && function_exists( 'teinvit_get_order_id_by_token' ) ) {
+              $order_id = (int) teinvit_get_order_id_by_token( $token );
+              $order = $order_id ? wc_get_order( $order_id ) : null;
+          }
           teinvit_render_vertical_admin_client_foundation( $token, $vertical_key, $order );
       } else {
           echo '<p>Administrarea invitației nu este disponibilă.</p>';
@@ -187,13 +207,26 @@ teinvit_render_layout_header();
       <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
         <?php include TEINVIT_BIRTHDAY_MODULE_PATH . 'templates/page-invitati.php'; ?>
       </div>
+    <?php elseif ( $vertical_key === 'baptism' && defined( 'TEINVIT_BAPTISM_MODULE_PATH' ) && file_exists( TEINVIT_BAPTISM_MODULE_PATH . 'templates/page-invitati.php' ) ) : ?>
+      <?php if ( ! empty( $preview_invitation_data ) ) : ?>
+        <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
+      <?php endif; ?>
+      <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
+        <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
+      <div class="teinvit-slot teinvit-slot-rsvp" data-teinvit-slot="rsvp">
+        <?php include TEINVIT_BAPTISM_MODULE_PATH . 'templates/page-invitati.php'; ?>
+      </div>
     <?php elseif ( function_exists( 'teinvit_render_vertical_invitati_foundation' ) ) : ?>
       <?php if ( ! empty( $preview_invitation_data ) ) : ?>
         <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $preview_invitation_data ); ?>;</script>
       <?php endif; ?>
       <?php
-      $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
-      $order = $order_id ? wc_get_order( $order_id ) : null;
+      $order = $token_order;
+      if ( ! $order && function_exists( 'teinvit_get_order_id_by_token' ) ) {
+          $order_id = (int) teinvit_get_order_id_by_token( $token );
+          $order = $order_id ? wc_get_order( $order_id ) : null;
+      }
       teinvit_render_vertical_invitati_foundation( $token, $vertical_key, $order, $preview_invitation_data, $preview_html );
       ?>
     <?php else : ?>

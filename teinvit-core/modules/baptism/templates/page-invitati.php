@@ -12,7 +12,18 @@ if ( ! is_array( $inv ) ) {
 }
 
 $order = function_exists( 'wc_get_order' ) ? wc_get_order( (int) $inv['order_id'] ) : null;
-$product_id = ( $order && function_exists( 'teinvit_get_order_primary_product_id' ) ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0;
+$token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
+    if ( ! empty( $token_context['order'] ) && $token_context['order'] instanceof WC_Order ) {
+        $order = $token_context['order'];
+    }
+}
+$token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+$token_variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+$product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+if ( $product_id <= 0 && $order && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+    $product_id = (int) teinvit_get_order_primary_product_id( $order );
+}
 $config = function_exists( 'teinvit_baptism_config_with_defaults' )
     ? teinvit_baptism_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] )
     : wp_parse_args( is_array( $inv['config'] ?? null ) ? $inv['config'] : [], function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( 'baptism' ) : [] );

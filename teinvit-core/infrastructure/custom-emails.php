@@ -714,6 +714,22 @@ function teinvit_email_package_type_for_token( $token ) {
         return '';
     }
 
+    $context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+    if ( is_array( $context ) && ! empty( $context['valid'] ) && ! empty( $context['package_type'] ) ) {
+        $state = ! empty( $context['product_state'] ) ? sanitize_key( (string) $context['product_state'] ) : '';
+        if ( $state === 'basic_upgraded' ) {
+            return 'Basic + Upgrade';
+        }
+
+        $package_type = sanitize_key( (string) $context['package_type'] );
+        if ( $package_type === 'basic' ) {
+            return 'Basic';
+        }
+        if ( $package_type === 'premium' ) {
+            return 'Premium';
+        }
+    }
+
     if ( function_exists( 'teinvit_resolve_token_premium_source' ) ) {
         $source = sanitize_key( (string) teinvit_resolve_token_premium_source( $token ) );
         if ( strpos( $source, 'basic_upgraded' ) === 0 ) {
@@ -851,6 +867,18 @@ function teinvit_email_merge_tags_catalog_registry() {
     $add( 'customer_email', 'General', 'Emailul clientului.', 'Customer', 'alex@example.com', 'Emailuri catre customer' );
     $add( 'product_name', 'General', 'Numele produsului/produselor din comanda.', 'Customer', 'Invitatie Botez Premium', 'Cu order context' );
     $add( 'product_ids', 'General', 'ID-urile produselor si variatiilor din comanda.', 'Customer', '1067,1150', 'Cu order context' );
+    $add( 'token_product_name', 'Token', 'Numele produsului asociat tokenului curent.', 'Token', 'Invitatie Botez Premium', 'Emailuri cu token' );
+    $add( 'token_product_slug', 'Token', 'Slug-ul produsului asociat tokenului curent.', 'Token', 'invitatie-botez-premium', 'Emailuri cu token' );
+    $add( 'token_product_id', 'Token', 'ID-ul produsului asociat tokenului curent.', 'Token', '1067', 'Emailuri cu token' );
+    $add( 'token_vertical', 'Token', 'Verticala rezolvata pentru token.', 'Token', 'baptism', 'Emailuri cu token' );
+    $add( 'token_package_type', 'Token', 'Pachetul rezolvat pentru token.', 'Token', 'premium', 'Emailuri cu token' );
+    $add( 'token_admin_client_url', 'Token', 'Link catre administrarea tokenului curent.', 'Token', 'https://site.test/admin-client/token', 'Emailuri cu token' );
+    $add( 'token_invitation_url', 'Token', 'Link direct catre invitatia publica /i/{token}.', 'Token', 'https://site.test/i/token', 'Emailuri cu token' );
+    $add( 'token_guest_url', 'Token', 'Link catre pagina invitatilor pentru token.', 'Token', 'https://site.test/invitati/token', 'Emailuri cu token' );
+    $add( 'token_pdf_url', 'Token', 'Linkul PDF activ pentru token, daca exista.', 'Token', 'https://site.test/file.pdf', 'Dupa generare PDF' );
+    $add( 'token_pdf_filename', 'Token', 'Numele fisierului PDF activ pentru token.', 'Token', 'invitatie-123.pdf', 'Dupa generare PDF' );
+    $add( 'order_te_invit_tokens_count', 'Token', 'Numarul tokenurilor Te Invit din comanda.', 'Order/Token', '2', 'Comenzi cu tokenuri Te Invit' );
+    $add( 'order_te_invit_tokens_summary', 'Token', 'Sumar tokenuri Te Invit din comanda.', 'Order/Token', 'token-a - Botez Premium; token-b - Birthday Basic', 'Comenzi cu tokenuri Te Invit' );
     $add( 'vertical', 'General', 'Verticala tokenului.', 'Global', 'baptism', 'Toate template-urile cu token' );
     $add( 'package_type', 'General', 'Tipul pachetului tokenului.', 'Global', 'Basic + Upgrade', 'Cand statusul poate fi rezolvat' );
     $add( 'premium_source', 'General', 'Sursa statutului Premium.', 'Global', 'basic_upgraded_woo', 'Cand resolverul de premium este disponibil' );
@@ -1004,16 +1032,23 @@ function teinvit_email_merge_tags_catalog_registry() {
 }
 
 function teinvit_email_context_values_registry( array $args ) {
-    $token    = (string) ( $args['token'] ?? '' );
+    $token    = sanitize_text_field( (string) ( $args['token'] ?? '' ) );
     $order_id = (int) ( $args['order_id'] ?? 0 );
     $payload  = is_array( $args['payload'] ?? null ) ? $args['payload'] : [];
     $send_id  = (string) ( $args['send_id'] ?? '' );
+    $token_context = teinvit_email_token_context( $token );
 
     if ( $order_id <= 0 && ! empty( $payload['order_id'] ) ) {
         $order_id = (int) $payload['order_id'];
     }
+    if ( $order_id <= 0 && ! empty( $token_context['order_id'] ) ) {
+        $order_id = max( 0, (int) $token_context['order_id'] );
+    }
 
     $vertical = sanitize_key( (string) ( $payload['vertical'] ?? '' ) );
+    if ( $vertical === '' && ! empty( $token_context['vertical'] ) ) {
+        $vertical = sanitize_key( (string) $token_context['vertical'] );
+    }
     if ( $vertical === '' && $token !== '' && function_exists( 'teinvit_resolve_token_vertical' ) ) {
         $vertical = sanitize_key( (string) teinvit_resolve_token_vertical( $token ) );
     }
@@ -1026,7 +1061,28 @@ function teinvit_email_context_values_registry( array $args ) {
     $last_name  = $order ? (string) $order->get_billing_last_name() : '';
     $order_no   = $order ? (string) $order->get_order_number() : '';
     $customer_email = $order ? sanitize_email( (string) $order->get_billing_email() ) : '';
-    $product_names = teinvit_email_order_product_names( $order );
+    $token_product_name = ! empty( $token_context ) ? teinvit_email_token_product_name( $token_context ) : '';
+    if ( $token_product_name === '' ) {
+        $token_product_name = sanitize_text_field( (string) ( $payload['token_product_name'] ?? ( $payload['product_name'] ?? '' ) ) );
+    }
+    $token_product_slug = ! empty( $token_context['product_slug'] ) ? sanitize_title( (string) $token_context['product_slug'] ) : '';
+    if ( $token_product_slug === '' ) {
+        $token_product_slug = sanitize_title( (string) ( $payload['token_product_slug'] ?? '' ) );
+    }
+    $token_product_id = ! empty( $token_context['product_id'] ) ? max( 0, (int) $token_context['product_id'] ) : 0;
+    $token_variation_id = ! empty( $token_context['variation_id'] ) ? max( 0, (int) $token_context['variation_id'] ) : 0;
+    if ( $token_product_id <= 0 && ! empty( $payload['token_product_id'] ) ) {
+        $token_product_id = max( 0, (int) $payload['token_product_id'] );
+    }
+    if ( $token_variation_id <= 0 && ! empty( $payload['token_variation_id'] ) ) {
+        $token_variation_id = max( 0, (int) $payload['token_variation_id'] );
+    }
+    $token_effective_product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+    $token_package_type = ! empty( $token_context['package_type'] ) ? sanitize_key( (string) $token_context['package_type'] ) : '';
+    if ( $token_package_type === '' ) {
+        $token_package_type = sanitize_key( (string) ( $payload['token_package_type'] ?? ( $payload['package_type'] ?? '' ) ) );
+    }
+    $product_names = $token_product_name !== '' ? [ $token_product_name ] : teinvit_email_order_product_names( $order );
     $product_ids = function_exists( 'teinvit_email_order_product_ids_for_context' ) ? teinvit_email_order_product_ids_for_context( $order_id, $token ) : [];
 
     $recipient = sanitize_email( (string) ( $args['recipient_email'] ?? '' ) );
@@ -1071,7 +1127,18 @@ function teinvit_email_context_values_registry( array $args ) {
         $total_people = max( 1, $adults );
     }
 
-    $rsvp_form_url = $token !== '' ? home_url( '/invitati/' . rawurlencode( $token ) ) : '';
+    $token_admin_client_url = $token !== '' ? home_url( '/admin-client/' . rawurlencode( $token ) ) : '';
+    $token_invitation_url = $token !== '' ? home_url( '/i/' . rawurlencode( $token ) ) : '';
+    $token_guest_url = $token !== '' ? home_url( '/invitati/' . rawurlencode( $token ) ) : '';
+    $rsvp_form_url = $token_guest_url;
+    $token_pdf = teinvit_email_token_pdf_context( $token, $token_context, $payload );
+    $order_tokens = teinvit_email_order_tokens_context( $order_id );
+    if ( empty( $order_tokens['count'] ) && ! empty( $payload['order_te_invit_tokens_count'] ) ) {
+        $order_tokens['count'] = max( 0, (int) $payload['order_te_invit_tokens_count'] );
+    }
+    if ( empty( $order_tokens['summary'] ) && ! empty( $payload['order_te_invit_tokens_summary'] ) ) {
+        $order_tokens['summary'] = sanitize_text_field( (string) $payload['order_te_invit_tokens_summary'] );
+    }
     $birthday_mode = sanitize_key( (string) teinvit_email_payload_value( $payload, $extra, 'birthday_rsvp_mode', ( $config['birthday_rsvp_mode'] ?? '' ) ) );
     $gift_values = teinvit_email_gift_context_for_token( $token, $vertical, $payload );
 
@@ -1087,16 +1154,28 @@ function teinvit_email_context_values_registry( array $args ) {
             'customer_email' => $customer_email,
             'product_name' => teinvit_email_join_list( $product_names ),
             'product_ids' => implode( ',', array_map( 'strval', $product_ids ) ),
+            'token_product_name' => $token_product_name,
+            'token_product_slug' => $token_product_slug,
+            'token_product_id' => $token_product_id > 0 ? (string) $token_product_id : ( $token_effective_product_id > 0 ? (string) $token_effective_product_id : '' ),
+            'token_vertical' => $vertical,
+            'token_package_type' => $token_package_type,
+            'token_admin_client_url' => $token_admin_client_url,
+            'token_invitation_url' => $token_invitation_url,
+            'token_guest_url' => $token_guest_url,
+            'token_pdf_url' => (string) ( $token_pdf['url'] ?? '' ),
+            'token_pdf_filename' => (string) ( $token_pdf['filename'] ?? '' ),
+            'order_te_invit_tokens_count' => (string) ( $order_tokens['count'] ?? 0 ),
+            'order_te_invit_tokens_summary' => (string) ( $order_tokens['summary'] ?? '' ),
             'vertical' => $vertical,
-            'package_type' => teinvit_email_package_type_for_token( $token ),
+            'package_type' => teinvit_email_package_type_for_token( $token ) ?: $token_package_type,
             'premium_source' => ( $token !== '' && function_exists( 'teinvit_resolve_token_premium_source' ) ) ? sanitize_key( (string) teinvit_resolve_token_premium_source( $token ) ) : '',
-            'admin_client_url' => $token !== '' ? home_url( '/admin-client/' . rawurlencode( $token ) ) : '',
+            'admin_client_url' => $token_admin_client_url,
             'invitati_url' => $rsvp_form_url,
             'report_url' => $token !== '' ? home_url( '/admin-client/' . rawurlencode( $token ) . '#teinvit-report' ) : '',
             'invitation_version_id' => (string) ( $payload['version_id'] ?? '' ),
             'invitation_version_index' => (string) ( $payload['version_index'] ?? '' ),
-            'invitation_pdf_url' => (string) ( $payload['pdf_url'] ?? '' ),
-            'invitation_pdf_status' => (string) ( $payload['pdf_status'] ?? '' ),
+            'invitation_pdf_url' => (string) ( $token_pdf['url'] ?? '' ),
+            'invitation_pdf_status' => (string) ( $token_pdf['status'] ?? '' ),
 
             'wedding_bride_name' => (string) ( $name_parts[0] ?? '' ),
             'wedding_groom_name' => (string) ( $name_parts[1] ?? '' ),
@@ -2099,6 +2178,16 @@ function teinvit_email_sample_context_args( $template_id, $recipient_email = '' 
         'recipient_email' => $recipient_email !== '' ? $recipient_email : sanitize_email( get_option( 'admin_email' ) ),
         'send_id' => teinvit_email_uuid_v4(),
         'payload' => [
+            'vertical' => 'wedding',
+            'token_product_name' => 'Invitatie Wedding Premium',
+            'token_product_slug' => 'invitatie-wedding-premium',
+            'token_product_id' => 1067,
+            'token_package_type' => 'premium',
+            'pdf_url' => home_url( '/wp-content/uploads/teinvit/sample-token-123.pdf' ),
+            'pdf_filename' => 'sample-token-123.pdf',
+            'pdf_status' => 'generated',
+            'order_te_invit_tokens_count' => 2,
+            'order_te_invit_tokens_summary' => 'sample-token-123 - Invitatie Wedding Premium; sample-token-456 - Invitatie Botez Basic',
             'guest_first_name' => 'Alex',
             'guest_last_name' => 'Popescu',
             'guest_phone' => '0712345678',
@@ -2495,6 +2584,149 @@ function teinvit_email_order_product_ids( $order_id ) {
     return array_values( array_unique( $product_ids ) );
 }
 
+function teinvit_email_token_context( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' || ! function_exists( 'teinvit_resolve_token_context' ) ) {
+        return [];
+    }
+
+    $context = teinvit_resolve_token_context( $token );
+    return is_array( $context ) && ! empty( $context['valid'] ) ? $context : [];
+}
+
+function teinvit_email_token_product_ids( $token ) {
+    $context = teinvit_email_token_context( $token );
+    if ( empty( $context ) ) {
+        return [];
+    }
+
+    $ids = [];
+    $product_id = max( 0, (int) ( $context['product_id'] ?? 0 ) );
+    $variation_id = max( 0, (int) ( $context['variation_id'] ?? 0 ) );
+    if ( $product_id > 0 ) {
+        $ids[] = $product_id;
+    }
+    if ( $variation_id > 0 ) {
+        $ids[] = $variation_id;
+    }
+
+    return array_values( array_unique( $ids ) );
+}
+
+function teinvit_email_token_product_name( array $context ) {
+    $name = trim( (string) ( $context['product_name'] ?? '' ) );
+    if ( $name !== '' ) {
+        return $name;
+    }
+
+    $product = $context['product'] ?? null;
+    if ( is_object( $product ) && method_exists( $product, 'get_name' ) ) {
+        return sanitize_text_field( (string) $product->get_name() );
+    }
+
+    $lookup_id = max( 0, (int) ( $context['variation_id'] ?? 0 ) );
+    if ( $lookup_id <= 0 ) {
+        $lookup_id = max( 0, (int) ( $context['product_id'] ?? 0 ) );
+    }
+    if ( $lookup_id > 0 && function_exists( 'wc_get_product' ) ) {
+        $product = wc_get_product( $lookup_id );
+        if ( is_object( $product ) && method_exists( $product, 'get_name' ) ) {
+            return sanitize_text_field( (string) $product->get_name() );
+        }
+    }
+
+    return '';
+}
+
+function teinvit_email_token_pdf_context( $token, array $context = [], array $payload = [] ) {
+    $token = sanitize_text_field( (string) $token );
+    $pdf_url = ! empty( $payload['pdf_url'] ) ? esc_url_raw( (string) $payload['pdf_url'] ) : '';
+    $pdf_filename = ! empty( $payload['pdf_filename'] ) ? sanitize_file_name( (string) $payload['pdf_filename'] ) : '';
+    $pdf_status = ! empty( $payload['pdf_status'] ) ? sanitize_key( (string) $payload['pdf_status'] ) : '';
+
+    if ( $pdf_url === '' && ! empty( $context['pdf_url'] ) ) {
+        $pdf_url = esc_url_raw( (string) $context['pdf_url'] );
+    }
+    if ( $pdf_filename === '' && ! empty( $context['pdf_filename'] ) ) {
+        $pdf_filename = sanitize_file_name( (string) $context['pdf_filename'] );
+    }
+    if ( $pdf_status === '' && ! empty( $context['pdf_status'] ) ) {
+        $pdf_status = sanitize_key( (string) $context['pdf_status'] );
+    }
+
+    if ( $token !== '' && ( $pdf_url === '' || $pdf_filename === '' || $pdf_status === '' ) ) {
+        $vertical = ! empty( $context['vertical'] ) ? sanitize_key( (string) $context['vertical'] ) : '';
+        $active = null;
+        if ( function_exists( 'teinvit_get_active_snapshot_for_token_from_storage' ) ) {
+            $active = teinvit_get_active_snapshot_for_token_from_storage( $token, $vertical );
+        } elseif ( function_exists( 'teinvit_get_active_snapshot' ) ) {
+            $active = teinvit_get_active_snapshot( $token );
+        }
+        if ( is_array( $active ) ) {
+            if ( $pdf_url === '' && ! empty( $active['pdf_url'] ) ) {
+                $pdf_url = esc_url_raw( (string) $active['pdf_url'] );
+            }
+            if ( $pdf_filename === '' && ! empty( $active['pdf_filename'] ) ) {
+                $pdf_filename = sanitize_file_name( (string) $active['pdf_filename'] );
+            }
+            if ( $pdf_status === '' && ! empty( $active['pdf_status'] ) ) {
+                $pdf_status = sanitize_key( (string) $active['pdf_status'] );
+            }
+        }
+    }
+
+    return [
+        'url' => $pdf_url,
+        'filename' => $pdf_filename,
+        'status' => $pdf_status,
+    ];
+}
+
+function teinvit_email_order_tokens_context( $order_id ) {
+    $order_id = max( 0, (int) $order_id );
+    if ( $order_id <= 0 ) {
+        return [ 'count' => 0, 'summary' => '' ];
+    }
+
+    $rows = function_exists( 'teinvit_get_order_tokens_for_order' ) ? teinvit_get_order_tokens_for_order( $order_id ) : [];
+    $summary = [];
+    if ( is_array( $rows ) && ! empty( $rows ) ) {
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $token = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
+            if ( $token === '' ) {
+                continue;
+            }
+            $parts = [ $token ];
+            $product_name = trim( (string) ( $row['product_name'] ?? '' ) );
+            if ( $product_name !== '' ) {
+                $parts[] = $product_name;
+            }
+            $vertical = sanitize_key( (string) ( $row['vertical'] ?? '' ) );
+            $package = sanitize_key( (string) ( $row['package_type'] ?? '' ) );
+            $details = trim( $vertical . ( $package !== '' ? ' ' . $package : '' ) );
+            if ( $details !== '' ) {
+                $parts[] = $details;
+            }
+            $summary[] = implode( ' - ', $parts );
+        }
+
+        return [
+            'count' => count( $summary ),
+            'summary' => implode( '; ', $summary ),
+        ];
+    }
+
+    $order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+    $legacy_token = $order && method_exists( $order, 'get_meta' ) ? sanitize_text_field( (string) $order->get_meta( '_teinvit_token' ) ) : '';
+    return [
+        'count' => $legacy_token !== '' ? 1 : 0,
+        'summary' => $legacy_token,
+    ];
+}
+
 function teinvit_email_related_order_ids_for_token( $token, $base_order_id = 0 ) {
     global $wpdb;
 
@@ -2548,6 +2780,11 @@ function teinvit_email_related_order_ids_for_token( $token, $base_order_id = 0 )
 }
 
 function teinvit_email_order_product_ids_for_context( $order_id, $token = '' ) {
+    $token_products = teinvit_email_token_product_ids( $token );
+    if ( ! empty( $token_products ) ) {
+        return $token_products;
+    }
+
     $products = [];
     foreach ( teinvit_email_related_order_ids_for_token( $token, (int) $order_id ) as $related_order_id ) {
         $products = array_merge( $products, teinvit_email_order_product_ids( $related_order_id ) );
@@ -2650,7 +2887,26 @@ function teinvit_email_queue_template( $template_id, array $args ) {
             'is_preview_test' => ! empty( $args['is_preview_test'] ),
         ]
     );
-    teinvit_email_log( 'debug', 'queue_product_scope', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '', 'order_id' => $args['order_id'] ?? 0, 'rsvp_id' => $args['rsvp_id'] ?? 0, 'recipient_email' => $recipient, 'token' => $args['token'] ?? '', 'bypass' => $bypass_product_filter ? 1 : 0, 'match' => ! empty( $product_match['match'] ) ? 1 : 0, 'reason' => $product_match['reason'] ?? '', 'allowed_products' => implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ), 'order_products' => implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) ) ] );
+    $queue_token_context = teinvit_email_token_context( $args['token'] ?? '' );
+    teinvit_email_log( 'debug', 'queue_product_scope', [
+        'template_id' => $template_id,
+        'trigger_key' => $template['trigger'] ?? '',
+        'audience_type' => $template['audience'] ?? '',
+        'order_id' => $args['order_id'] ?? 0,
+        'rsvp_id' => $args['rsvp_id'] ?? 0,
+        'recipient_email' => $recipient,
+        'token' => $args['token'] ?? '',
+        'order_item_id' => $queue_token_context['order_item_id'] ?? 0,
+        'product_id' => $queue_token_context['product_id'] ?? 0,
+        'variation_id' => $queue_token_context['variation_id'] ?? 0,
+        'vertical' => $queue_token_context['vertical'] ?? '',
+        'package_type' => $queue_token_context['package_type'] ?? '',
+        'bypass' => $bypass_product_filter ? 1 : 0,
+        'match' => ! empty( $product_match['match'] ) ? 1 : 0,
+        'reason' => $product_match['reason'] ?? '',
+        'allowed_products' => implode( ',', array_map( 'strval', $product_match['allowed'] ?? [] ) ),
+        'order_products' => implode( ',', array_map( 'strval', $product_match['order_products'] ?? [] ) ),
+    ] );
     if ( $bypass_product_filter ) {
         teinvit_email_log( 'debug', 'queue_test_bypass_product_filter', [ 'template_id' => $template_id, 'trigger_key' => $template['trigger'] ?? '', 'audience_type' => $template['audience'] ?? '' ] );
     } elseif ( empty( $product_match['match'] ) ) {
@@ -2843,6 +3099,11 @@ function teinvit_email_order_id_by_token( $token ) {
         return 0;
     }
 
+    $context = teinvit_email_token_context( $token );
+    if ( ! empty( $context['order_id'] ) ) {
+        return max( 0, (int) $context['order_id'] );
+    }
+
     $order_id = function_exists( 'teinvit_get_order_id_by_token' ) ? (int) teinvit_get_order_id_by_token( $token ) : 0;
     if ( $order_id > 0 ) {
         return $order_id;
@@ -2907,14 +3168,67 @@ function teinvit_email_rsvp_payload_from_row( array $row ) {
 add_action(
     'teinvit_token_generated',
     function( $order_id, $token, $context = [] ) {
-        if ( is_array( $context ) && ! empty( $context['is_multi_token_order'] ) ) {
+        $token = sanitize_text_field( (string) $token );
+        $hook_context = is_array( $context ) ? $context : [];
+        $token_context = teinvit_email_token_context( $token );
+        $email_context = ! empty( $token_context ) ? $token_context : $hook_context;
+        $order_id = max( 0, (int) $order_id );
+        if ( $order_id <= 0 && ! empty( $email_context['order_id'] ) ) {
+            $order_id = max( 0, (int) $email_context['order_id'] );
+        }
+
+        if ( $token === '' || $order_id <= 0 ) {
             return;
         }
 
-        $recipient = teinvit_email_customer_for_order( (int) $order_id );
+        $recipient = teinvit_email_customer_for_context( $token, $order_id );
         if ( $recipient === '' ) {
             return;
         }
+
+        $vertical = ! empty( $email_context['vertical'] ) ? sanitize_key( (string) $email_context['vertical'] ) : ( function_exists( 'teinvit_resolve_token_vertical' ) ? sanitize_key( (string) teinvit_resolve_token_vertical( $token ) ) : 'wedding' );
+        if ( $vertical === '' ) {
+            $vertical = 'wedding';
+        }
+        $product_id = max( 0, (int) ( $email_context['product_id'] ?? 0 ) );
+        $variation_id = max( 0, (int) ( $email_context['variation_id'] ?? 0 ) );
+        $order_item_id = max( 0, (int) ( $email_context['order_item_id'] ?? 0 ) );
+        $package_type = ! empty( $email_context['package_type'] ) ? sanitize_key( (string) $email_context['package_type'] ) : '';
+        $pdf = teinvit_email_token_pdf_context( $token, is_array( $email_context ) ? $email_context : [], [] );
+        $payload = [
+            'token' => $token,
+            'order_id' => $order_id,
+            'order_item_id' => $order_item_id,
+            'product_id' => $product_id,
+            'variation_id' => $variation_id,
+            'token_product_id' => $product_id,
+            'token_variation_id' => $variation_id,
+            'token_product_name' => ! empty( $email_context['product_name'] ) ? sanitize_text_field( (string) $email_context['product_name'] ) : '',
+            'token_product_slug' => ! empty( $email_context['product_slug'] ) ? sanitize_title( (string) $email_context['product_slug'] ) : '',
+            'vertical' => $vertical,
+            'token_vertical' => $vertical,
+            'package_type' => $package_type,
+            'token_package_type' => $package_type,
+            'admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
+            'invitati_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
+            'token_admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
+            'token_invitation_url' => home_url( '/i/' . rawurlencode( $token ) ),
+            'token_guest_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
+            'pdf_url' => (string) ( $pdf['url'] ?? '' ),
+            'pdf_filename' => (string) ( $pdf['filename'] ?? '' ),
+            'pdf_status' => (string) ( $pdf['status'] ?? '' ),
+        ];
+
+        teinvit_email_log( 'debug', 'token_generated_queue_token_context', [
+            'token' => $token,
+            'order_id' => $order_id,
+            'order_item_id' => $order_item_id,
+            'product_id' => $product_id,
+            'variation_id' => $variation_id,
+            'vertical' => $vertical,
+            'package_type' => $package_type,
+            'recipient_email' => $recipient,
+        ] );
 
         $template_ids = teinvit_email_active_templates_for_event( 'token_generated', 'customer' );
         foreach ( $template_ids as $template_id ) {
@@ -2923,10 +3237,11 @@ add_action(
                 teinvit_email_queue_args_with_template_delay(
                     $template_id,
                     [
-                        'token'           => sanitize_text_field( (string) $token ),
-                        'order_id'        => (int) $order_id,
+                        'token'           => $token,
+                        'order_id'        => $order_id,
                         'recipient_email' => $recipient,
-                        'payload'         => [],
+                        'payload'         => $payload,
+                        'semantic_hash'   => hash( 'sha256', 'token_generated|' . sanitize_key( (string) $template_id ) . '|' . $token ),
                         'trigger'         => 'token_generated',
                         'audience'        => 'customer',
                     ]
@@ -2949,8 +3264,8 @@ add_action(
             return;
         }
 
-        $recipient = teinvit_email_customer_for_order( $order_id );
-        if ( empty( $recipient['email'] ) ) {
+        $recipient = teinvit_email_customer_for_context( $token, $order_id );
+        if ( $recipient === '' ) {
             return;
         }
 
@@ -2966,7 +3281,7 @@ add_action(
             teinvit_email_queue_template(
                 $template_id,
                 [
-                    'recipient_email' => $recipient['email'],
+                    'recipient_email' => $recipient,
                     'token'           => $token,
                     'order_id'        => $order_id,
                     'payload'         => array_merge( $payload, [
