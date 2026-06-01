@@ -18,6 +18,618 @@ function teinvit_db_tables() {
     ];
 }
 
+function teinvit_order_token_tables() {
+    global $wpdb;
+
+    return [
+        'order_tokens'       => $wpdb->prefix . 'teinvit_order_tokens',
+        'order_token_addons' => $wpdb->prefix . 'teinvit_order_token_addons',
+    ];
+}
+
+function teinvit_order_tokens_table() {
+    $tables = teinvit_order_token_tables();
+    return $tables['order_tokens'];
+}
+
+function teinvit_order_token_addons_table() {
+    $tables = teinvit_order_token_tables();
+    return $tables['order_token_addons'];
+}
+
+function teinvit_install_order_token_tables() {
+    global $wpdb;
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $charset = $wpdb->get_charset_collate();
+    $tables = teinvit_order_token_tables();
+
+    dbDelta( "CREATE TABLE {$tables['order_tokens']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        token varchar(191) NOT NULL,
+        order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        order_item_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        product_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        variation_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        quantity_index int(10) unsigned NOT NULL DEFAULT 1,
+        vertical varchar(64) NOT NULL DEFAULT '',
+        package_type varchar(64) NOT NULL DEFAULT 'unknown',
+        product_slug varchar(191) NOT NULL DEFAULT '',
+        product_name text NULL,
+        status varchar(40) NOT NULL DEFAULT 'pending',
+        pdf_status varchar(40) NOT NULL DEFAULT '',
+        legacy tinyint(1) NOT NULL DEFAULT 0,
+        last_error text NULL,
+        debug_context_json longtext NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY token (token),
+        UNIQUE KEY order_item_unit (order_id, order_item_id, quantity_index),
+        KEY order_id (order_id),
+        KEY order_item_id (order_item_id),
+        KEY product_id (product_id),
+        KEY vertical (vertical),
+        KEY status (status),
+        KEY legacy (legacy)
+    ) $charset;" );
+
+    dbDelta( "CREATE TABLE {$tables['order_token_addons']} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        target_token varchar(191) NOT NULL DEFAULT '',
+        order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        order_item_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        product_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        variation_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        addon_type varchar(64) NOT NULL DEFAULT 'unknown',
+        vertical varchar(64) NOT NULL DEFAULT '',
+        status varchar(40) NOT NULL DEFAULT 'pending',
+        capability_changed varchar(64) NOT NULL DEFAULT '',
+        error_message text NULL,
+        debug_context_json longtext NULL,
+        applied_at datetime NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        KEY target_token (target_token),
+        KEY order_id (order_id),
+        KEY order_item_id (order_item_id),
+        KEY product_id (product_id),
+        KEY addon_type (addon_type),
+        KEY status (status)
+    ) $charset;" );
+}
+
+function teinvit_database_table_exists( $table_name ) {
+    global $wpdb;
+
+    $table_name = (string) $table_name;
+    if ( $table_name === '' ) {
+        return false;
+    }
+
+    $found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+    return (string) $found === $table_name;
+}
+
+function teinvit_order_token_tables_exist() {
+    $tables = teinvit_order_token_tables();
+    return teinvit_database_table_exists( $tables['order_tokens'] )
+        && teinvit_database_table_exists( $tables['order_token_addons'] );
+}
+
+function teinvit_order_token_resolver_enabled() {
+    $enabled = get_option( 'teinvit_order_token_resolver_enabled', '1' ) !== '0';
+    return (bool) apply_filters( 'teinvit_order_token_resolver_enabled', $enabled );
+}
+
+function teinvit_order_token_normalize_vertical( $vertical ) {
+    $vertical = sanitize_key( (string) $vertical );
+
+    if ( function_exists( 'teinvit_normalize_vertical_key' ) ) {
+        return teinvit_normalize_vertical_key( $vertical );
+    }
+
+    return $vertical !== '' ? $vertical : 'wedding';
+}
+
+function teinvit_order_token_normalize_package_type( $package_type ) {
+    $package_type = sanitize_key( (string) $package_type );
+    return in_array( $package_type, [ 'basic', 'premium' ], true ) ? $package_type : 'unknown';
+}
+
+function teinvit_order_token_decode_json( $raw ) {
+    if ( is_array( $raw ) ) {
+        return $raw;
+    }
+
+    $decoded = json_decode( (string) $raw, true );
+    return is_array( $decoded ) ? $decoded : [];
+}
+
+function teinvit_normalize_order_token_row( array $row ) {
+    $row['id'] = (int) ( $row['id'] ?? 0 );
+    $row['token'] = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
+    $row['order_id'] = max( 0, (int) ( $row['order_id'] ?? 0 ) );
+    $row['order_item_id'] = max( 0, (int) ( $row['order_item_id'] ?? 0 ) );
+    $row['product_id'] = max( 0, (int) ( $row['product_id'] ?? 0 ) );
+    $row['variation_id'] = max( 0, (int) ( $row['variation_id'] ?? 0 ) );
+    $row['quantity_index'] = max( 1, (int) ( $row['quantity_index'] ?? 1 ) );
+    $row['vertical'] = teinvit_order_token_normalize_vertical( $row['vertical'] ?? '' );
+    $row['package_type'] = teinvit_order_token_normalize_package_type( $row['package_type'] ?? '' );
+    $row['product_slug'] = sanitize_title( (string) ( $row['product_slug'] ?? '' ) );
+    $row['product_name'] = sanitize_text_field( (string) ( $row['product_name'] ?? '' ) );
+    $row['status'] = sanitize_key( (string) ( $row['status'] ?? 'pending' ) );
+    $row['pdf_status'] = sanitize_key( (string) ( $row['pdf_status'] ?? '' ) );
+    $row['legacy'] = ! empty( $row['legacy'] ) ? 1 : 0;
+    $row['last_error'] = sanitize_textarea_field( (string) ( $row['last_error'] ?? '' ) );
+    $row['debug_context'] = teinvit_order_token_decode_json( $row['debug_context_json'] ?? '' );
+
+    return $row;
+}
+
+function teinvit_normalize_order_token_addon_row( array $row ) {
+    $row['id'] = (int) ( $row['id'] ?? 0 );
+    $row['target_token'] = sanitize_text_field( (string) ( $row['target_token'] ?? '' ) );
+    $row['order_id'] = max( 0, (int) ( $row['order_id'] ?? 0 ) );
+    $row['order_item_id'] = max( 0, (int) ( $row['order_item_id'] ?? 0 ) );
+    $row['product_id'] = max( 0, (int) ( $row['product_id'] ?? 0 ) );
+    $row['variation_id'] = max( 0, (int) ( $row['variation_id'] ?? 0 ) );
+    $row['addon_type'] = sanitize_key( (string) ( $row['addon_type'] ?? 'unknown' ) );
+    $row['vertical'] = teinvit_order_token_normalize_vertical( $row['vertical'] ?? '' );
+    $row['status'] = sanitize_key( (string) ( $row['status'] ?? 'pending' ) );
+    $row['capability_changed'] = sanitize_key( (string) ( $row['capability_changed'] ?? '' ) );
+    $row['error_message'] = sanitize_textarea_field( (string) ( $row['error_message'] ?? '' ) );
+    $row['debug_context'] = teinvit_order_token_decode_json( $row['debug_context_json'] ?? '' );
+
+    return $row;
+}
+
+function teinvit_get_order_token_row( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' || ! teinvit_database_table_exists( teinvit_order_tokens_table() ) ) {
+        return null;
+    }
+
+    $row = $wpdb->get_row(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_tokens_table() . ' WHERE token = %s LIMIT 1', $token ),
+        ARRAY_A
+    );
+
+    return is_array( $row ) ? teinvit_normalize_order_token_row( $row ) : null;
+}
+
+function teinvit_get_order_token_addons( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' || ! teinvit_database_table_exists( teinvit_order_token_addons_table() ) ) {
+        return [];
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_token_addons_table() . ' WHERE target_token = %s ORDER BY id ASC', $token ),
+        ARRAY_A
+    );
+
+    if ( ! is_array( $rows ) ) {
+        return [];
+    }
+
+    return array_map( 'teinvit_normalize_order_token_addon_row', $rows );
+}
+
+function teinvit_get_order_tokens_for_order( $order_id ) {
+    global $wpdb;
+
+    $order_id = max( 0, (int) $order_id );
+    if ( $order_id <= 0 || ! teinvit_database_table_exists( teinvit_order_tokens_table() ) ) {
+        return [];
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_tokens_table() . ' WHERE order_id = %d ORDER BY order_item_id ASC, quantity_index ASC, id ASC', $order_id ),
+        ARRAY_A
+    );
+
+    if ( ! is_array( $rows ) ) {
+        return [];
+    }
+
+    return array_map( 'teinvit_normalize_order_token_row', $rows );
+}
+
+function teinvit_order_token_exists( $token ) {
+    return (bool) teinvit_get_order_token_row( $token );
+}
+
+function teinvit_token_context_invalid( $token, $reason = 'not_found' ) {
+    return [
+        'valid' => false,
+        'source' => 'none',
+        'legacy' => false,
+        'token' => sanitize_text_field( (string) $token ),
+        'order_id' => 0,
+        'order' => null,
+        'order_item_id' => 0,
+        'order_item' => null,
+        'product_id' => 0,
+        'variation_id' => 0,
+        'product' => null,
+        'product_slug' => '',
+        'product_name' => '',
+        'vertical' => '',
+        'package_type' => 'unknown',
+        'capabilities' => null,
+        'active_snapshot' => null,
+        'storage_tables' => [],
+        'addons' => [],
+        'error' => sanitize_key( (string) $reason ),
+    ];
+}
+
+function teinvit_find_legacy_order_id_by_token( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return 0;
+    }
+
+    if ( function_exists( 'teinvit_get_order_id_by_token' ) ) {
+        $order_id = (int) teinvit_get_order_id_by_token( $token );
+        if ( $order_id > 0 ) {
+            return $order_id;
+        }
+    }
+
+    return (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_teinvit_token' AND meta_value = %s LIMIT 1",
+            $token
+        )
+    );
+}
+
+function teinvit_order_token_get_order( $order_id ) {
+    $order_id = max( 0, (int) $order_id );
+    if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
+        return null;
+    }
+
+    $order = wc_get_order( $order_id );
+    return is_object( $order ) ? $order : null;
+}
+
+function teinvit_order_token_find_order_item( $order, $order_item_id = 0 ) {
+    if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+        return null;
+    }
+
+    $order_item_id = max( 0, (int) $order_item_id );
+    if ( $order_item_id > 0 && method_exists( $order, 'get_item' ) ) {
+        $item = $order->get_item( $order_item_id );
+        if ( is_object( $item ) ) {
+            return $item;
+        }
+    }
+
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        if ( is_object( $item ) ) {
+            return $item;
+        }
+    }
+
+    return null;
+}
+
+function teinvit_order_token_item_ids( $item ) {
+    if ( ! is_object( $item ) ) {
+        return [
+            'order_item_id' => 0,
+            'product_id' => 0,
+            'variation_id' => 0,
+        ];
+    }
+
+    return [
+        'order_item_id' => method_exists( $item, 'get_id' ) ? max( 0, (int) $item->get_id() ) : 0,
+        'product_id' => method_exists( $item, 'get_product_id' ) ? max( 0, (int) $item->get_product_id() ) : 0,
+        'variation_id' => method_exists( $item, 'get_variation_id' ) ? max( 0, (int) $item->get_variation_id() ) : 0,
+    ];
+}
+
+function teinvit_order_token_product_context( $product_id, $variation_id = 0, $fallback_slug = '', $fallback_name = '' ) {
+    $product_id = max( 0, (int) $product_id );
+    $variation_id = max( 0, (int) $variation_id );
+    $fallback_slug = sanitize_title( (string) $fallback_slug );
+    $fallback_name = sanitize_text_field( (string) $fallback_name );
+    $product = null;
+
+    if ( function_exists( 'wc_get_product' ) ) {
+        $lookup_id = $variation_id > 0 ? $variation_id : $product_id;
+        if ( $lookup_id > 0 ) {
+            $product = wc_get_product( $lookup_id );
+        }
+        if ( ! is_object( $product ) && $product_id > 0 ) {
+            $product = wc_get_product( $product_id );
+        }
+    }
+
+    $slug = $fallback_slug;
+    if ( $slug === '' && is_object( $product ) && method_exists( $product, 'get_slug' ) ) {
+        $slug = sanitize_title( (string) $product->get_slug() );
+    }
+
+    $name = $fallback_name;
+    if ( $name === '' && is_object( $product ) && method_exists( $product, 'get_name' ) ) {
+        $name = sanitize_text_field( (string) $product->get_name() );
+    }
+
+    return [
+        'product' => is_object( $product ) ? $product : null,
+        'product_id' => $product_id,
+        'variation_id' => $variation_id,
+        'product_slug' => $slug,
+        'product_name' => $name,
+    ];
+}
+
+function teinvit_order_token_package_type_for_product( $product_id, $variation_id = 0, $vertical = '' ) {
+    if ( ! function_exists( 'teinvit_get_custom_products_catalog' ) || ! function_exists( 'teinvit_catalog_role_ids' ) ) {
+        return 'unknown';
+    }
+
+    $product_id = max( 0, (int) $product_id );
+    $variation_id = max( 0, (int) $variation_id );
+    $ids = array_values( array_filter( [ $product_id, $variation_id ], static function( $id ) {
+        return (int) $id > 0;
+    } ) );
+
+    if ( empty( $ids ) ) {
+        return 'unknown';
+    }
+
+    $catalogs = teinvit_get_custom_products_catalog();
+    $vertical = teinvit_order_token_normalize_vertical( $vertical );
+    $candidates = [];
+    if ( isset( $catalogs[ $vertical ] ) ) {
+        $candidates[] = $catalogs[ $vertical ];
+    }
+    foreach ( $catalogs as $catalog ) {
+        $candidates[] = $catalog;
+    }
+
+    foreach ( $candidates as $catalog ) {
+        if ( ! is_array( $catalog ) ) {
+            continue;
+        }
+
+        $premium_ids = teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' );
+        if ( array_intersect( $ids, array_map( 'intval', $premium_ids ) ) ) {
+            return 'premium';
+        }
+
+        $basic_ids = teinvit_catalog_role_ids( $catalog, 'basic_product_ids' );
+        if ( array_intersect( $ids, array_map( 'intval', $basic_ids ) ) ) {
+            return 'basic';
+        }
+    }
+
+    return 'unknown';
+}
+
+function teinvit_order_token_package_type_from_product_state( $product_state ) {
+    $product_state = sanitize_key( (string) $product_state );
+
+    if ( $product_state === 'premium_native' ) {
+        return 'premium';
+    }
+
+    if ( in_array( $product_state, [ 'basic_pure', 'basic_upgraded' ], true ) ) {
+        return 'basic';
+    }
+
+    return 'unknown';
+}
+
+function teinvit_order_token_storage_tables( $token, $vertical = '' ) {
+    if ( function_exists( 'teinvit_storage_tables_for_existing_token' ) ) {
+        $tables = teinvit_storage_tables_for_existing_token( $token, $vertical );
+        return is_array( $tables ) ? $tables : [];
+    }
+
+    if ( function_exists( 'teinvit_storage_tables_for_vertical_safe' ) ) {
+        $tables = teinvit_storage_tables_for_vertical_safe( $vertical );
+        return is_array( $tables ) ? $tables : [];
+    }
+
+    return [];
+}
+
+function teinvit_order_token_active_snapshot( $token, $vertical = '' ) {
+    if ( function_exists( 'teinvit_get_active_snapshot_for_token_from_storage' ) ) {
+        $snapshot = teinvit_get_active_snapshot_for_token_from_storage( $token, $vertical );
+        return is_array( $snapshot ) ? $snapshot : null;
+    }
+
+    if ( function_exists( 'teinvit_get_active_snapshot' ) ) {
+        $snapshot = teinvit_get_active_snapshot( $token );
+        return is_array( $snapshot ) ? $snapshot : null;
+    }
+
+    return null;
+}
+
+function teinvit_order_token_capabilities_for_legacy_token( $token ) {
+    if ( ! function_exists( 'teinvit_capabilities_for_token' ) || ! function_exists( 'wc_get_order' ) ) {
+        return null;
+    }
+
+    $capabilities = teinvit_capabilities_for_token( $token );
+    return is_array( $capabilities ) ? $capabilities : null;
+}
+
+function teinvit_build_order_token_context_from_row( array $row ) {
+    $row = teinvit_normalize_order_token_row( $row );
+    $token = $row['token'];
+    if ( $token === '' ) {
+        return teinvit_token_context_invalid( $token, 'empty_token' );
+    }
+
+    $order = teinvit_order_token_get_order( $row['order_id'] );
+    $order_item = teinvit_order_token_find_order_item( $order, $row['order_item_id'] );
+    $item_ids = teinvit_order_token_item_ids( $order_item );
+
+    $order_item_id = $row['order_item_id'] > 0 ? $row['order_item_id'] : $item_ids['order_item_id'];
+    $product_id = $row['product_id'] > 0 ? $row['product_id'] : $item_ids['product_id'];
+    $variation_id = $row['variation_id'] > 0 ? $row['variation_id'] : $item_ids['variation_id'];
+    $vertical = $row['vertical'];
+
+    $package_type = $row['package_type'];
+    if ( $package_type === 'unknown' ) {
+        $package_type = teinvit_order_token_package_type_for_product( $product_id, $variation_id, $vertical );
+    }
+
+    $product_context = teinvit_order_token_product_context( $product_id, $variation_id, $row['product_slug'], $row['product_name'] );
+    $active_snapshot = teinvit_order_token_active_snapshot( $token, $vertical );
+    $pdf_status = $row['pdf_status'];
+    if ( $pdf_status === '' && is_array( $active_snapshot ) && ! empty( $active_snapshot['pdf_status'] ) ) {
+        $pdf_status = sanitize_key( (string) $active_snapshot['pdf_status'] );
+    }
+
+    return [
+        'valid' => true,
+        'source' => 'order_tokens',
+        'legacy' => (bool) $row['legacy'],
+        'token' => $token,
+        'order_token_row' => $row,
+        'order_id' => $row['order_id'],
+        'order' => $order,
+        'order_item_id' => $order_item_id,
+        'order_item' => $order_item,
+        'product_id' => $product_context['product_id'],
+        'variation_id' => $product_context['variation_id'],
+        'product' => $product_context['product'],
+        'product_slug' => $product_context['product_slug'],
+        'product_name' => $product_context['product_name'],
+        'quantity_index' => $row['quantity_index'],
+        'vertical' => $vertical,
+        'package_type' => $package_type,
+        'status' => $row['status'],
+        'pdf_status' => $pdf_status,
+        'capabilities' => null,
+        'active_snapshot' => $active_snapshot,
+        'storage_tables' => teinvit_order_token_storage_tables( $token, $vertical ),
+        'addons' => teinvit_get_order_token_addons( $token ),
+        'debug_context' => $row['debug_context'],
+        'last_error' => $row['last_error'],
+        'error' => '',
+    ];
+}
+
+function teinvit_build_legacy_token_context( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return teinvit_token_context_invalid( $token, 'empty_token' );
+    }
+
+    $order_id = teinvit_find_legacy_order_id_by_token( $token );
+    if ( $order_id <= 0 ) {
+        return teinvit_token_context_invalid( $token, 'not_found' );
+    }
+
+    $order = teinvit_order_token_get_order( $order_id );
+    $order_item = teinvit_order_token_find_order_item( $order );
+    $item_ids = teinvit_order_token_item_ids( $order_item );
+    $product_id = $item_ids['product_id'];
+    $variation_id = $item_ids['variation_id'];
+
+    if ( $product_id <= 0 && is_object( $order ) && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+        $product_id = max( 0, (int) teinvit_get_order_primary_product_id( $order ) );
+    }
+
+    $vertical = function_exists( 'teinvit_resolve_token_vertical' )
+        ? teinvit_order_token_normalize_vertical( teinvit_resolve_token_vertical( $token ) )
+        : 'wedding';
+
+    $product_state = '';
+    if ( function_exists( 'teinvit_resolve_token_product_state' ) && function_exists( 'wc_get_order' ) ) {
+        $product_state = sanitize_key( (string) teinvit_resolve_token_product_state( $token ) );
+    }
+
+    $package_type = teinvit_order_token_package_type_from_product_state( $product_state );
+    if ( $package_type === 'unknown' ) {
+        $package_type = teinvit_order_token_package_type_for_product( $product_id, $variation_id, $vertical );
+    }
+
+    $product_context = teinvit_order_token_product_context( $product_id, $variation_id );
+    $active_snapshot = teinvit_order_token_active_snapshot( $token, $vertical );
+    $pdf_url = '';
+    $pdf_status = '';
+    if ( is_object( $order ) && method_exists( $order, 'get_meta' ) ) {
+        $pdf_url = esc_url_raw( (string) $order->get_meta( '_teinvit_pdf_url' ) );
+        $pdf_status = sanitize_key( (string) $order->get_meta( '_teinvit_pdf_status' ) );
+    }
+    if ( $pdf_status === '' && is_array( $active_snapshot ) && ! empty( $active_snapshot['pdf_status'] ) ) {
+        $pdf_status = sanitize_key( (string) $active_snapshot['pdf_status'] );
+    }
+
+    return [
+        'valid' => true,
+        'source' => 'legacy',
+        'legacy' => true,
+        'token' => $token,
+        'order_token_row' => null,
+        'order_id' => $order_id,
+        'order' => $order,
+        'order_item_id' => $item_ids['order_item_id'],
+        'order_item' => $order_item,
+        'product_id' => $product_context['product_id'],
+        'variation_id' => $product_context['variation_id'],
+        'product' => $product_context['product'],
+        'product_slug' => $product_context['product_slug'],
+        'product_name' => $product_context['product_name'],
+        'quantity_index' => 1,
+        'vertical' => $vertical,
+        'package_type' => $package_type,
+        'product_state' => $product_state,
+        'status' => 'legacy',
+        'pdf_url' => $pdf_url,
+        'pdf_status' => $pdf_status,
+        'capabilities' => teinvit_order_token_capabilities_for_legacy_token( $token ),
+        'active_snapshot' => $active_snapshot,
+        'storage_tables' => teinvit_order_token_storage_tables( $token, $vertical ),
+        'addons' => teinvit_get_order_token_addons( $token ),
+        'debug_context' => [],
+        'last_error' => '',
+        'error' => '',
+    ];
+}
+
+function teinvit_resolve_token_context( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return teinvit_token_context_invalid( $token, 'empty_token' );
+    }
+
+    if ( teinvit_order_token_resolver_enabled() ) {
+        $row = teinvit_get_order_token_row( $token );
+        if ( is_array( $row ) ) {
+            return teinvit_build_order_token_context_from_row( $row );
+        }
+    }
+
+    return teinvit_build_legacy_token_context( $token );
+}
+
+function teinvit_get_token_context( $token ) {
+    return teinvit_resolve_token_context( $token );
+}
+
 function teinvit_install_modular_tables() {
     global $wpdb;
 
