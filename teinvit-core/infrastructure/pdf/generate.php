@@ -49,6 +49,18 @@ function teinvit_try_generate_pdf( $order_id, $manual = false ) {
         return;
     }
 
+    if ( function_exists( 'teinvit_get_order_tokens_for_order' ) ) {
+        $order_token_rows = teinvit_get_order_tokens_for_order( (int) $order_id );
+        if ( is_array( $order_token_rows ) && count( $order_token_rows ) > 1 ) {
+            if ( ! $order->get_meta( '_teinvit_phase3_pdf_multi_skip_noted', true ) ) {
+                $order->add_order_note( 'TeInvit: PDF order-level generation skipped for multi-token order; PDF per token is reserved for a later phase.' );
+                $order->update_meta_data( '_teinvit_phase3_pdf_multi_skip_noted', 1 );
+                $order->save();
+            }
+            return;
+        }
+    }
+
     /* =========================
        TOKEN
     ========================= */
@@ -205,11 +217,26 @@ function teinvit_try_generate_pdf( $order_id, $manual = false ) {
 ===================================================== */
 add_action(
     'teinvit_token_generated',
-    function ( $order_id ) {
+    function ( $order_id, $token = '', $context = [] ) {
+        if ( is_array( $context ) && ! empty( $context['is_multi_token_order'] ) ) {
+            static $noted_orders = [];
+            $order_id = (int) $order_id;
+            if ( empty( $noted_orders[ $order_id ] ) && function_exists( 'wc_get_order' ) ) {
+                $order = wc_get_order( $order_id );
+                if ( $order && ! $order->get_meta( '_teinvit_phase3_pdf_multi_skip_noted', true ) ) {
+                    $order->add_order_note( 'TeInvit: PDF auto-generation skipped for multi-token order; PDF per token is reserved for a later phase.' );
+                    $order->update_meta_data( '_teinvit_phase3_pdf_multi_skip_noted', 1 );
+                    $order->save();
+                }
+                $noted_orders[ $order_id ] = true;
+            }
+            return;
+        }
+
         teinvit_try_generate_pdf( $order_id, false );
     },
     10,
-    1
+    3
 );
 
 /* =====================================================

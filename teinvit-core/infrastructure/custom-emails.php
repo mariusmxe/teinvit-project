@@ -2906,7 +2906,11 @@ function teinvit_email_rsvp_payload_from_row( array $row ) {
 
 add_action(
     'teinvit_token_generated',
-    function( $order_id, $token ) {
+    function( $order_id, $token, $context = [] ) {
+        if ( is_array( $context ) && ! empty( $context['is_multi_token_order'] ) ) {
+            return;
+        }
+
         $recipient = teinvit_email_customer_for_order( (int) $order_id );
         if ( $recipient === '' ) {
             return;
@@ -2931,7 +2935,7 @@ add_action(
         }
     },
     10,
-    2
+    3
 );
 
 add_action(
@@ -3096,6 +3100,14 @@ add_action(
     'woocommerce_order_status_completed',
     function( $order_id ) {
         $order_id = (int) $order_id;
+        if ( function_exists( 'teinvit_get_order_tokens_for_order' ) ) {
+            $order_token_rows = teinvit_get_order_tokens_for_order( $order_id );
+            if ( is_array( $order_token_rows ) && count( $order_token_rows ) > 1 ) {
+                teinvit_email_log( 'info', 'product_purchased_multi_token_skipped', [ 'order_id' => $order_id ] );
+                return;
+            }
+        }
+
         $recipient = teinvit_email_customer_for_order( $order_id );
         if ( $recipient === '' ) {
             teinvit_email_log( 'warning', 'product_purchased_invalid_recipient', [ 'order_id' => $order_id ] );

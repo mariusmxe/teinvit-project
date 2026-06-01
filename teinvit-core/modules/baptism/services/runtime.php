@@ -401,11 +401,14 @@ function teinvit_baptism_payload_from_wapf_map( array $wapf, array $context = []
 
 function teinvit_baptism_payload_builder( array $context = [] ) {
     $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
-    if ( ! $order ) {
+    $item = isset( $context['order_item'] ) && $context['order_item'] instanceof WC_Order_Item_Product ? $context['order_item'] : null;
+    if ( ! $order && ! $item ) {
         return [ 'invitation' => [], 'wapf_fields' => [] ];
     }
 
-    $wapf = teinvit_extract_order_wapf_field_map( $order );
+    $wapf = $item && function_exists( 'teinvit_extract_order_item_wapf_field_map' )
+        ? teinvit_extract_order_item_wapf_field_map( $item )
+        : teinvit_extract_order_wapf_field_map( $order );
     return teinvit_baptism_payload_from_wapf_map( $wapf );
 }
 

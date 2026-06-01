@@ -137,10 +137,14 @@ function teinvit_resolve_vertical_for_order( $order ) {
     return teinvit_default_vertical_key();
 }
 
-function teinvit_snapshot_vertical_on_token_generated( $order_id, $token ) {
+function teinvit_snapshot_vertical_on_token_generated( $order_id, $token, $context = [] ) {
     $order_id = (int) $order_id;
     $token = sanitize_text_field( (string) $token );
     if ( $order_id <= 0 || $token === '' ) {
+        return;
+    }
+
+    if ( is_array( $context ) && ! empty( $context['is_multi_token_order'] ) ) {
         return;
     }
 
@@ -149,12 +153,14 @@ function teinvit_snapshot_vertical_on_token_generated( $order_id, $token ) {
         return;
     }
 
-    $vertical_key = teinvit_resolve_vertical_for_order( $order );
+    $vertical_key = is_array( $context ) && ! empty( $context['vertical'] )
+        ? teinvit_normalize_vertical_key( $context['vertical'] )
+        : teinvit_resolve_vertical_for_order( $order );
 
     update_post_meta( $order_id, '_teinvit_vertical_key_snapshot', $vertical_key );
     update_post_meta( $order_id, '_teinvit_vertical_key', $vertical_key );
 }
-add_action( 'teinvit_token_generated', 'teinvit_snapshot_vertical_on_token_generated', 20, 2 );
+add_action( 'teinvit_token_generated', 'teinvit_snapshot_vertical_on_token_generated', 20, 3 );
 
 function teinvit_resolve_token_vertical( $token ) {
     $token = sanitize_text_field( (string) $token );
@@ -166,6 +172,13 @@ function teinvit_resolve_token_vertical( $token ) {
         $inv = teinvit_get_invitation( $token );
         if ( is_array( $inv ) && ! empty( $inv['module_key'] ) ) {
             return teinvit_normalize_vertical_key( $inv['module_key'] );
+        }
+    }
+
+    if ( function_exists( 'teinvit_get_order_token_row' ) ) {
+        $order_token_row = teinvit_get_order_token_row( $token );
+        if ( is_array( $order_token_row ) && ! empty( $order_token_row['vertical'] ) ) {
+            return teinvit_normalize_vertical_key( $order_token_row['vertical'] );
         }
     }
 

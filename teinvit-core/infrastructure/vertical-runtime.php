@@ -25,6 +25,10 @@ function teinvit_extract_order_wapf_field_map( WC_Order $order ) {
     }
 
     $item = reset( $items );
+    return teinvit_extract_order_item_wapf_field_map( $item );
+}
+
+function teinvit_extract_order_item_wapf_field_map( $item ) {
     if ( ! $item instanceof WC_Order_Item_Product ) {
         return [];
     }
@@ -122,6 +126,42 @@ function teinvit_extract_order_wapf_field_map( WC_Order $order ) {
     }
 
     return $map;
+}
+
+function teinvit_build_invitation_payload_from_order_item( $vertical_key, WC_Order $order, $item, $token = '', array $context = [] ) {
+    $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
+    if ( ! $item instanceof WC_Order_Item_Product ) {
+        return [ 'invitation' => [], 'wapf_fields' => [] ];
+    }
+
+    $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
+    $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+    $effective_product_id = $variation_id > 0 ? $variation_id : $product_id;
+
+    if ( $vertical_key === 'wedding' && class_exists( 'TeInvit_Wedding_Preview_Renderer' ) ) {
+        $wapf_map = method_exists( 'TeInvit_Wedding_Preview_Renderer', 'get_order_item_wapf_field_map' )
+            ? TeInvit_Wedding_Preview_Renderer::get_order_item_wapf_field_map( $item )
+            : teinvit_extract_order_item_wapf_field_map( $item );
+        $defs = function_exists( 'teinvit_get_wapf_defs_for_product' ) ? teinvit_get_wapf_defs_for_product( $effective_product_id > 0 ? $effective_product_id : $product_id ) : [];
+        $built = function_exists( 'teinvit_build_invitation_from_wapf_map_canonical' ) ? teinvit_build_invitation_from_wapf_map_canonical( $wapf_map, $defs ) : [
+            'invitation' => method_exists( 'TeInvit_Wedding_Preview_Renderer', 'get_order_item_invitation_data' )
+                ? TeInvit_Wedding_Preview_Renderer::get_order_item_invitation_data( $item )
+                : [],
+            'wapf_map' => $wapf_map,
+        ];
+
+        return [
+            'invitation' => isset( $built['invitation'] ) && is_array( $built['invitation'] ) ? $built['invitation'] : [],
+            'wapf_fields' => isset( $built['wapf_map'] ) && is_array( $built['wapf_map'] ) ? $built['wapf_map'] : $wapf_map,
+        ];
+    }
+
+    $wapf_map = teinvit_extract_order_item_wapf_field_map( $item );
+    return teinvit_build_invitation_payload_from_wapf_map(
+        $vertical_key,
+        $wapf_map,
+        $effective_product_id > 0 ? $effective_product_id : $product_id
+    );
 }
 
 function teinvit_build_invitation_payload_from_order( $vertical_key, WC_Order $order, $token = '' ) {

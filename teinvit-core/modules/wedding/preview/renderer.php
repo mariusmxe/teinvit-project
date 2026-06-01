@@ -85,6 +85,14 @@ class TeInvit_Wedding_Preview_Renderer {
         }
 
         $item = reset( $items );
+        return self::get_order_item_wapf_field_map( $item );
+    }
+
+    public static function get_order_item_wapf_field_map( $item ) {
+        if ( ! $item instanceof WC_Order_Item_Product ) {
+            return [];
+        }
+
         $normalized = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
         $map = [];
         foreach ( $normalized as $field ) {
@@ -105,6 +113,14 @@ class TeInvit_Wedding_Preview_Renderer {
         }
 
         $item = reset( $items );
+        return self::get_order_item_invitation_data( $item );
+    }
+
+    public static function get_order_item_invitation_data( $item ) {
+        if ( ! $item instanceof WC_Order_Item_Product ) {
+            return [];
+        }
+
         $wapf_data = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
 
         return self::build_invitation_from_wapf_data( $wapf_data );

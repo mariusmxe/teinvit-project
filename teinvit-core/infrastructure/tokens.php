@@ -445,6 +445,9 @@ function teinvit_order_configurable_quantity_violations( $order ) {
         if ( ! is_object( $item ) || ! method_exists( $item, 'get_quantity' ) ) {
             continue;
         }
+        if ( teinvit_order_item_is_addon_product( $item ) ) {
+            continue;
+        }
 
         $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
         $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
@@ -478,19 +481,351 @@ function teinvit_order_contains_invitation_product( $order ) {
         return false;
     }
 
-    $catalog = teinvit_get_custom_product_ids();
-    $allowed = array_values( array_unique( array_merge(
-        teinvit_catalog_role_ids( $catalog, 'basic_product_ids' ),
-        teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' )
-    ) ) );
-    foreach ( $order->get_items() as $item ) {
-        $pid = (int) $item->get_product_id();
-        if ( in_array( $pid, $allowed, true ) ) {
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        if ( teinvit_order_item_is_addon_product( $item ) ) {
+            continue;
+        }
+
+        $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
+        $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+        if ( teinvit_get_configurable_product_context( $product_id, $variation_id ) ) {
             return true;
         }
     }
 
     return false;
+}
+
+function teinvit_order_item_is_addon_product( $item ) {
+    if ( ! is_object( $item ) || ! function_exists( 'teinvit_addon_product_context' ) ) {
+        return false;
+    }
+
+    $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
+    $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+
+    return (bool) teinvit_addon_product_context( $product_id, $variation_id );
+}
+
+function teinvit_phase3_order_note_once( WC_Order $order, $note, $key ) {
+    $key = sanitize_key( 'phase3_' . md5( (string) $key ) );
+    if ( $key === '' ) {
+        return false;
+    }
+
+    $stored = $order->get_meta( '_teinvit_phase3_note_keys', true );
+    if ( ! is_array( $stored ) ) {
+        $stored = [];
+    }
+
+    if ( in_array( $key, $stored, true ) ) {
+        return false;
+    }
+
+    $order->add_order_note( (string) $note );
+    $stored[] = $key;
+    $order->update_meta_data( '_teinvit_phase3_note_keys', array_values( array_unique( $stored ) ) );
+
+    return true;
+}
+
+function teinvit_order_invitation_item_context( WC_Order $order, $item_id, $item ) {
+    if ( ! $item instanceof WC_Order_Item_Product || teinvit_order_item_is_addon_product( $item ) ) {
+        return null;
+    }
+
+    $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
+    $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+    $product_context = teinvit_get_configurable_product_context( $product_id, $variation_id );
+    if ( ! $product_context ) {
+        return null;
+    }
+
+    $product = null;
+    if ( function_exists( 'wc_get_product' ) ) {
+        $lookup_id = $variation_id > 0 ? $variation_id : $product_id;
+        if ( $lookup_id > 0 ) {
+            $product = wc_get_product( $lookup_id );
+        }
+        if ( ! is_object( $product ) && $product_id > 0 ) {
+            $product = wc_get_product( $product_id );
+        }
+    }
+
+    $product_slug = is_object( $product ) && method_exists( $product, 'get_slug' )
+        ? sanitize_title( (string) $product->get_slug() )
+        : '';
+    $product_name = method_exists( $item, 'get_name' )
+        ? sanitize_text_field( (string) $item->get_name() )
+        : ( is_object( $product ) && method_exists( $product, 'get_name' ) ? sanitize_text_field( (string) $product->get_name() ) : '' );
+
+    return [
+        'order_id' => (int) $order->get_id(),
+        'order_item_id' => (int) $item_id,
+        'product_id' => $product_id,
+        'variation_id' => $variation_id,
+        'quantity_index' => 1,
+        'vertical' => sanitize_key( (string) $product_context['vertical'] ),
+        'package_type' => sanitize_key( (string) $product_context['package_type'] ),
+        'product_slug' => $product_slug,
+        'product_name' => $product_name,
+        'catalog' => is_array( $product_context['catalog'] ?? null ) ? $product_context['catalog'] : [],
+        'source' => 'order_tokens',
+    ];
+}
+
+function teinvit_order_invitation_item_contexts( WC_Order $order ) {
+    $contexts = [];
+    $skipped_addons = [];
+
+    foreach ( $order->get_items( 'line_item' ) as $item_id => $item ) {
+        if ( teinvit_order_item_is_addon_product( $item ) ) {
+            $skipped_addons[] = [
+                'item_id' => (int) $item_id,
+                'product_id' => method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0,
+                'name' => method_exists( $item, 'get_name' ) ? (string) $item->get_name() : '',
+            ];
+            continue;
+        }
+
+        $context = teinvit_order_invitation_item_context( $order, $item_id, $item );
+        if ( $context ) {
+            $contexts[ (int) $item_id ] = $context;
+        }
+    }
+
+    return [
+        'eligible' => $contexts,
+        'skipped_addons' => $skipped_addons,
+    ];
+}
+
+function teinvit_generate_unique_order_token( $order_id ) {
+    $order_id = max( 0, (int) $order_id );
+    if ( $order_id <= 0 ) {
+        return '';
+    }
+
+    for ( $attempt = 0; $attempt < 10; $attempt++ ) {
+        $token = $order_id . '-' . teinvit_generate_token_part( 20 );
+        $exists_in_order_tokens = function_exists( 'teinvit_get_order_token_row' ) && teinvit_get_order_token_row( $token );
+        $exists_legacy = function_exists( 'teinvit_find_legacy_order_id_by_token' ) && teinvit_find_legacy_order_id_by_token( $token ) > 0;
+        if ( ! $exists_in_order_tokens && ! $exists_legacy ) {
+            return $token;
+        }
+    }
+
+    return '';
+}
+
+function teinvit_order_token_public_context( array $context, array $row, $eligible_count, $generated ) {
+    unset( $context['catalog'] );
+
+    $context['token'] = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
+    $context['order_token_id'] = (int) ( $row['id'] ?? 0 );
+    $context['source'] = 'order_tokens';
+    $context['quantity_index'] = 1;
+    $context['eligible_token_count'] = max( 0, (int) $eligible_count );
+    $context['is_multi_token_order'] = (int) $eligible_count > 1;
+    $context['generated_on_this_run'] = (bool) $generated;
+
+    return $context;
+}
+
+function teinvit_seed_order_token_context( WC_Order $order, array $context, array $row, $eligible_count, $generated ) {
+    $token = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
+    if ( $token === '' ) {
+        return false;
+    }
+
+    $event_context = teinvit_order_token_public_context( $context, $row, $eligible_count, $generated );
+    $seed_context = array_merge( $event_context, [
+        'catalog' => is_array( $context['catalog'] ?? null ) ? $context['catalog'] : [],
+    ] );
+
+    $previous_status = sanitize_key( (string) ( $row['status'] ?? '' ) );
+    $seeded = function_exists( 'teinvit_seed_invitation_if_missing' )
+        ? teinvit_seed_invitation_if_missing( $token, (int) $order->get_id(), $seed_context )
+        : null;
+
+    $ok = is_array( $seeded );
+    if ( function_exists( 'teinvit_update_order_token_row' ) ) {
+        teinvit_update_order_token_row( (int) $row['id'], [
+            'status' => $ok ? 'active' : 'failed',
+            'pdf_status' => 'not_generated',
+            'last_error' => $ok ? '' : 'seed_failed',
+            'debug_context' => [
+                'phase' => 'phase3_token_generation',
+                'seeded' => $ok ? 1 : 0,
+                'generated_on_this_run' => $generated ? 1 : 0,
+                'eligible_token_count' => max( 0, (int) $eligible_count ),
+            ],
+        ] );
+    }
+
+    if ( $ok && ( $generated || $previous_status !== 'active' ) ) {
+        if ( (int) $eligible_count === 1 ) {
+            update_post_meta( (int) $order->get_id(), '_teinvit_token', $token );
+            update_post_meta( (int) $order->get_id(), '_teinvit_vertical_key_snapshot', sanitize_key( (string) ( $event_context['vertical'] ?? '' ) ) );
+            update_post_meta( (int) $order->get_id(), '_teinvit_vertical_key', sanitize_key( (string) ( $event_context['vertical'] ?? '' ) ) );
+        }
+        do_action( 'teinvit_token_generated', (int) $order->get_id(), $token, $event_context );
+    }
+
+    return $ok;
+}
+
+function teinvit_attach_order_tokens_on_completed_phase3( $order_id ) {
+    $order_id = (int) $order_id;
+    $order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+    if ( ! $order ) {
+        return;
+    }
+
+    $existing_order_token_rows = function_exists( 'teinvit_get_order_tokens_for_order' ) ? teinvit_get_order_tokens_for_order( $order_id ) : [];
+    $legacy_token = sanitize_text_field( (string) get_post_meta( $order_id, '_teinvit_token', true ) );
+    if ( $legacy_token !== '' && empty( $existing_order_token_rows ) ) {
+        teinvit_phase3_order_note_once( $order, 'TeInvit: legacy order token already exists; Phase 3 did not backfill order_tokens.', 'legacy_existing_token' );
+        $order->save();
+        return;
+    }
+
+    $quantity_violations = teinvit_order_configurable_quantity_violations( $order );
+    if ( ! empty( $quantity_violations ) ) {
+        foreach ( $quantity_violations as $violation ) {
+            $qty_label = rtrim( rtrim( number_format( (float) $violation['qty'], 4, '.', '' ), '0' ), '.' );
+            teinvit_phase3_order_note_once( $order, sprintf(
+                'TeInvit: blocked item #%d because configurable product quantity is greater than 1 (product %d, qty %s, %s %s).',
+                (int) $violation['item_id'],
+                (int) $violation['product_id'],
+                $qty_label,
+                (string) $violation['vertical'],
+                (string) $violation['package_type']
+            ), 'qty_gt_1_' . (int) $violation['item_id'] );
+        }
+        $order->update_meta_data( '_teinvit_token_generation_blocked_reason', 'configurable_qty_gt_1' );
+        $order->save();
+        return;
+    }
+
+    $scan = teinvit_order_invitation_item_contexts( $order );
+    $eligible_contexts = $scan['eligible'];
+    $eligible_count = count( $eligible_contexts );
+    $generated_count = 0;
+    $reused_count = 0;
+    $failed_count = 0;
+    $tokens = [];
+
+    foreach ( $scan['skipped_addons'] as $addon ) {
+        teinvit_phase3_order_note_once( $order, sprintf(
+            'TeInvit: skipped addon item #%d, no token generation required.',
+            (int) $addon['item_id']
+        ), 'skipped_addon_' . (int) $addon['item_id'] );
+    }
+
+    if ( $eligible_count <= 0 ) {
+        teinvit_phase3_order_note_once( $order, 'TeInvit: no invitation line items found; no token generated.', 'no_invitation_items' );
+        $order->save();
+        return;
+    }
+
+    foreach ( $eligible_contexts as $item_id => $context ) {
+        $existing_row = function_exists( 'teinvit_get_order_token_row_by_unit' )
+            ? teinvit_get_order_token_row_by_unit( $order_id, (int) $item_id, 1 )
+            : null;
+        $generated = false;
+
+        if ( is_array( $existing_row ) ) {
+            $row = $existing_row;
+            $reused_count++;
+            teinvit_phase3_order_note_once( $order, sprintf(
+                'TeInvit: reused existing token %s for item #%d (%s %s).',
+                (string) $row['token'],
+                (int) $item_id,
+                (string) $context['vertical'],
+                (string) $context['package_type']
+            ), 'reused_' . (int) $item_id . '_' . (int) ( $row['id'] ?? 0 ) );
+        } else {
+            $token = teinvit_generate_unique_order_token( $order_id );
+            if ( $token === '' || ! function_exists( 'teinvit_insert_order_token_row' ) ) {
+                $failed_count++;
+                teinvit_phase3_order_note_once( $order, sprintf( 'TeInvit: failed to generate token for item #%d.', (int) $item_id ), 'failed_generate_' . (int) $item_id );
+                continue;
+            }
+
+            $row = teinvit_insert_order_token_row( array_merge( $context, [
+                'token' => $token,
+                'status' => 'pending',
+                'pdf_status' => 'not_generated',
+                'legacy' => 0,
+                'debug_context' => [
+                    'phase' => 'phase3_token_generation',
+                    'order_item_id' => (int) $item_id,
+                ],
+            ] ) );
+
+            if ( ! is_array( $row ) ) {
+                $row = function_exists( 'teinvit_get_order_token_row_by_unit' )
+                    ? teinvit_get_order_token_row_by_unit( $order_id, (int) $item_id, 1 )
+                    : null;
+            }
+
+            if ( ! is_array( $row ) ) {
+                $failed_count++;
+                teinvit_phase3_order_note_once( $order, sprintf( 'TeInvit: failed to save order_tokens row for item #%d.', (int) $item_id ), 'failed_save_' . (int) $item_id );
+                continue;
+            }
+
+            $generated = true;
+            $generated_count++;
+        }
+
+        $seeded = teinvit_seed_order_token_context( $order, $context, $row, $eligible_count, $generated );
+        if ( ! $seeded ) {
+            $failed_count++;
+            teinvit_phase3_order_note_once( $order, sprintf(
+                'TeInvit: seed failed for token %s, item #%d (%s %s).',
+                (string) $row['token'],
+                (int) $item_id,
+                (string) $context['vertical'],
+                (string) $context['package_type']
+            ), 'seed_failed_' . (int) $item_id . '_' . (string) $row['token'] );
+            continue;
+        }
+
+        $tokens[] = [
+            'token' => (string) $row['token'],
+            'vertical' => (string) $context['vertical'],
+            'package_type' => (string) $context['package_type'],
+            'order_item_id' => (int) $item_id,
+        ];
+        if ( $generated ) {
+            teinvit_phase3_order_note_once( $order, sprintf(
+                'TeInvit: generated token %s for item #%d %s %s.',
+                (string) $row['token'],
+                (int) $item_id,
+                (string) $context['vertical'],
+                (string) $context['package_type']
+            ), 'generated_' . (int) $item_id . '_' . (string) $row['token'] );
+        }
+    }
+
+    if ( $eligible_count === 1 && count( $tokens ) === 1 ) {
+        $bridge_token = sanitize_text_field( (string) $tokens[0]['token'] );
+        update_post_meta( $order_id, '_teinvit_token', $bridge_token );
+        update_post_meta( $order_id, '_teinvit_vertical_key_snapshot', sanitize_key( (string) $tokens[0]['vertical'] ) );
+        update_post_meta( $order_id, '_teinvit_vertical_key', sanitize_key( (string) $tokens[0]['vertical'] ) );
+    }
+
+    teinvit_phase3_order_note_once( $order, sprintf(
+        'TeInvit: completed token scan found %d invitation item(s); generated %d, reused %d, failed %d.',
+        $eligible_count,
+        $generated_count,
+        $reused_count,
+        $failed_count
+    ), 'completed_scan_summary' );
+
+    $order->save();
 }
 
 /**
@@ -504,56 +839,7 @@ function teinvit_attach_token_on_completed( $order_id ) {
         return;
     }
 
-    // Prevent regeneration
-    if ( get_post_meta( $order_id, '_teinvit_token', true ) ) {
-        return;
-    }
-
-    $order = wc_get_order( $order_id );
-    if ( ! $order ) {
-        return;
-    }
-
-    $quantity_violations = teinvit_order_configurable_quantity_violations( $order );
-    if ( ! empty( $quantity_violations ) ) {
-        $parts = [];
-        foreach ( $quantity_violations as $violation ) {
-            $qty_label = rtrim( rtrim( number_format( (float) $violation['qty'], 4, '.', '' ), '0' ), '.' );
-            $parts[] = sprintf(
-                'item %d, product %d, qty %s, vertical %s, package %s',
-                (int) $violation['item_id'],
-                (int) $violation['product_id'],
-                $qty_label,
-                (string) $violation['vertical'],
-                (string) $violation['package_type']
-            );
-        }
-        $order->add_order_note( '[TeInvit] Generare token blocata fail-closed: produs configurabil cu qty > 1 detectat (' . implode( '; ', $parts ) . '). Activeaza Sold individually pe produs si proceseaza manual fara a genera date ambigue.' );
-        $order->update_meta_data( '_teinvit_token_generation_blocked_reason', 'configurable_qty_gt_1' );
-        $order->save();
-        return;
-    }
-
-    $random_part = teinvit_generate_token_part( 20 );
-    $token       = $order_id . '-' . $random_part;
-
-    update_post_meta( $order_id, '_teinvit_token', $token );
-
-    if ( ! teinvit_order_contains_invitation_product( $order ) ) {
-        $order->add_order_note( 'Skip PDF pipeline: order does not contain invitation product (configured Basic/Premium).' );
-        return;
-    }
-
-    // Admin-only order note
-    $order->add_order_note(
-        'Token invitație generat: ' . $token
-    );
-
-    /**
-     * 🔑 CANONIC EVENT
-     * De aici pornește TOT ce ține de PDF
-     */
-    do_action( 'teinvit_token_generated', $order_id, $token );
+    teinvit_attach_order_tokens_on_completed_phase3( $order_id );
 }
 
 /**
