@@ -222,6 +222,133 @@ function teinvit_get_order_token_addons( $token ) {
     return array_map( 'teinvit_normalize_order_token_addon_row', $rows );
 }
 
+function teinvit_order_token_addon_ledger_statuses() {
+    return [ 'pending', 'applied', 'blocked', 'failed' ];
+}
+
+function teinvit_normalize_order_token_addon_ledger_payload( array $data ) {
+    $status = sanitize_key( (string) ( $data['status'] ?? 'pending' ) );
+    if ( ! in_array( $status, teinvit_order_token_addon_ledger_statuses(), true ) ) {
+        $status = 'pending';
+    }
+
+    $debug_context = $data['debug_context_json'] ?? ( $data['debug_context'] ?? '' );
+    if ( is_array( $debug_context ) ) {
+        $debug_context = wp_json_encode( $debug_context );
+    }
+
+    $applied_at = isset( $data['applied_at'] ) ? (string) $data['applied_at'] : null;
+    if ( $applied_at === '' ) {
+        $applied_at = null;
+    }
+
+    $now = current_time( 'mysql' );
+
+    return [
+        'target_token' => sanitize_text_field( (string) ( $data['target_token'] ?? '' ) ),
+        'order_id' => max( 0, (int) ( $data['order_id'] ?? 0 ) ),
+        'order_item_id' => max( 0, (int) ( $data['order_item_id'] ?? 0 ) ),
+        'product_id' => max( 0, (int) ( $data['product_id'] ?? 0 ) ),
+        'variation_id' => max( 0, (int) ( $data['variation_id'] ?? 0 ) ),
+        'addon_type' => sanitize_key( (string) ( $data['addon_type'] ?? 'unknown' ) ),
+        'vertical' => teinvit_order_token_normalize_vertical( $data['vertical'] ?? '' ),
+        'status' => $status,
+        'capability_changed' => sanitize_key( (string) ( $data['capability_changed'] ?? '' ) ),
+        'error_message' => sanitize_textarea_field( (string) ( $data['error_message'] ?? '' ) ),
+        'debug_context_json' => is_string( $debug_context ) ? $debug_context : '',
+        'applied_at' => $applied_at,
+        'created_at' => isset( $data['created_at'] ) && $data['created_at'] !== '' ? (string) $data['created_at'] : $now,
+        'updated_at' => $now,
+    ];
+}
+
+function teinvit_find_order_token_addon_ledger_id( $order_id, $order_item_id, $addon_type = '' ) {
+    global $wpdb;
+
+    $order_id = max( 0, (int) $order_id );
+    $order_item_id = max( 0, (int) $order_item_id );
+    $addon_type = sanitize_key( (string) $addon_type );
+
+    if ( $order_id <= 0 || $order_item_id <= 0 || ! teinvit_database_table_exists( teinvit_order_token_addons_table() ) ) {
+        return 0;
+    }
+
+    if ( $addon_type !== '' ) {
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT id FROM ' . teinvit_order_token_addons_table() . ' WHERE order_id = %d AND order_item_id = %d AND addon_type = %s ORDER BY id ASC LIMIT 1',
+                $order_id,
+                $order_item_id,
+                $addon_type
+            )
+        );
+    }
+
+    return (int) $wpdb->get_var(
+        $wpdb->prepare(
+            'SELECT id FROM ' . teinvit_order_token_addons_table() . ' WHERE order_id = %d AND order_item_id = %d ORDER BY id ASC LIMIT 1',
+            $order_id,
+            $order_item_id
+        )
+    );
+}
+
+function teinvit_upsert_order_token_addon_ledger( array $data ) {
+    global $wpdb;
+
+    if ( ! teinvit_database_table_exists( teinvit_order_token_addons_table() ) ) {
+        return false;
+    }
+
+    $payload = teinvit_normalize_order_token_addon_ledger_payload( $data );
+    $existing_id = teinvit_find_order_token_addon_ledger_id(
+        $payload['order_id'],
+        $payload['order_item_id'],
+        $payload['addon_type']
+    );
+
+    $formats = [
+        '%s',
+        '%d',
+        '%d',
+        '%d',
+        '%d',
+        '%s',
+        '%s',
+        '%s',
+        '%s',
+        '%s',
+        '%s',
+        '%s',
+        '%s',
+        '%s',
+    ];
+
+    if ( $existing_id > 0 ) {
+        $update_payload = $payload;
+        unset( $update_payload['created_at'] );
+        $update_formats = $formats;
+        array_splice( $update_formats, 12, 1 );
+
+        $updated = $wpdb->update(
+            teinvit_order_token_addons_table(),
+            $update_payload,
+            [ 'id' => $existing_id ],
+            $update_formats,
+            [ '%d' ]
+        );
+
+        return $updated === false ? false : $existing_id;
+    }
+
+    $inserted = $wpdb->insert( teinvit_order_token_addons_table(), $payload, $formats );
+    if ( $inserted === false ) {
+        return false;
+    }
+
+    return (int) $wpdb->insert_id;
+}
+
 function teinvit_get_order_tokens_for_order( $order_id ) {
     global $wpdb;
 

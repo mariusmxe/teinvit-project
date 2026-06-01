@@ -583,6 +583,71 @@ function teinvit_register_custom_products_admin_page() {
 }
 add_action( 'admin_menu', 'teinvit_register_custom_products_admin_page', 30 );
 
+function teinvit_custom_products_sold_individually_rows( $vertical, array $catalog ) {
+    $vertical = sanitize_key( (string) $vertical );
+    $rows = [];
+    $roles = [
+        'basic_product_ids' => 'Basic',
+        'premium_native_product_ids' => 'Premium',
+    ];
+
+    foreach ( $roles as $role_key => $package_label ) {
+        $product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, $role_key ) : [];
+        foreach ( $product_ids as $product_id ) {
+            $product_id = (int) $product_id;
+            if ( $product_id <= 0 ) {
+                continue;
+            }
+
+            $product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+            $sold_individually = is_object( $product ) && method_exists( $product, 'is_sold_individually' )
+                ? (bool) $product->is_sold_individually()
+                : false;
+
+            $rows[] = [
+                'vertical' => $vertical,
+                'package' => $package_label,
+                'product_id' => $product_id,
+                'product_name' => is_object( $product ) && method_exists( $product, 'get_name' ) ? (string) $product->get_name() : '',
+                'exists' => is_object( $product ),
+                'sold_individually' => $sold_individually,
+                'edit_url' => get_edit_post_link( $product_id, '' ),
+            ];
+        }
+    }
+
+    return $rows;
+}
+
+function teinvit_render_sold_individually_checklist( $vertical, array $catalog ) {
+    $rows = teinvit_custom_products_sold_individually_rows( $vertical, $catalog );
+
+    echo '<hr style="margin:28px 0 18px;">';
+    echo '<h2>Checklist Sold individually</h2>';
+    echo '<p class="description">Diagnostic pentru produsele configurabile TeInvit. Nu se aplica automat nicio setare.</p>';
+
+    if ( empty( $rows ) ) {
+        echo '<p>Nu exista produse Basic/Premium configurate pentru aceasta verticala.</p>';
+        return;
+    }
+
+    echo '<table class="widefat striped" style="max-width:1100px;margin-top:12px;">';
+    echo '<thead><tr><th>Verticala</th><th>Tip pachet</th><th>Product ID</th><th>Produs</th><th>Sold individually</th><th>Editare</th></tr></thead><tbody>';
+    foreach ( $rows as $row ) {
+        $status = ! $row['exists'] ? 'Produs lipsa' : ( $row['sold_individually'] ? 'OK' : 'Lipsa' );
+        $status_style = $row['exists'] && $row['sold_individually'] ? 'color:#067a46;font-weight:600;' : 'color:#b32d2e;font-weight:600;';
+        echo '<tr>';
+        echo '<td>' . esc_html( $row['vertical'] ) . '</td>';
+        echo '<td>' . esc_html( $row['package'] ) . '</td>';
+        echo '<td><code>' . esc_html( (string) $row['product_id'] ) . '</code></td>';
+        echo '<td>' . esc_html( $row['product_name'] !== '' ? $row['product_name'] : '-' ) . '</td>';
+        echo '<td><span style="' . esc_attr( $status_style ) . '">' . esc_html( $status ) . '</span></td>';
+        echo '<td>' . ( $row['edit_url'] ? '<a href="' . esc_url( $row['edit_url'] ) . '">Editeaza produs</a>' : '-' ) . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+}
+
 function teinvit_render_custom_products_admin_page( $vertical = 'wedding' ) {
     $capability = function_exists( 'teinvit_admin_capability' ) ? teinvit_admin_capability() : 'manage_woocommerce';
     if ( ! current_user_can( $capability ) ) {
@@ -649,7 +714,11 @@ function teinvit_render_custom_products_admin_page( $vertical = 'wedding' ) {
     echo '</table>';
 
     submit_button( 'Salvează' );
-    echo '</form></div>';
+    echo '</form>';
+
+    teinvit_render_sold_individually_checklist( $vertical, $catalog );
+
+    echo '</div>';
 }
 
 function teinvit_render_product_background_field() {
@@ -1192,13 +1261,19 @@ function teinvit_find_product_id_by_name( $name ) {
 }
 
 function teinvit_get_purchase_url( $type, $token ) {
-    $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
+    $target_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : null;
+    $catalog = is_array( $target_context ) && ! empty( $target_context['valid'] )
+        ? teinvit_addon_catalog_for_token_context( $target_context )
+        : ( function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] ) );
     $pid = 0;
+    $addon_type = 'extra_edits';
 
     if ( $type === 'gifts' ) {
         $pid = teinvit_catalog_first_id( $catalog, 'extra_gifts_addon_ids' );
+        $addon_type = 'extra_gifts';
     } elseif ( $type === 'premium_upgrade' ) {
         $pid = teinvit_catalog_first_id( $catalog, 'premium_upgrade_addon_ids' );
+        $addon_type = 'premium_upgrade';
     } else {
         $pid = teinvit_catalog_first_id( $catalog, 'extra_edits_addon_ids' );
     }
@@ -1207,31 +1282,364 @@ function teinvit_get_purchase_url( $type, $token ) {
         return wc_get_cart_url();
     }
 
-    return add_query_arg( [ 'add-to-cart' => $pid, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ) ], wc_get_cart_url() );
+    return add_query_arg( [ 'add-to-cart' => $pid, 'quantity' => 1, 'teinvit_token' => rawurlencode( $token ), 'teinvit_addon_type' => $addon_type ], wc_get_cart_url() );
+}
+
+function teinvit_addon_customer_block_message() {
+    return 'Acest pachet suplimentar trebuie cumpărat din pagina de administrare a invitației pentru care doriți să îl aplicați.';
+}
+
+function teinvit_addon_role_map() {
+    return [
+        'extra_edits' => 'extra_edits_addon_ids',
+        'extra_gifts' => 'extra_gifts_addon_ids',
+        'premium_upgrade' => 'premium_upgrade_addon_ids',
+    ];
+}
+
+function teinvit_addon_type_labels() {
+    return [
+        'extra_edits' => 'modificari suplimentare',
+        'extra_gifts' => 'cadouri suplimentare',
+        'premium_upgrade' => 'upgrade Premium',
+    ];
+}
+
+function teinvit_addon_capability_for_type( $addon_type ) {
+    $map = [
+        'extra_edits' => 'can_buy_extra_edits',
+        'extra_gifts' => 'can_buy_extra_gifts',
+        'premium_upgrade' => 'can_buy_premium_upgrade',
+    ];
+
+    $addon_type = sanitize_key( (string) $addon_type );
+    return isset( $map[ $addon_type ] ) ? $map[ $addon_type ] : '';
+}
+
+function teinvit_addon_capability_changed_for_type( $addon_type ) {
+    $map = [
+        'extra_edits' => 'edits_paid_remaining',
+        'extra_gifts' => 'gifts_extra_slots',
+        'premium_upgrade' => 'premium_upgrade_active',
+    ];
+
+    $addon_type = sanitize_key( (string) $addon_type );
+    return isset( $map[ $addon_type ] ) ? $map[ $addon_type ] : '';
+}
+
+function teinvit_addon_catalog_for_vertical( $vertical ) {
+    $vertical = sanitize_key( (string) $vertical );
+    $catalogs = function_exists( 'teinvit_get_custom_products_catalog' ) ? teinvit_get_custom_products_catalog() : [];
+    if ( is_array( $catalogs ) && $vertical !== '' && isset( $catalogs[ $vertical ] ) && is_array( $catalogs[ $vertical ] ) ) {
+        return $catalogs[ $vertical ];
+    }
+
+    return function_exists( 'teinvit_custom_product_defaults' ) ? teinvit_custom_product_defaults() : [];
+}
+
+function teinvit_addon_catalog_for_token_context( array $target_context ) {
+    $vertical = sanitize_key( (string) ( $target_context['vertical'] ?? '' ) );
+    $catalog = teinvit_addon_catalog_for_vertical( $vertical );
+    if ( ! empty( $catalog ) ) {
+        return $catalog;
+    }
+
+    $token = sanitize_text_field( (string) ( $target_context['token'] ?? '' ) );
+    return $token !== '' && function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : [];
+}
+
+function teinvit_addon_product_context( $product_id, $variation_id = 0, $preferred_vertical = '' ) {
+    $product_ids = array_values( array_filter( array_map( 'intval', [ $product_id, $variation_id ] ), static function( $id ) {
+        return $id > 0;
+    } ) );
+
+    if ( empty( $product_ids ) || ! function_exists( 'teinvit_get_custom_products_catalog' ) ) {
+        return null;
+    }
+
+    $catalogs = teinvit_get_custom_products_catalog();
+    if ( ! is_array( $catalogs ) ) {
+        return null;
+    }
+
+    $preferred_vertical = sanitize_key( (string) $preferred_vertical );
+    $vertical_order = [];
+    if ( $preferred_vertical !== '' && isset( $catalogs[ $preferred_vertical ] ) ) {
+        $vertical_order[] = $preferred_vertical;
+    }
+    foreach ( array_keys( $catalogs ) as $vertical_key ) {
+        $vertical_key = sanitize_key( (string) $vertical_key );
+        if ( $vertical_key !== '' ) {
+            $vertical_order[] = $vertical_key;
+        }
+    }
+    $vertical_order = array_values( array_unique( $vertical_order ) );
+
+    foreach ( $vertical_order as $vertical_key ) {
+        $catalog = isset( $catalogs[ $vertical_key ] ) && is_array( $catalogs[ $vertical_key ] ) ? $catalogs[ $vertical_key ] : [];
+        foreach ( teinvit_addon_role_map() as $addon_type => $role_key ) {
+            $matches = function_exists( 'teinvit_catalog_product_id_matches_role' )
+                ? teinvit_catalog_product_id_matches_role( $catalog, $role_key, $product_ids )
+                : ! empty( array_intersect( $product_ids, array_map( 'intval', (array) ( $catalog[ $role_key ] ?? [] ) ) ) );
+            if ( $matches ) {
+                return [
+                    'is_addon' => true,
+                    'addon_type' => $addon_type,
+                    'role_key' => $role_key,
+                    'vertical' => $vertical_key,
+                    'catalog' => $catalog,
+                ];
+            }
+        }
+    }
+
+    return null;
+}
+
+function teinvit_addon_capabilities_from_token_context( array $target_context ) {
+    if ( isset( $target_context['capabilities'] ) && is_array( $target_context['capabilities'] ) ) {
+        return $target_context['capabilities'];
+    }
+
+    $product_state = sanitize_key( (string) ( $target_context['product_state'] ?? '' ) );
+    $package_type = sanitize_key( (string) ( $target_context['package_type'] ?? 'unknown' ) );
+
+    if ( in_array( $product_state, [ 'premium_native', 'basic_upgraded' ], true ) || $package_type === 'premium' ) {
+        return [
+            'state' => $product_state !== '' ? $product_state : 'premium_native',
+            'can_buy_extra_edits' => true,
+            'can_buy_extra_gifts' => true,
+            'can_buy_premium_upgrade' => false,
+        ];
+    }
+
+    if ( $product_state === 'basic_pure' || $package_type === 'basic' ) {
+        return [
+            'state' => $product_state !== '' ? $product_state : 'basic_pure',
+            'can_buy_extra_edits' => false,
+            'can_buy_extra_gifts' => false,
+            'can_buy_premium_upgrade' => true,
+        ];
+    }
+
+    return [
+        'state' => $product_state,
+        'can_buy_extra_edits' => false,
+        'can_buy_extra_gifts' => false,
+        'can_buy_premium_upgrade' => false,
+    ];
+}
+
+function teinvit_token_has_other_premium_upgrade_order( $token, $current_order_id, array $catalog ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    $current_order_id = max( 0, (int) $current_order_id );
+    if ( $token === '' || ! function_exists( 'teinvit_catalog_role_ids' ) ) {
+        return false;
+    }
+
+    $upgrade_ids = teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' );
+    if ( empty( $upgrade_ids ) ) {
+        return false;
+    }
+
+    $statuses = [ 'wc-processing', 'wc-completed' ];
+    $status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+    $sql = "
+        SELECT p.ID
+        FROM {$wpdb->posts} p
+        INNER JOIN {$wpdb->postmeta} pm_token ON pm_token.post_id = p.ID AND pm_token.meta_key = '_teinvit_token_target' AND pm_token.meta_value = %s
+        INNER JOIN {$wpdb->prefix}woocommerce_order_items oi ON oi.order_id = p.ID AND oi.order_item_type = 'line_item'
+        INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta oim ON oim.order_item_id = oi.order_item_id AND oim.meta_key = '_product_id' AND oim.meta_value = %s
+        WHERE p.post_type = 'shop_order'
+          AND p.ID <> %d
+          AND p.post_status IN ($status_placeholders)
+        LIMIT 1
+    ";
+
+    foreach ( $upgrade_ids as $upgrade_id ) {
+        $args = array_merge( [ $token, (string) (int) $upgrade_id, $current_order_id ], $statuses );
+        $found_order_id = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
+        if ( $found_order_id > 0 ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function teinvit_token_base_state_allows_premium_upgrade( array $target_context, $current_order_id = 0 ) {
+    $token = sanitize_text_field( (string) ( $target_context['token'] ?? '' ) );
+    $catalog = teinvit_addon_catalog_for_token_context( $target_context );
+    $package_type = sanitize_key( (string) ( $target_context['package_type'] ?? 'unknown' ) );
+    $product_state = sanitize_key( (string) ( $target_context['product_state'] ?? '' ) );
+
+    if ( $package_type === 'premium' || $product_state === 'premium_native' ) {
+        return false;
+    }
+
+    $inv = $token !== '' && function_exists( 'teinvit_get_invitation' ) ? teinvit_get_invitation( $token ) : null;
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+    if ( ! empty( $config['premium_upgrade_active'] ) || ! empty( $config['premium_admin_grant_active'] ) ) {
+        return false;
+    }
+
+    if ( teinvit_token_has_other_premium_upgrade_order( $token, $current_order_id, $catalog ) ) {
+        return false;
+    }
+
+    $order = $target_context['order'] ?? null;
+    $order_id = (int) ( $target_context['order_id'] ?? 0 );
+    if ( ! is_object( $order ) && $order_id > 0 && function_exists( 'wc_get_order' ) ) {
+        $order = wc_get_order( $order_id );
+    }
+
+    $premium_native_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_native_product_ids' ) : [];
+    $basic_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'basic_product_ids' ) : [];
+    if ( is_object( $order ) && function_exists( 'teinvit_order_contains_any_product_ids' ) ) {
+        if ( teinvit_order_contains_any_product_ids( $order, $premium_native_ids ) ) {
+            return false;
+        }
+        if ( teinvit_order_contains_any_product_ids( $order, $basic_ids ) ) {
+            return true;
+        }
+    }
+
+    return $package_type === 'basic' || $product_state === 'basic_pure';
+}
+
+function teinvit_validate_addon_for_token( $product_id, $variation_id, $token, $expected_addon_type = '' ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return new WP_Error( 'teinvit_addon_missing_token', teinvit_addon_customer_block_message() );
+    }
+
+    if ( ! function_exists( 'teinvit_resolve_token_context' ) ) {
+        return new WP_Error( 'teinvit_addon_resolver_missing', teinvit_addon_customer_block_message() );
+    }
+
+    $target_context = teinvit_resolve_token_context( $token );
+    if ( ! is_array( $target_context ) || empty( $target_context['valid'] ) ) {
+        return new WP_Error( 'teinvit_addon_invalid_token', teinvit_addon_customer_block_message() );
+    }
+
+    $target_vertical = sanitize_key( (string) ( $target_context['vertical'] ?? '' ) );
+    $addon_context = teinvit_addon_product_context( $product_id, $variation_id, $target_vertical );
+    if ( ! $addon_context ) {
+        $any_vertical_context = teinvit_addon_product_context( $product_id, $variation_id );
+        $code = $any_vertical_context ? 'teinvit_addon_incompatible_vertical' : 'teinvit_addon_unknown_product';
+        return new WP_Error( $code, teinvit_addon_customer_block_message() );
+    }
+
+    $expected_addon_type = sanitize_key( (string) $expected_addon_type );
+    if ( $expected_addon_type !== '' && $expected_addon_type !== $addon_context['addon_type'] ) {
+        return new WP_Error( 'teinvit_addon_type_mismatch', teinvit_addon_customer_block_message() );
+    }
+
+    $capabilities = teinvit_addon_capabilities_from_token_context( $target_context );
+    $capability_key = teinvit_addon_capability_for_type( $addon_context['addon_type'] );
+    if ( $capability_key === '' || empty( $capabilities[ $capability_key ] ) ) {
+        return new WP_Error( 'teinvit_addon_capability_blocked', teinvit_addon_customer_block_message() );
+    }
+
+    $addon_context['target_token'] = $token;
+    $addon_context['target_context'] = $target_context;
+    $addon_context['target_vertical'] = $target_vertical;
+    $addon_context['capabilities'] = $capabilities;
+    $addon_context['capability_key'] = $capability_key;
+
+    return $addon_context;
+}
+
+function teinvit_addon_token_from_cart_data_or_request( array $cart_item_data = [] ) {
+    if ( ! empty( $cart_item_data['teinvit_token'] ) ) {
+        return sanitize_text_field( (string) $cart_item_data['teinvit_token'] );
+    }
+
+    if ( isset( $_REQUEST['teinvit_token'] ) ) {
+        return sanitize_text_field( wp_unslash( $_REQUEST['teinvit_token'] ) );
+    }
+
+    return '';
+}
+
+function teinvit_addon_type_from_buy_query() {
+    $map = [
+        'teinvit_buy_edits_token' => 'extra_edits',
+        'teinvit_buy_gifts_token' => 'extra_gifts',
+        'teinvit_buy_premium_upgrade_token' => 'premium_upgrade',
+    ];
+
+    foreach ( $map as $query_key => $addon_type ) {
+        if ( ! isset( $_GET[ $query_key ] ) ) {
+            continue;
+        }
+
+        $token = sanitize_text_field( wp_unslash( $_GET[ $query_key ] ) );
+        if ( $token !== '' ) {
+            return [ $addon_type, $token ];
+        }
+    }
+
+    return [ '', '' ];
+}
+
+function teinvit_addon_add_customer_notice( $message = '' ) {
+    $message = $message !== '' ? $message : teinvit_addon_customer_block_message();
+    if ( ! function_exists( 'wc_add_notice' ) ) {
+        return;
+    }
+    if ( function_exists( 'wc_has_notice' ) && wc_has_notice( $message, 'error' ) ) {
+        return;
+    }
+    wc_add_notice( $message, 'error' );
+}
+
+function teinvit_addon_cart_item_data_from_validation( array $validation ) {
+    return [
+        'teinvit_token' => sanitize_text_field( (string) ( $validation['target_token'] ?? '' ) ),
+        'teinvit_addon_type' => sanitize_key( (string) ( $validation['addon_type'] ?? '' ) ),
+        'teinvit_target_vertical' => sanitize_key( (string) ( $validation['target_vertical'] ?? '' ) ),
+    ];
 }
 
 add_action( 'template_redirect', function() {
-    $buy_edits_token = isset( $_GET['teinvit_buy_edits_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_edits_token'] ) ) : '';
-    $buy_gifts_token = isset( $_GET['teinvit_buy_gifts_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_gifts_token'] ) ) : '';
-    $buy_premium_token = isset( $_GET['teinvit_buy_premium_upgrade_token'] ) ? sanitize_text_field( wp_unslash( $_GET['teinvit_buy_premium_upgrade_token'] ) ) : '';
+    list( $addon_type, $token ) = teinvit_addon_type_from_buy_query();
 
-    if ( $buy_edits_token === '' && $buy_gifts_token === '' && $buy_premium_token === '' ) {
+    if ( $addon_type === '' || $token === '' ) {
         return;
     }
 
-    $token = $buy_edits_token !== '' ? $buy_edits_token : ( $buy_gifts_token !== '' ? $buy_gifts_token : $buy_premium_token );
-    $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
-    $edits_id = teinvit_catalog_first_id( $catalog, 'extra_edits_addon_ids' );
-    $gifts_id = teinvit_catalog_first_id( $catalog, 'extra_gifts_addon_ids' );
-    $premium_upgrade_id = teinvit_catalog_first_id( $catalog, 'premium_upgrade_addon_ids' );
+    $target_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : null;
+    if ( ! is_array( $target_context ) || empty( $target_context['valid'] ) ) {
+        teinvit_addon_add_customer_notice();
+        wp_safe_redirect( wc_get_cart_url() );
+        exit;
+    }
 
-    $product_id = $buy_edits_token !== '' ? $edits_id : ( $buy_gifts_token !== '' ? $gifts_id : $premium_upgrade_id );
+    $catalog = teinvit_addon_catalog_for_token_context( $target_context );
+    $role_map = teinvit_addon_role_map();
+    $product_id = isset( $role_map[ $addon_type ] ) ? teinvit_catalog_first_id( $catalog, $role_map[ $addon_type ] ) : 0;
+    if ( $product_id <= 0 ) {
+        teinvit_addon_add_customer_notice();
+        wp_safe_redirect( wc_get_cart_url() );
+        exit;
+    }
+
+    $validation = teinvit_validate_addon_for_token( $product_id, 0, $token, $addon_type );
+    if ( is_wp_error( $validation ) ) {
+        teinvit_addon_add_customer_notice( $validation->get_error_message() );
+        wp_safe_redirect( wc_get_cart_url() );
+        exit;
+    }
 
     if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
         wp_safe_redirect( add_query_arg( [
             'add-to-cart' => $product_id,
             'quantity' => 1,
             'teinvit_token' => $token,
+            'teinvit_addon_type' => $addon_type,
         ], wc_get_cart_url() ) );
         exit;
     }
@@ -1239,8 +1647,7 @@ add_action( 'template_redirect', function() {
     if ( WC()->session ) {
         WC()->session->set( 'teinvit_token_target', $token );
     }
-    $cart_item_data = [ 'teinvit_token' => $token ];
-    WC()->cart->add_to_cart( $product_id, 1, 0, [], $cart_item_data );
+    WC()->cart->add_to_cart( $product_id, 1, 0, [], teinvit_addon_cart_item_data_from_validation( $validation ) );
     wp_safe_redirect( wc_get_cart_url() );
     exit;
 }, 5 );
@@ -1368,19 +1775,187 @@ function teinvit_credit_paid_edits_for_invitation( $target_token, $qty ) {
     return true;
 }
 
-add_filter( 'woocommerce_add_cart_item_data', function( $cart_item_data, $product_id ) {
-    $token = isset( $_REQUEST['teinvit_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['teinvit_token'] ) ) : '';
-    if ( $token ) {
-        $cart_item_data['teinvit_token'] = $token;
+function teinvit_addon_cart_item_validation( array $cart_item ) {
+    $product_id = (int) ( $cart_item['product_id'] ?? 0 );
+    $variation_id = (int) ( $cart_item['variation_id'] ?? 0 );
+    $expected_addon_type = sanitize_key( (string) ( $cart_item['teinvit_addon_type'] ?? '' ) );
+    $addon_context = teinvit_addon_product_context( $product_id, $variation_id );
+
+    if ( ! $addon_context && $expected_addon_type === '' ) {
+        return null;
     }
-    return $cart_item_data;
-}, 10, 2 );
+
+    if ( ! $addon_context ) {
+        return new WP_Error( 'teinvit_addon_unknown_product', teinvit_addon_customer_block_message() );
+    }
+
+    $target_token = sanitize_text_field( (string) ( $cart_item['teinvit_token'] ?? '' ) );
+    if ( $target_token === '' ) {
+        return new WP_Error( 'teinvit_addon_missing_token', teinvit_addon_customer_block_message() );
+    }
+
+    return teinvit_validate_addon_for_token( $product_id, $variation_id, $target_token, $expected_addon_type );
+}
+
+function teinvit_cart_addon_validation_errors() {
+    if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+        return [];
+    }
+
+    $errors = [];
+    foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+        $validation = teinvit_addon_cart_item_validation( is_array( $cart_item ) ? $cart_item : [] );
+        if ( is_wp_error( $validation ) ) {
+            $errors[ $cart_item_key ] = $validation;
+        }
+    }
+
+    return $errors;
+}
+
+function teinvit_addon_add_cart_validation_notices() {
+    foreach ( teinvit_cart_addon_validation_errors() as $error ) {
+        teinvit_addon_add_customer_notice( $error->get_error_message() );
+    }
+}
+
+add_filter( 'woocommerce_add_to_cart_validation', function( $passed, $product_id, $quantity, $variation_id = 0, $variations = [], $cart_item_data = [] ) {
+    if ( ! $passed ) {
+        return false;
+    }
+
+    $addon_context = teinvit_addon_product_context( $product_id, $variation_id );
+    if ( ! $addon_context ) {
+        return $passed;
+    }
+
+    $token = teinvit_addon_token_from_cart_data_or_request( is_array( $cart_item_data ) ? $cart_item_data : [] );
+    $expected_addon_type = isset( $cart_item_data['teinvit_addon_type'] )
+        ? sanitize_key( (string) $cart_item_data['teinvit_addon_type'] )
+        : ( isset( $_REQUEST['teinvit_addon_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['teinvit_addon_type'] ) ) : '' );
+    $validation = teinvit_validate_addon_for_token( $product_id, $variation_id, $token, $expected_addon_type );
+    if ( is_wp_error( $validation ) ) {
+        teinvit_addon_add_customer_notice( $validation->get_error_message() );
+        return false;
+    }
+
+    return $passed;
+}, 20, 6 );
+
+add_filter( 'woocommerce_add_cart_item_data', function( $cart_item_data, $product_id, $variation_id = 0, $quantity = 1 ) {
+    $addon_context = teinvit_addon_product_context( $product_id, $variation_id );
+    if ( ! $addon_context ) {
+        return $cart_item_data;
+    }
+
+    $token = teinvit_addon_token_from_cart_data_or_request( is_array( $cart_item_data ) ? $cart_item_data : [] );
+    $expected_addon_type = isset( $cart_item_data['teinvit_addon_type'] )
+        ? sanitize_key( (string) $cart_item_data['teinvit_addon_type'] )
+        : ( isset( $_REQUEST['teinvit_addon_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['teinvit_addon_type'] ) ) : '' );
+    $validation = teinvit_validate_addon_for_token( $product_id, $variation_id, $token, $expected_addon_type );
+    if ( is_wp_error( $validation ) ) {
+        return $cart_item_data;
+    }
+
+    return array_merge( $cart_item_data, teinvit_addon_cart_item_data_from_validation( $validation ) );
+}, 20, 4 );
+
+add_filter( 'woocommerce_get_cart_item_from_session', function( $cart_item, $values ) {
+    foreach ( [ 'teinvit_token', 'teinvit_addon_type', 'teinvit_target_vertical' ] as $key ) {
+        if ( isset( $values[ $key ] ) && $values[ $key ] !== '' ) {
+            $cart_item[ $key ] = $key === 'teinvit_token'
+                ? sanitize_text_field( (string) $values[ $key ] )
+                : sanitize_key( (string) $values[ $key ] );
+        }
+    }
+
+    return $cart_item;
+}, 20, 2 );
+
+add_action( 'woocommerce_check_cart_items', 'teinvit_addon_add_cart_validation_notices', 20 );
+add_action( 'woocommerce_checkout_process', 'teinvit_addon_add_cart_validation_notices', 5 );
 
 add_action( 'woocommerce_checkout_create_order_line_item', function( $item, $cart_item_key, $values ) {
     if ( ! empty( $values['teinvit_token'] ) ) {
         $item->add_meta_data( '_teinvit_token_target', sanitize_text_field( $values['teinvit_token'] ), true );
     }
+    if ( ! empty( $values['teinvit_addon_type'] ) ) {
+        $item->add_meta_data( '_teinvit_addon_type', sanitize_key( $values['teinvit_addon_type'] ), true );
+    }
+    if ( ! empty( $values['teinvit_target_vertical'] ) ) {
+        $item->add_meta_data( '_teinvit_target_vertical', sanitize_key( $values['teinvit_target_vertical'] ), true );
+    }
 }, 10, 3 );
+
+function teinvit_addon_record_ledger_for_order_item( $order, $item, $target_token, $addon_type, $vertical, $status, $error_message = '', array $debug_context = [] ) {
+    if ( ! function_exists( 'teinvit_upsert_order_token_addon_ledger' ) || ! is_object( $order ) || ! is_object( $item ) ) {
+        return false;
+    }
+
+    $order_id = method_exists( $order, 'get_id' ) ? (int) $order->get_id() : 0;
+    $order_item_id = method_exists( $item, 'get_id' ) ? (int) $item->get_id() : 0;
+    $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
+    $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+
+    return teinvit_upsert_order_token_addon_ledger( [
+        'target_token' => sanitize_text_field( (string) $target_token ),
+        'order_id' => $order_id,
+        'order_item_id' => $order_item_id,
+        'product_id' => $product_id,
+        'variation_id' => $variation_id,
+        'addon_type' => sanitize_key( (string) $addon_type ),
+        'vertical' => sanitize_key( (string) $vertical ),
+        'status' => sanitize_key( (string) $status ),
+        'capability_changed' => teinvit_addon_capability_changed_for_type( $addon_type ),
+        'error_message' => $error_message,
+        'debug_context' => $debug_context,
+        'applied_at' => $status === 'applied' ? current_time( 'mysql' ) : null,
+    ] );
+}
+
+add_action( 'woocommerce_checkout_order_created', function( $order ) {
+    if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+        return;
+    }
+
+    foreach ( $order->get_items( 'line_item' ) as $item_id => $item ) {
+        $target_token = sanitize_text_field( (string) $item->get_meta( '_teinvit_token_target', true ) );
+        $addon_type = sanitize_key( (string) $item->get_meta( '_teinvit_addon_type', true ) );
+        $product_id = (int) $item->get_product_id();
+        $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+        $addon_context = teinvit_addon_product_context( $product_id, $variation_id, sanitize_key( (string) $item->get_meta( '_teinvit_target_vertical', true ) ) );
+        if ( ! $addon_context && $addon_type === '' ) {
+            continue;
+        }
+
+        $validation = teinvit_validate_addon_for_token( $product_id, $variation_id, $target_token, $addon_type );
+        if ( is_wp_error( $validation ) ) {
+            teinvit_addon_record_ledger_for_order_item(
+                $order,
+                $item,
+                $target_token,
+                $addon_type !== '' ? $addon_type : ( $addon_context['addon_type'] ?? 'unknown' ),
+                $addon_context['vertical'] ?? '',
+                'blocked',
+                $validation->get_error_code(),
+                [ 'phase' => 'checkout_order_created' ]
+            );
+            $order->add_order_note( sprintf( '[TeInvit] Addon blocat la creare comanda: item %d, token "%s", motiv %s.', (int) $item_id, $target_token, $validation->get_error_code() ) );
+            continue;
+        }
+
+        teinvit_addon_record_ledger_for_order_item(
+            $order,
+            $item,
+            $validation['target_token'],
+            $validation['addon_type'],
+            $validation['target_vertical'],
+            'pending',
+            '',
+            [ 'phase' => 'checkout_order_created' ]
+        );
+    }
+}, 20 );
 
 add_action( 'woocommerce_checkout_create_order', function( $order, $data ) {
     if ( ! $order ) {
@@ -1409,6 +1984,51 @@ add_action( 'woocommerce_checkout_create_order', function( $order, $data ) {
         $order->update_meta_data( '_teinvit_token_target', $token );
     }
 }, 10, 2 );
+
+function teinvit_apply_premium_upgrade_for_invitation( $target_token, $order, $item, array $catalog ) {
+    $target_token = sanitize_text_field( (string) $target_token );
+    if ( $target_token === '' || ! function_exists( 'teinvit_get_invitation' ) ) {
+        return false;
+    }
+
+    $target_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $target_token ) : [];
+    $target_vertical = is_array( $target_context ) ? sanitize_key( (string) ( $target_context['vertical'] ?? '' ) ) : '';
+    $target_order_id = is_array( $target_context ) ? (int) ( $target_context['order_id'] ?? 0 ) : 0;
+    $source_order_id = is_object( $order ) && method_exists( $order, 'get_id' ) ? (int) $order->get_id() : 0;
+    $source_item_id = is_object( $item ) && method_exists( $item, 'get_id' ) ? (int) $item->get_id() : 0;
+
+    $inv = teinvit_get_invitation( $target_token );
+    if ( ! $inv && function_exists( 'teinvit_seed_invitation_if_missing' ) && $target_order_id > 0 ) {
+        teinvit_seed_invitation_if_missing( $target_token, $target_order_id );
+        $inv = teinvit_get_invitation( $target_token );
+    }
+    if ( ! $inv ) {
+        return false;
+    }
+
+    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
+    $config['premium_upgrade_active'] = 1;
+    $config['premium_upgrade_last_order_id'] = $source_order_id;
+    $config['premium_upgrade_last_order_item_id'] = $source_item_id;
+    $config['premium_upgrade_applied_at'] = current_time( 'mysql' );
+    if ( function_exists( 'teinvit_config_apply_default_included_edits' ) ) {
+        $config = teinvit_config_apply_default_included_edits( $config, $catalog, 'woo_upgrade', $source_order_id );
+    }
+
+    if ( function_exists( 'teinvit_save_invitation_config_for_token' ) ) {
+        $saved = teinvit_save_invitation_config_for_token( $target_token, [ 'config' => $config ], $target_vertical );
+    } elseif ( function_exists( 'teinvit_save_invitation_config' ) ) {
+        $saved = teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
+    } else {
+        $saved = false;
+    }
+
+    if ( $saved !== false && function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $target_token, $config );
+    }
+
+    return $saved !== false;
+}
 
 add_action( 'woocommerce_order_status_completed', function( $order_id ) {
     $order = wc_get_order( $order_id );
@@ -1469,62 +2089,132 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
             continue;
         }
 
+        $product_id = (int) $item->get_product_id();
+        $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+        $name = (string) $item->get_name();
+        $qty = max( 0, (int) $item->get_quantity() );
         $target_token = sanitize_text_field( (string) $item->get_meta( '_teinvit_token_target', true ) );
         if ( $target_token === '' ) {
             $target_token = $order_target_token;
         }
-        if ( $target_token === '' ) {
-            $order->add_order_note( sprintf( '[TeInvit Debug Gifts] item %d target token missing.', (int) $item_id ) );
+        $addon_type = sanitize_key( (string) $item->get_meta( '_teinvit_addon_type', true ) );
+        $target_vertical = sanitize_key( (string) $item->get_meta( '_teinvit_target_vertical', true ) );
+        $addon_context = teinvit_addon_product_context( $product_id, $variation_id, $target_vertical );
+        if ( ! $addon_context && $target_token !== '' && function_exists( 'teinvit_resolve_token_context' ) ) {
+            $target_context_for_vertical = teinvit_resolve_token_context( $target_token );
+            if ( is_array( $target_context_for_vertical ) && ! empty( $target_context_for_vertical['valid'] ) ) {
+                $addon_context = teinvit_addon_product_context( $product_id, $variation_id, sanitize_key( (string) ( $target_context_for_vertical['vertical'] ?? '' ) ) );
+            }
+        }
+        if ( ! $addon_context ) {
+            $addon_context = teinvit_addon_product_context( $product_id, $variation_id );
+        }
+
+        $legacy_gifts_context = false;
+        if ( ! $addon_context && $target_token !== '' && in_array( $name, $legacy_gifts_names, true ) && function_exists( 'teinvit_resolve_token_context' ) ) {
+            $legacy_target_context = teinvit_resolve_token_context( $target_token );
+            if ( is_array( $legacy_target_context ) && ! empty( $legacy_target_context['valid'] ) ) {
+                $legacy_caps = teinvit_addon_capabilities_from_token_context( $legacy_target_context );
+                if ( ! empty( $legacy_caps['can_buy_extra_gifts'] ) ) {
+                    $legacy_gifts_context = true;
+                    $addon_context = [
+                        'is_addon' => true,
+                        'addon_type' => 'extra_gifts',
+                        'role_key' => 'extra_gifts_addon_ids',
+                        'vertical' => sanitize_key( (string) ( $legacy_target_context['vertical'] ?? '' ) ),
+                        'catalog' => teinvit_addon_catalog_for_token_context( $legacy_target_context ),
+                        'target_token' => $target_token,
+                        'target_context' => $legacy_target_context,
+                        'target_vertical' => sanitize_key( (string) ( $legacy_target_context['vertical'] ?? '' ) ),
+                        'capabilities' => $legacy_caps,
+                        'capability_key' => 'can_buy_extra_gifts',
+                    ];
+                }
+            }
+        }
+
+        if ( ! $addon_context && $addon_type === '' ) {
             continue;
         }
 
-        $qty = max( 0, (int) $item->get_quantity() );
         if ( $qty <= 0 ) {
             $processed[] = (int) $item_id;
             $processed_changed = true;
             continue;
         }
 
-        $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $target_token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
-        $edits_product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'extra_edits_addon_ids' ) : [];
-        $gifts_product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'extra_gifts_addon_ids' ) : [];
-        $premium_upgrade_product_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
-
-        $product_id = (int) $item->get_product_id();
-        $name = (string) $item->get_name();
-        $state = function_exists( 'teinvit_resolve_token_product_state' ) ? teinvit_resolve_token_product_state( $target_token ) : 'premium_native';
-
-        if ( in_array( $product_id, $edits_product_ids, true ) ) {
-            if ( $state !== 'basic_pure' ) {
-                teinvit_credit_paid_edits_for_invitation( $target_token, $qty );
-                $did_update = true;
-            }
+        if ( $target_token === '' ) {
+            $resolved_addon_type = $addon_type !== '' ? $addon_type : ( $addon_context['addon_type'] ?? 'unknown' );
+            teinvit_addon_record_ledger_for_order_item( $order, $item, '', $resolved_addon_type, $addon_context['vertical'] ?? '', 'blocked', 'missing_target_token', [ 'phase' => 'completed' ] );
+            $order->add_order_note( sprintf( '[TeInvit] Addon blocat: item %d, product %d nu are token tinta valid.', (int) $item_id, $product_id ) );
             $processed[] = (int) $item_id;
             $processed_changed = true;
             continue;
         }
 
-        $is_gifts_addon = in_array( $product_id, $gifts_product_ids, true ) || in_array( $name, $legacy_gifts_names, true );
-        if ( $is_gifts_addon ) {
-            if ( $state !== 'basic_pure' ) {
-                $slots_per_unit = function_exists( 'teinvit_catalog_extra_gifts_slots_for_product' )
-                    ? teinvit_catalog_extra_gifts_slots_for_product( $catalog, $product_id, 10 )
-                    : 10;
-                $allocation_key = 'addon:' . (int) $order_id . ':' . (int) $item_id;
-                $addon_saved = teinvit_token_upsert_gifts_allocation( $target_token, [
-                    'allocation_key' => $allocation_key,
-                    'kind' => 'addon',
-                    'order_id' => (int) $order_id,
-                    'item_id' => (int) $item_id,
-                    'product_id' => $product_id,
-                    'qty' => $qty,
-                    'slots_per_unit' => $slots_per_unit,
-                    'slots_total' => $qty * $slots_per_unit,
-                    'slots_remaining' => $qty * $slots_per_unit,
-                    'status' => 'applied',
-                    'applied_at' => current_time( 'mysql' ),
+        if ( $legacy_gifts_context ) {
+            $validation = $addon_context;
+        } else {
+            $validation = teinvit_validate_addon_for_token( $product_id, $variation_id, $target_token, $addon_type );
+        }
+
+        $candidate_addon_type = $addon_type !== '' ? $addon_type : ( $addon_context['addon_type'] ?? '' );
+        if ( is_wp_error( $validation ) && $validation->get_error_code() === 'teinvit_addon_capability_blocked' && $candidate_addon_type === 'premium_upgrade' && function_exists( 'teinvit_resolve_token_context' ) ) {
+            $target_context_for_upgrade = teinvit_resolve_token_context( $target_token );
+            if ( is_array( $target_context_for_upgrade ) && ! empty( $target_context_for_upgrade['valid'] ) && teinvit_token_base_state_allows_premium_upgrade( $target_context_for_upgrade, (int) $order_id ) && is_array( $addon_context ) ) {
+                $validation = array_merge( $addon_context, [
+                    'target_token' => $target_token,
+                    'target_context' => $target_context_for_upgrade,
+                    'target_vertical' => sanitize_key( (string) ( $target_context_for_upgrade['vertical'] ?? '' ) ),
+                    'catalog' => teinvit_addon_catalog_for_token_context( $target_context_for_upgrade ),
+                    'capabilities' => [
+                        'state' => 'basic_pure',
+                        'can_buy_extra_edits' => false,
+                        'can_buy_extra_gifts' => false,
+                        'can_buy_premium_upgrade' => true,
+                    ],
+                    'capability_key' => 'can_buy_premium_upgrade',
                 ] );
-                $order->add_order_note( sprintf( '[TeInvit Debug Gifts] addon item=%d token=%s product=%d qty=%d slots_per_unit=%d total=%d upsert=%s', (int) $item_id, $target_token, $product_id, $qty, $slots_per_unit, ( $qty * $slots_per_unit ), $addon_saved ? 'yes' : 'no' ) );
+            }
+        }
+
+        if ( is_wp_error( $validation ) ) {
+            $resolved_addon_type = $addon_type !== '' ? $addon_type : ( $addon_context['addon_type'] ?? 'unknown' );
+            teinvit_addon_record_ledger_for_order_item( $order, $item, $target_token, $resolved_addon_type, $addon_context['vertical'] ?? '', 'blocked', $validation->get_error_code(), [ 'phase' => 'completed' ] );
+            $order->add_order_note( sprintf( '[TeInvit] Addon blocat: item %d, product %d, token "%s", motiv %s.', (int) $item_id, $product_id, $target_token, $validation->get_error_code() ) );
+            $processed[] = (int) $item_id;
+            $processed_changed = true;
+            continue;
+        }
+
+        $target_token = sanitize_text_field( (string) $validation['target_token'] );
+        $addon_type = sanitize_key( (string) $validation['addon_type'] );
+        $target_vertical = sanitize_key( (string) $validation['target_vertical'] );
+        $catalog = is_array( $validation['catalog'] ?? null ) ? $validation['catalog'] : [];
+        $labels = teinvit_addon_type_labels();
+        $applied = false;
+
+        if ( $addon_type === 'extra_edits' ) {
+            $applied = teinvit_credit_paid_edits_for_invitation( $target_token, $qty );
+        } elseif ( $addon_type === 'extra_gifts' ) {
+            $slots_per_unit = function_exists( 'teinvit_catalog_extra_gifts_slots_for_product' )
+                ? teinvit_catalog_extra_gifts_slots_for_product( $catalog, $product_id, 10 )
+                : 10;
+            $allocation_key = 'addon:' . (int) $order_id . ':' . (int) $item_id;
+            $applied = function_exists( 'teinvit_token_upsert_gifts_allocation' ) && teinvit_token_upsert_gifts_allocation( $target_token, [
+                'allocation_key' => $allocation_key,
+                'kind' => 'addon',
+                'order_id' => (int) $order_id,
+                'item_id' => (int) $item_id,
+                'product_id' => $product_id,
+                'qty' => $qty,
+                'slots_per_unit' => $slots_per_unit,
+                'slots_total' => $qty * $slots_per_unit,
+                'slots_remaining' => $qty * $slots_per_unit,
+                'status' => 'applied',
+                'applied_at' => current_time( 'mysql' ),
+            ] );
+            if ( $applied ) {
                 teinvit_order_gifts_allocations_upsert( $order, [
                     'allocation_key' => $allocation_key,
                     'kind' => 'addon',
@@ -1538,48 +2228,32 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
                 ] );
                 $item->update_meta_data( '_teinvit_gift_slots_applied_per_unit', $slots_per_unit );
                 $item->update_meta_data( '_teinvit_gift_slots_applied_total', $qty * $slots_per_unit );
+                if ( method_exists( $item, 'save' ) ) {
+                    $item->save();
+                }
                 $settings = teinvit_get_settings( $target_token );
                 if ( $settings ) {
                     teinvit_update_settings( $target_token, [
                         'gifts_paid_capacity' => (int) $settings['gifts_paid_capacity'] + ( $qty * $slots_per_unit ),
                     ] );
                 }
-                $did_update = true;
             }
-            $processed[] = (int) $item_id;
-            $processed_changed = true;
-            continue;
+        } elseif ( $addon_type === 'premium_upgrade' ) {
+            $applied = teinvit_apply_premium_upgrade_for_invitation( $target_token, $order, $item, $catalog );
         }
-        $order->add_order_note( sprintf( '[TeInvit Debug Gifts] item=%d product=%d not recognized as gifts addon for token=%s', (int) $item_id, $product_id, $target_token ) );
 
-        if ( in_array( $product_id, $premium_upgrade_product_ids, true ) ) {
-            if ( function_exists( 'teinvit_get_invitation' ) && function_exists( 'teinvit_save_invitation_config' ) ) {
-                $inv = teinvit_get_invitation( $target_token );
-                if ( ! $inv && function_exists( 'teinvit_seed_invitation_if_missing' ) && function_exists( 'teinvit_get_order_id_by_token' ) ) {
-                    $target_order_id = (int) teinvit_get_order_id_by_token( $target_token );
-                    if ( $target_order_id > 0 ) {
-                        teinvit_seed_invitation_if_missing( $target_token, $target_order_id );
-                        $inv = teinvit_get_invitation( $target_token );
-                    }
-                }
-                if ( $inv ) {
-                    $config = is_array( $inv['config'] ?? null ) ? $inv['config'] : [];
-                    $config['premium_upgrade_active'] = 1;
-                    $config['premium_upgrade_last_order_id'] = (int) $order_id;
-                    if ( function_exists( 'teinvit_config_apply_default_included_edits' ) ) {
-                        $config = teinvit_config_apply_default_included_edits( $config, $catalog, 'woo_upgrade', (int) $order_id );
-                    }
-                    $saved = teinvit_save_invitation_config( $target_token, [ 'config' => $config ] );
-                    if ( $saved !== false && function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
-                        teinvit_sync_legacy_edit_balance_from_config( $target_token, $config );
-                    }
-                    $did_update = true;
-                }
-            }
-            $processed[] = (int) $item_id;
-            $processed_changed = true;
-            continue;
+        if ( $applied ) {
+            teinvit_addon_record_ledger_for_order_item( $order, $item, $target_token, $addon_type, $target_vertical, 'applied', '', [ 'phase' => 'completed', 'qty' => $qty ] );
+            $order->add_order_note( sprintf( '[TeInvit] Addon aplicat: %s pe token %s (item %d, qty %d).', $labels[ $addon_type ] ?? $addon_type, $target_token, (int) $item_id, $qty ) );
+            $did_update = true;
+        } else {
+            teinvit_addon_record_ledger_for_order_item( $order, $item, $target_token, $addon_type, $target_vertical, 'failed', 'apply_failed', [ 'phase' => 'completed', 'qty' => $qty ] );
+            $order->add_order_note( sprintf( '[TeInvit] Addon esuat: %s nu a putut fi aplicat pe token %s (item %d).', $labels[ $addon_type ] ?? $addon_type, $target_token, (int) $item_id ) );
         }
+
+        $processed[] = (int) $item_id;
+        $processed_changed = true;
+        continue;
     }
 
     if ( $did_update || $processed_changed ) {

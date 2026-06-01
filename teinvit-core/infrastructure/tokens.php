@@ -370,6 +370,108 @@ function teinvit_catalog_role_ids( array $catalog, $role_key ) {
     return teinvit_parse_product_ids_csv( $catalog[ $role_key ] ?? [] );
 }
 
+function teinvit_catalog_product_id_matches_role( array $catalog, $role_key, array $product_ids ) {
+    $role_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, $role_key ) : [];
+    if ( empty( $role_ids ) ) {
+        return false;
+    }
+
+    $product_ids = array_values( array_filter( array_map( 'intval', $product_ids ), static function( $id ) {
+        return $id > 0;
+    } ) );
+
+    return ! empty( array_intersect( $product_ids, array_map( 'intval', $role_ids ) ) );
+}
+
+function teinvit_get_configurable_product_context( $product_id, $variation_id = 0, $preferred_vertical = '' ) {
+    $product_id = (int) $product_id;
+    $variation_id = (int) $variation_id;
+    $product_ids = array_values( array_filter( [ $product_id, $variation_id ], static function( $id ) {
+        return (int) $id > 0;
+    } ) );
+
+    if ( empty( $product_ids ) || ! function_exists( 'teinvit_get_custom_products_catalog' ) ) {
+        return null;
+    }
+
+    $catalogs = teinvit_get_custom_products_catalog();
+    if ( ! is_array( $catalogs ) ) {
+        return null;
+    }
+
+    $preferred_vertical = sanitize_key( (string) $preferred_vertical );
+    $vertical_order = [];
+    if ( $preferred_vertical !== '' && isset( $catalogs[ $preferred_vertical ] ) ) {
+        $vertical_order[] = $preferred_vertical;
+    }
+    foreach ( array_keys( $catalogs ) as $vertical_key ) {
+        $vertical_key = sanitize_key( (string) $vertical_key );
+        if ( $vertical_key !== '' ) {
+            $vertical_order[] = $vertical_key;
+        }
+    }
+    $vertical_order = array_values( array_unique( $vertical_order ) );
+
+    foreach ( $vertical_order as $vertical_key ) {
+        $catalog = isset( $catalogs[ $vertical_key ] ) && is_array( $catalogs[ $vertical_key ] ) ? $catalogs[ $vertical_key ] : [];
+        if ( teinvit_catalog_product_id_matches_role( $catalog, 'basic_product_ids', $product_ids ) ) {
+            return [
+                'vertical' => $vertical_key,
+                'package_type' => 'basic',
+                'role_key' => 'basic_product_ids',
+                'catalog' => $catalog,
+            ];
+        }
+        if ( teinvit_catalog_product_id_matches_role( $catalog, 'premium_native_product_ids', $product_ids ) ) {
+            return [
+                'vertical' => $vertical_key,
+                'package_type' => 'premium',
+                'role_key' => 'premium_native_product_ids',
+                'catalog' => $catalog,
+            ];
+        }
+    }
+
+    return null;
+}
+
+function teinvit_order_configurable_quantity_violations( $order ) {
+    if ( ! $order || ! method_exists( $order, 'get_items' ) ) {
+        return [];
+    }
+
+    $violations = [];
+    foreach ( $order->get_items( 'line_item' ) as $item_id => $item ) {
+        if ( ! is_object( $item ) || ! method_exists( $item, 'get_quantity' ) ) {
+            continue;
+        }
+
+        $product_id = method_exists( $item, 'get_product_id' ) ? (int) $item->get_product_id() : 0;
+        $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+        $context = teinvit_get_configurable_product_context( $product_id, $variation_id );
+        if ( ! $context ) {
+            continue;
+        }
+
+        $qty = (float) $item->get_quantity();
+        if ( $qty <= 1 ) {
+            continue;
+        }
+
+        $violations[] = [
+            'item_id' => (int) $item_id,
+            'product_id' => $product_id,
+            'variation_id' => $variation_id,
+            'qty' => $qty,
+            'vertical' => $context['vertical'],
+            'package_type' => $context['package_type'],
+            'name' => method_exists( $item, 'get_name' ) ? (string) $item->get_name() : '',
+        ];
+    }
+
+    return $violations;
+}
+
 
 function teinvit_order_contains_invitation_product( $order ) {
     if ( ! $order ) {
@@ -407,15 +509,35 @@ function teinvit_attach_token_on_completed( $order_id ) {
         return;
     }
 
-    $random_part = teinvit_generate_token_part( 20 );
-    $token       = $order_id . '-' . $random_part;
-
-    update_post_meta( $order_id, '_teinvit_token', $token );
-
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
         return;
     }
+
+    $quantity_violations = teinvit_order_configurable_quantity_violations( $order );
+    if ( ! empty( $quantity_violations ) ) {
+        $parts = [];
+        foreach ( $quantity_violations as $violation ) {
+            $qty_label = rtrim( rtrim( number_format( (float) $violation['qty'], 4, '.', '' ), '0' ), '.' );
+            $parts[] = sprintf(
+                'item %d, product %d, qty %s, vertical %s, package %s',
+                (int) $violation['item_id'],
+                (int) $violation['product_id'],
+                $qty_label,
+                (string) $violation['vertical'],
+                (string) $violation['package_type']
+            );
+        }
+        $order->add_order_note( '[TeInvit] Generare token blocata fail-closed: produs configurabil cu qty > 1 detectat (' . implode( '; ', $parts ) . '). Activeaza Sold individually pe produs si proceseaza manual fara a genera date ambigue.' );
+        $order->update_meta_data( '_teinvit_token_generation_blocked_reason', 'configurable_qty_gt_1' );
+        $order->save();
+        return;
+    }
+
+    $random_part = teinvit_generate_token_part( 20 );
+    $token       = $order_id . '-' . $random_part;
+
+    update_post_meta( $order_id, '_teinvit_token', $token );
 
     if ( ! teinvit_order_contains_invitation_product( $order ) ) {
         $order->add_order_note( 'Skip PDF pipeline: order does not contain invitation product (configured Basic/Premium).' );
