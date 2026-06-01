@@ -31,6 +31,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/templates/social-meta.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/templates/share-buttons.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/routing.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/pdf/generate.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/order-meta-box.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/custom-emails.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/newsman-api.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/integrations.php';

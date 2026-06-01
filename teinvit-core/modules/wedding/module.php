@@ -47,4 +47,3 @@ require_once TEINVIT_WEDDING_MODULE_PATH . 'custom-pages.php';
 
 require_once TEINVIT_WEDDING_MODULE_PATH . 'hooks/product-preview.php';
 require_once TEINVIT_WEDDING_MODULE_PATH . 'hooks/guest-preview.php';
-require_once TEINVIT_WEDDING_MODULE_PATH . 'admin/order-meta-box.php';
