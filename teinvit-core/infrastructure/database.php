@@ -799,6 +799,41 @@ function teinvit_order_token_capabilities_for_context( $token, $product_state, $
     return teinvit_order_token_capabilities_for_state( $product_state, $package_type );
 }
 
+function teinvit_token_capability_enabled( $token, $capability, $token_context = null ) {
+    $token = sanitize_text_field( (string) $token );
+    $capability = sanitize_key( (string) $capability );
+    if ( $token === '' || $capability === '' ) {
+        return false;
+    }
+
+    $capabilities = [];
+    if ( is_array( $token_context ) && isset( $token_context['capabilities'] ) && is_array( $token_context['capabilities'] ) ) {
+        $capabilities = $token_context['capabilities'];
+    }
+
+    if ( empty( $capabilities ) && function_exists( 'teinvit_capabilities_for_token' ) ) {
+        $resolved_capabilities = teinvit_capabilities_for_token( $token );
+        if ( is_array( $resolved_capabilities ) ) {
+            $capabilities = $resolved_capabilities;
+        }
+    }
+
+    if ( empty( $capabilities ) ) {
+        return true;
+    }
+
+    return ! empty( $capabilities[ $capability ] );
+}
+
+function teinvit_token_can_use_rsvp( $token, $token_context = null ) {
+    return teinvit_token_capability_enabled( $token, 'can_save_rsvp_config', $token_context )
+        && teinvit_token_capability_enabled( $token, 'can_share_invitation', $token_context );
+}
+
+function teinvit_token_can_manage_rsvp_reports( $token, $token_context = null ) {
+    return teinvit_token_capability_enabled( $token, 'can_save_rsvp_config', $token_context );
+}
+
 function teinvit_build_order_token_context_from_row( array $row ) {
     $row = teinvit_normalize_order_token_row( $row );
     $token = $row['token'];

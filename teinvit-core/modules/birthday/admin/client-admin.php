@@ -927,7 +927,7 @@ add_action( 'admin_post_teinvit_birthday_save_gifts', function() {
                 $update_data['gift_delivery_address'] = $address;
             }
 
-            $wpdb->update( $gifts_table, $update_data, [ 'id' => (int) $existing['id'] ] );
+            $wpdb->update( $gifts_table, $update_data, [ 'id' => (int) $existing['id'], 'token' => $token ] );
             continue;
         }
 
@@ -946,7 +946,7 @@ add_action( 'admin_post_teinvit_birthday_save_gifts', function() {
         ];
 
         if ( $existing ) {
-            $wpdb->update( $gifts_table, $payload, [ 'id' => (int) $existing['id'] ] );
+            $wpdb->update( $gifts_table, $payload, [ 'id' => (int) $existing['id'], 'token' => $token ] );
         } else {
             $wpdb->insert( $gifts_table, $payload );
         }
@@ -959,7 +959,7 @@ add_action( 'admin_post_teinvit_birthday_save_gifts', function() {
         if ( ! empty( $row['published_locked'] ) ) {
             continue;
         }
-        $wpdb->delete( $gifts_table, [ 'id' => (int) $row['id'] ] );
+        $wpdb->delete( $gifts_table, [ 'id' => (int) $row['id'], 'token' => $token ] );
     }
 
     $summary_after = teinvit_birthday_build_gifts_summary_for_token( $token, $config );
@@ -1163,7 +1163,19 @@ function teinvit_birthday_export_guest_report_handler() {
         wp_die( esc_html( $ctx->get_error_message() ) );
     }
 
-    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $token_context = isset( $ctx[2] ) && is_array( $ctx[2] ) ? $ctx[2] : [];
+    $caps = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
+    $can_manage_all = function_exists( 'teinvit_user_can_manage_all_tokens' ) && teinvit_user_can_manage_all_tokens();
+    $can_report = function_exists( 'teinvit_token_can_manage_rsvp_reports' )
+        ? teinvit_token_can_manage_rsvp_reports( $token, $token_context )
+        : ! empty( $caps['can_save_rsvp_config'] );
+    if ( ! $can_manage_all && ! $can_report ) {
+        wp_die( 'Exportul este disponibil doar pentru pachetul Premium.' );
+    }
+
+    $vertical = ! empty( $token_context['vertical'] )
+        ? (string) $token_context['vertical']
+        : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
     if ( $vertical !== 'birthday' ) {
         wp_die( 'Exportul Birthday este disponibil doar pentru tokenuri Birthday.' );
     }

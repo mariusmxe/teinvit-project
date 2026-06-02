@@ -68,9 +68,23 @@ function teinvit_baptism_handle_rsvp_rest( WP_REST_Request $request ) {
         return new WP_Error( 'not_found', 'Token invalid.', [ 'status' => 404 ] );
     }
 
-    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+    if ( ! is_array( $token_context ) || empty( $token_context['valid'] ) ) {
+        return new WP_Error( 'not_found', 'Token invalid.', [ 'status' => 404 ] );
+    }
+
+    $vertical = ! empty( $token_context['vertical'] )
+        ? (string) $token_context['vertical']
+        : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
     if ( $vertical !== 'baptism' ) {
         return new WP_Error( 'wrong_vertical', 'RSVP Baptism este disponibil doar pentru tokenuri Baptism.', [ 'status' => 404 ] );
+    }
+
+    $can_use_rsvp = function_exists( 'teinvit_token_can_use_rsvp' )
+        ? teinvit_token_can_use_rsvp( $token, $token_context )
+        : true;
+    if ( ! $can_use_rsvp ) {
+        return new WP_Error( 'rsvp_locked', 'RSVP este disponibil doar pentru pachetul Premium.', [ 'status' => 403 ] );
     }
 
     $inv = function_exists( 'teinvit_get_invitation_record' ) ? teinvit_get_invitation_record( $token, 'baptism' ) : null;
@@ -332,7 +346,9 @@ function teinvit_baptism_handle_rsvp_rest( WP_REST_Request $request ) {
     }
 
     $wpdb->query( 'COMMIT' );
-    if ( function_exists( 'teinvit_touch_invitation_activity' ) ) {
+    if ( function_exists( 'teinvit_touch_invitation_activity_for_token' ) ) {
+        teinvit_touch_invitation_activity_for_token( $token, 'baptism' );
+    } elseif ( function_exists( 'teinvit_touch_invitation_activity' ) ) {
         teinvit_touch_invitation_activity( $token );
     }
 

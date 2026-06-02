@@ -141,13 +141,17 @@ if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
 $can_save_invitation_info = ! empty( $capabilities['can_save_invitation_info'] );
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
+$can_manage_gifts = ! empty( $capabilities['can_manage_gifts'] );
+$can_manage_rsvp_reports = function_exists( 'teinvit_token_can_manage_rsvp_reports' )
+    ? teinvit_token_can_manage_rsvp_reports( $token, $token_context )
+    : ! empty( $capabilities['can_save_rsvp_config'] );
 $show_gifts_section = ! empty( $config['show_gifts_section'] );
 $gifts_summary = function_exists( 'teinvit_birthday_build_gifts_summary_for_token' ) ? teinvit_birthday_build_gifts_summary_for_token( $token, $config ) : [ 'total_slots' => 20, 'used_slots' => 0, 'available_slots' => 20 ];
 $gifts_max_slots = max( 0, (int) ( $gifts_summary['total_slots'] ?? 20 ) );
 $gift_rows_export = [];
 $gifts_table = function_exists( 'teinvit_birthday_gifts_table_for_token' ) ? teinvit_birthday_gifts_table_for_token( $token ) : '';
 $rsvp_table = function_exists( 'teinvit_birthday_rsvp_table_for_token' ) ? teinvit_birthday_rsvp_table_for_token( $token ) : '';
-if ( $gifts_table !== '' && $rsvp_table !== '' ) {
+if ( $can_manage_gifts && $gifts_table !== '' && $rsvp_table !== '' ) {
     global $wpdb;
     $gift_rows = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, rs.guest_first_name, rs.guest_last_name, rs.guest_phone FROM {$gifts_table} g LEFT JOIN {$rsvp_table} rs ON rs.id = g.reserved_by_rsvp_id WHERE g.token = %s ORDER BY g.id ASC", $token ), ARRAY_A );
     $gift_rows = is_array( $gift_rows ) ? $gift_rows : [];
@@ -185,13 +189,13 @@ $buy_gifts_url = add_query_arg( [ 'teinvit_buy_gifts_token' => $token ], home_ur
 $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : [];
 $gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
 $buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
-$report_sets = function_exists( 'teinvit_birthday_build_rsvp_report_sets' ) ? teinvit_birthday_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
+$report_sets = ( $can_manage_rsvp_reports && function_exists( 'teinvit_birthday_build_rsvp_report_sets' ) ) ? teinvit_birthday_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
 $report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
 $report_history = is_array( $report_sets['history'] ?? null ) ? $report_sets['history'] : [];
-$report_kpis = function_exists( 'teinvit_birthday_build_rsvp_report_kpis' ) ? teinvit_birthday_build_rsvp_report_kpis( $report_sets, $config ) : [];
+$report_kpis = ( $can_manage_rsvp_reports && function_exists( 'teinvit_birthday_build_rsvp_report_kpis' ) ) ? teinvit_birthday_build_rsvp_report_kpis( $report_sets, $config ) : [];
 $report_include_mode = function_exists( 'teinvit_birthday_report_sets_include_mode' ) ? teinvit_birthday_report_sets_include_mode( $report_sets ) : false;
 $report_headers = function_exists( 'teinvit_birthday_report_headers' ) ? teinvit_birthday_report_headers( $report_include_mode ) : [];
-$report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_birthday_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
+$report_export_url = $can_manage_rsvp_reports ? wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_birthday_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token ) : '';
 $basic_copy = function_exists( 'teinvit_vertical_basic_copy' ) ? teinvit_vertical_basic_copy( 'birthday' ) : [];
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
@@ -455,6 +459,7 @@ $admin_child_toggle_fields = [
   </div>
   <div class="teinvit-zone teinvit-admin-report">
     <h3 style="text-align:center;margin-top:0;">Raport invitați</h3>
+    <?php if ( $can_manage_rsvp_reports ) : ?>
     <div class="teinvit-report-grid">
       <?php foreach ( $report_kpis as $metric => $value ) : ?>
         <div class="teinvit-report-card"><strong><?php echo esc_html( (string) $metric ); ?>:</strong> <?php echo esc_html( (string) $value ); ?></div>
@@ -476,6 +481,9 @@ $admin_child_toggle_fields = [
         <tbody></tbody>
       </table>
     </div>
+    <?php else : ?>
+      <p><em><?php echo esc_html( (string) ( $basic_copy['rsvp_locked'] ?? 'Raportarea invitatilor este disponibila dupa upgrade la Premium.' ) ); ?></em></p>
+    <?php endif; ?>
   </div>
 </div>
 <script>

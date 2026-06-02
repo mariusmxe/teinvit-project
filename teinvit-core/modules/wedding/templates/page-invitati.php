@@ -15,6 +15,13 @@ if ( $deadline_raw !== '' && preg_match( '/^(\d{2})\/(\d{2})\/(\d{4})$/', $deadl
 $deadline_expired = $deadline_active && $deadline_ts > 0 && time() > $deadline_ts;
 
 $token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+$can_use_rsvp = function_exists( 'teinvit_token_can_use_rsvp' )
+    ? teinvit_token_can_use_rsvp( $token, $token_context )
+    : true;
+if ( ! $can_use_rsvp ) {
+    echo '<p>Pagina invitatilor este disponibila dupa upgrade la Premium.</p>';
+    return;
+}
 $background_product_id = is_array( $token_context ) && ! empty( $token_context['valid'] )
     ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) )
     : 0;
@@ -104,7 +111,9 @@ $terms_page = get_page_by_path( 'termeni-si-conditii', OBJECT, 'page' );
 $terms_url = $terms_page instanceof WP_Post ? get_permalink( $terms_page ) : '';
 
 global $wpdb;
-$t = teinvit_db_tables();
+$t = function_exists( 'teinvit_storage_tables_for_existing_token' )
+    ? teinvit_storage_tables_for_existing_token( $token, 'wedding' )
+    : teinvit_db_tables();
 $gifts = $wpdb->get_results( $wpdb->prepare( "SELECT gift_id,gift_name,gift_link,gift_delivery_address,status FROM {$t['gifts']} WHERE token=%s AND include_in_public=1 AND (gift_name<>'' OR gift_link<>'') ORDER BY id ASC", $token ), ARRAY_A );
 $in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 ?>

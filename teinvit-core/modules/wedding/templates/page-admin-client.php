@@ -134,13 +134,25 @@ if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
 $show_deadline = ! empty( $config['show_rsvp_deadline'] );
 $deadline_date = (string) ( $config['rsvp_deadline_date'] ?? '' );
 
+$capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
+$token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
+$can_manage_gifts = ! empty( $capabilities['can_manage_gifts'] );
+$can_manage_rsvp_reports = function_exists( 'teinvit_token_can_manage_rsvp_reports' )
+    ? teinvit_token_can_manage_rsvp_reports( $token, $token_context )
+    : ! empty( $capabilities['can_save_rsvp_config'] );
+
 $show_gifts_section = ! empty( $config['show_gifts_section'] );
 $gifts_summary = function_exists( 'teinvit_build_gifts_summary_for_token' ) ? teinvit_build_gifts_summary_for_token( $token, $config ) : [ 'total_slots' => 20, 'used_slots' => 0, 'available_slots' => 20 ];
 $gifts_max_slots = max( 0, (int) ( $gifts_summary['total_slots'] ?? 20 ) );
 
 global $wpdb;
-$t = teinvit_db_tables();
-$gift_rows = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, rs.guest_first_name, rs.guest_last_name, rs.guest_phone FROM {$t['gifts']} g LEFT JOIN {$t['rsvp']} rs ON rs.id = g.reserved_by_rsvp_id WHERE g.token = %s ORDER BY g.id ASC", $token ), ARRAY_A );
+$t = function_exists( 'teinvit_storage_tables_for_existing_token' )
+    ? teinvit_storage_tables_for_existing_token( $token, 'wedding' )
+    : teinvit_db_tables();
+$gift_rows = [];
+if ( $can_manage_gifts ) {
+    $gift_rows = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, rs.guest_first_name, rs.guest_last_name, rs.guest_phone FROM {$t['gifts']} g LEFT JOIN {$t['rsvp']} rs ON rs.id = g.reserved_by_rsvp_id WHERE g.token = %s ORDER BY g.id ASC", $token ), ARRAY_A );
+}
 $gift_rows = is_array( $gift_rows ) ? $gift_rows : [];
 
 $gift_rows_export = [];
@@ -184,10 +196,10 @@ $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_cata
 $gifts_slots_per_purchase = function_exists( 'teinvit_catalog_first_extra_gifts_slots' ) ? (int) teinvit_catalog_first_extra_gifts_slots( $catalog, 10 ) : 10;
 $buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase );
 
-$report_sets = function_exists( 'teinvit_build_rsvp_report_sets' ) ? teinvit_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
+$report_sets = ( $can_manage_rsvp_reports && function_exists( 'teinvit_build_rsvp_report_sets' ) ) ? teinvit_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
 $report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
 $report_history = is_array( $report_sets['history'] ?? null ) ? $report_sets['history'] : [];
-$report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
+$report_export_url = $can_manage_rsvp_reports ? wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token ) : '';
 
 $sum_people_civil = 0; $sum_people_religious = 0; $sum_people_party = 0;
 $count_da_civil = 0; $count_da_religious = 0; $count_da_party = 0;
@@ -734,6 +746,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   <div class="teinvit-zone teinvit-admin-report">
     <h3 class="teinvit-gifts-title">Raport invitați</h3>
+    <?php if ( $can_manage_rsvp_reports ) : ?>
     <div class="teinvit-report-kpi">
     <div class="teinvit-report-grid">
       <div class="teinvit-report-card"><strong>Confirmari totale unice:</strong> <?php echo (int) ( $report_sets['unique_phones_count'] ?? 0 ); ?></div>
@@ -760,6 +773,9 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
     <table class="teinvit-report-table" id="teinvit-report-table"><thead><tr><th>Status</th><th>Nume</th><th>Prenume</th><th>Telefon</th><th>Email</th><th>Data/ora submit</th><th>Adulti Confirmati</th><th>Cununie civilă?</th><th>Ceremonie religioasă?</th><th>Petrecere?</th><th>Copii?</th><th>Câți copii</th><th>Cazare?</th><th>Cazare nr. persoane</th><th>Vegetarian?</th><th>Meniuri vegetariene</th><th>Alergii?</th><th>Detalii alergii</th><th>Mesaj către miri</th></tr></thead><tbody></tbody></table>
     </div>
     </div>
+    <?php else : ?>
+      <p><em>Raportarea invitatilor este disponibila dupa upgrade la Premium.</em></p>
+    <?php endif; ?>
   </div>
 
 </div>
