@@ -11,6 +11,15 @@ if ( ! is_array( $inv ) ) {
     return;
 }
 
+$token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+$can_use_rsvp = function_exists( 'teinvit_token_can_use_rsvp' )
+    ? teinvit_token_can_use_rsvp( $token, $token_context )
+    : true;
+if ( ! $can_use_rsvp ) {
+    echo '<p>Pagina invitatilor este disponibila dupa upgrade la Premium.</p>';
+    return;
+}
+
 $config = function_exists( 'teinvit_birthday_config_with_defaults' )
     ? teinvit_birthday_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] )
     : wp_parse_args( is_array( $inv['config'] ?? null ) ? $inv['config'] : [], function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( 'birthday' ) : [] );

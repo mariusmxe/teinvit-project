@@ -298,9 +298,23 @@ function teinvit_birthday_handle_rsvp_rest( WP_REST_Request $request ) {
         return new WP_Error( 'not_found', 'Token invalid', [ 'status' => 404 ] );
     }
 
-    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+    if ( ! is_array( $token_context ) || empty( $token_context['valid'] ) ) {
+        return new WP_Error( 'not_found', 'Token invalid', [ 'status' => 404 ] );
+    }
+
+    $vertical = ! empty( $token_context['vertical'] )
+        ? (string) $token_context['vertical']
+        : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
     if ( $vertical !== 'birthday' ) {
         return new WP_Error( 'vertical_mismatch', 'RSVP Birthday nu poate procesa acest token.', [ 'status' => 400 ] );
+    }
+
+    $can_use_rsvp = function_exists( 'teinvit_token_can_use_rsvp' )
+        ? teinvit_token_can_use_rsvp( $token, $token_context )
+        : true;
+    if ( ! $can_use_rsvp ) {
+        return new WP_Error( 'rsvp_locked', 'RSVP este disponibil doar pentru pachetul Premium.', [ 'status' => 403 ] );
     }
 
     $inv = function_exists( 'teinvit_get_invitation_record' ) ? teinvit_get_invitation_record( $token, 'birthday' ) : null;

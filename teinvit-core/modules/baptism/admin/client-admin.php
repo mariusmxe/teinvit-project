@@ -792,7 +792,7 @@ add_action( 'admin_post_teinvit_baptism_save_gifts', function() {
                 $update_data['gift_delivery_address'] = $address;
             }
 
-            $wpdb->update( $gifts_table, $update_data, [ 'id' => (int) $existing['id'] ] );
+            $wpdb->update( $gifts_table, $update_data, [ 'id' => (int) $existing['id'], 'token' => $token ] );
             continue;
         }
 
@@ -811,7 +811,7 @@ add_action( 'admin_post_teinvit_baptism_save_gifts', function() {
         ];
 
         if ( $existing ) {
-            $wpdb->update( $gifts_table, $payload, [ 'id' => (int) $existing['id'] ] );
+            $wpdb->update( $gifts_table, $payload, [ 'id' => (int) $existing['id'], 'token' => $token ] );
         } else {
             $wpdb->insert( $gifts_table, $payload );
         }
@@ -824,7 +824,7 @@ add_action( 'admin_post_teinvit_baptism_save_gifts', function() {
         if ( ! empty( $row['published_locked'] ) ) {
             continue;
         }
-        $wpdb->delete( $gifts_table, [ 'id' => (int) $row['id'] ] );
+        $wpdb->delete( $gifts_table, [ 'id' => (int) $row['id'], 'token' => $token ] );
     }
 
     $summary_after = teinvit_baptism_build_gifts_summary_for_token( $token, $config );
@@ -1028,13 +1028,16 @@ function teinvit_baptism_export_guest_report_handler() {
         wp_die( esc_html( $ctx->get_error_message() ) );
     }
 
+    $token_context = isset( $ctx[2] ) && is_array( $ctx[2] ) ? $ctx[2] : [];
     $caps = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
     $can_manage_all = function_exists( 'teinvit_user_can_manage_all_tokens' ) && teinvit_user_can_manage_all_tokens();
     if ( ! $can_manage_all && empty( $caps['can_save_rsvp_config'] ) ) {
         wp_die( 'Exportul este disponibil doar pentru pachetul Premium.' );
     }
 
-    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
+    $vertical = ! empty( $token_context['vertical'] )
+        ? (string) $token_context['vertical']
+        : ( function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding' );
     if ( $vertical !== 'baptism' ) {
         wp_die( 'Exportul Baptism este disponibil doar pentru tokenuri Baptism.' );
     }

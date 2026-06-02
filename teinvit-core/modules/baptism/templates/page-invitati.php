@@ -13,6 +13,13 @@ if ( ! is_array( $inv ) ) {
 
 $order = function_exists( 'wc_get_order' ) ? wc_get_order( (int) $inv['order_id'] ) : null;
 $token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+$can_use_rsvp = function_exists( 'teinvit_token_can_use_rsvp' )
+    ? teinvit_token_can_use_rsvp( $token, $token_context )
+    : true;
+if ( ! $can_use_rsvp ) {
+    echo '<p>Pagina invitatilor este disponibila dupa upgrade la Premium.</p>';
+    return;
+}
 if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
     if ( ! empty( $token_context['order'] ) && $token_context['order'] instanceof WC_Order ) {
         $order = $token_context['order'];

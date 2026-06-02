@@ -139,6 +139,10 @@ if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
 $can_save_invitation_info = ! empty( $capabilities['can_save_invitation_info'] );
+$can_manage_gifts = ! empty( $capabilities['can_manage_gifts'] );
+$can_manage_rsvp_reports = function_exists( 'teinvit_token_can_manage_rsvp_reports' )
+    ? teinvit_token_can_manage_rsvp_reports( $token, $token_context )
+    : ! empty( $capabilities['can_save_rsvp_config'] );
 $basic_copy = function_exists( 'teinvit_vertical_basic_copy' ) ? teinvit_vertical_basic_copy( 'baptism' ) : [];
 
 $show_deadline = ! empty( $config['show_rsvp_deadline'] );
@@ -151,7 +155,7 @@ $gifts_remaining = max( 0, (int) ( $gifts_summary['available_slots'] ?? $gifts_m
 $gift_rows_export = [];
 $gifts_table = function_exists( 'teinvit_baptism_gifts_table_for_token' ) ? teinvit_baptism_gifts_table_for_token( $token ) : '';
 $rsvp_table = function_exists( 'teinvit_baptism_rsvp_table_for_token' ) ? teinvit_baptism_rsvp_table_for_token( $token ) : '';
-if ( $gifts_table !== '' && $rsvp_table !== '' ) {
+if ( $can_manage_gifts && $gifts_table !== '' && $rsvp_table !== '' ) {
     global $wpdb;
     $gift_rows = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, rs.guest_first_name, rs.guest_last_name, rs.guest_phone FROM {$gifts_table} g LEFT JOIN {$rsvp_table} rs ON rs.id = g.reserved_by_rsvp_id WHERE g.token = %s ORDER BY g.id ASC", $token ), ARRAY_A );
     $gift_rows = is_array( $gift_rows ) ? $gift_rows : [];
@@ -190,12 +194,12 @@ $buy_gifts_cta_label = 'Cumpără pachet +' . max( 1, $gifts_slots_per_purchase 
 $buy_edits_url = add_query_arg( [ 'teinvit_buy_edits_token' => $token ], home_url( '/' ) );
 $buy_premium_upgrade_url = add_query_arg( [ 'teinvit_buy_premium_upgrade_token' => $token ], home_url( '/' ) );
 
-$report_sets = function_exists( 'teinvit_baptism_build_rsvp_report_sets' ) ? teinvit_baptism_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
+$report_sets = ( $can_manage_rsvp_reports && function_exists( 'teinvit_baptism_build_rsvp_report_sets' ) ) ? teinvit_baptism_build_rsvp_report_sets( $token ) : [ 'history' => [], 'unique' => [], 'multiple_phones_count' => 0, 'unique_phones_count' => 0, 'submissions_count' => 0 ];
 $report_unique = is_array( $report_sets['unique'] ?? null ) ? $report_sets['unique'] : [];
 $report_history = is_array( $report_sets['history'] ?? null ) ? $report_sets['history'] : [];
-$report_kpis = function_exists( 'teinvit_baptism_build_rsvp_report_kpis' ) ? teinvit_baptism_build_rsvp_report_kpis( $report_sets, $config ) : [];
+$report_kpis = ( $can_manage_rsvp_reports && function_exists( 'teinvit_baptism_build_rsvp_report_kpis' ) ) ? teinvit_baptism_build_rsvp_report_kpis( $report_sets, $config ) : [];
 $report_headers = function_exists( 'teinvit_baptism_report_headers' ) ? teinvit_baptism_report_headers() : [];
-$report_export_url = wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_baptism_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token );
+$report_export_url = $can_manage_rsvp_reports ? wp_nonce_url( admin_url( 'admin-post.php?action=teinvit_baptism_export_guest_report&token=' . rawurlencode( $token ) ), 'teinvit_admin_' . $token ) : '';
 
 $guest_page_url = function_exists( 'teinvit_share_guest_url' ) ? teinvit_share_guest_url( $token ) : home_url( '/invitati/' . rawurlencode( $token ) );
 $share_payload = function_exists( 'teinvit_vertical_share_payload' ) ? teinvit_vertical_share_payload( 'baptism', $current_invitation, $guest_page_url ) : [
@@ -416,7 +420,7 @@ $admin_toggle_fields = [
 
   <div class="teinvit-zone">
     <h3 style="text-align:center;margin-top:0;">Raport invitați</h3>
-    <?php if ( ! empty( $capabilities['can_save_rsvp_config'] ) ) : ?>
+    <?php if ( $can_manage_rsvp_reports ) : ?>
       <div class="teinvit-report-grid">
         <?php foreach ( $report_kpis as $metric => $value ) : ?>
           <div class="teinvit-report-card"><strong><?php echo esc_html( (string) $metric ); ?>:</strong> <?php echo esc_html( (string) $value ); ?></div>
