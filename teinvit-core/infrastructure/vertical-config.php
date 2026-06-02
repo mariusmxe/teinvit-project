@@ -294,13 +294,17 @@ function teinvit_render_vertical_admin_client_foundation( $token, $vertical_key,
     $snapshot = $active && ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
     $invitation = isset( $snapshot['invitation'] ) && is_array( $snapshot['invitation'] ) ? $snapshot['invitation'] : [];
     $preview_html = '';
+    $token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
 
     if ( ! empty( $invitation ) && function_exists( 'teinvit_render_invitation_html_for_vertical' ) ) {
-        $product_id = 0;
-        if ( class_exists( 'WC_Order' ) && $order instanceof WC_Order && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
-            $product_id = (int) teinvit_get_order_primary_product_id( $order );
+        $product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+        if ( $product_id <= 0 && is_array( $token_context ) ) {
+            $product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
         }
-        $preview_html = teinvit_render_invitation_html_for_vertical( $vertical_key, $invitation, $order, 'preview', $product_id );
+        if ( class_exists( 'WC_Order' ) && $order instanceof WC_Order && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+            $product_id = $product_id > 0 ? $product_id : (int) teinvit_get_order_primary_product_id( $order );
+        }
+        $preview_html = teinvit_render_invitation_html_for_vertical( $vertical_key, $invitation, $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] );
     }
 
     echo '<div class="teinvit-admin-page teinvit-admin-foundation teinvit-admin-foundation-' . esc_attr( $vertical_key ) . '" style="max-width:1100px;margin:20px auto;padding:16px;">';
@@ -351,13 +355,17 @@ function teinvit_render_vertical_invitati_foundation( $token, $vertical_key, $or
 
     $semantics = teinvit_vertical_semantics( $vertical_key );
     $label = (string) ( $semantics['label'] ?? ucfirst( $vertical_key ) );
+    $token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
 
     if ( $preview_html === '' && ! empty( $invitation ) && function_exists( 'teinvit_render_invitation_html_for_vertical' ) ) {
-        $product_id = 0;
-        if ( class_exists( 'WC_Order' ) && $order instanceof WC_Order && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
-            $product_id = (int) teinvit_get_order_primary_product_id( $order );
+        $product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+        if ( $product_id <= 0 && is_array( $token_context ) ) {
+            $product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
         }
-        $preview_html = teinvit_render_invitation_html_for_vertical( $vertical_key, $invitation, $order, 'preview', $product_id );
+        if ( class_exists( 'WC_Order' ) && $order instanceof WC_Order && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+            $product_id = $product_id > 0 ? $product_id : (int) teinvit_get_order_primary_product_id( $order );
+        }
+        $preview_html = teinvit_render_invitation_html_for_vertical( $vertical_key, $invitation, $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] );
     }
 
     echo '<div class="teinvit-invitati-foundation teinvit-invitati-foundation-' . esc_attr( $vertical_key ) . '" style="max-width:980px;margin:0 auto;">';

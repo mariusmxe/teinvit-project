@@ -24,13 +24,18 @@ if ( $background_product_id <= 0 && is_array( $token_context ) && ! empty( $toke
 if ( $background_product_id <= 0 ) {
     $background_product_id = (int) ( $inv['product_id'] ?? 0 );
 }
-if ( $background_product_id <= 0 && function_exists( 'wc_get_order' ) ) {
+if ( function_exists( 'wc_get_order' ) ) {
     $order_for_bg = wc_get_order( (int) ( $inv['order_id'] ?? 0 ) );
-    if ( $order_for_bg && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+    if ( $background_product_id <= 0 && $order_for_bg && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
         $background_product_id = (int) teinvit_get_order_primary_product_id( $order_for_bg );
     }
 }
-$bg = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $background_product_id ) : '';
+$bg = '';
+if ( function_exists( 'teinvit_get_token_background_url' ) ) {
+    $bg = teinvit_get_token_background_url( is_array( $token_context ) ? $token_context : [], isset( $order_for_bg ) ? $order_for_bg : null, $background_product_id );
+} elseif ( function_exists( 'teinvit_get_product_background_url' ) ) {
+    $bg = teinvit_get_product_background_url( $background_product_id );
+}
 
 $events = isset( $invitation_data['events'] ) && is_array( $invitation_data['events'] ) ? $invitation_data['events'] : [];
 $event_flags = [

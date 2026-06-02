@@ -275,9 +275,12 @@ function teinvit_build_invitation_payload_from_wapf_map( $vertical_key, array $w
     ];
 }
 
-function teinvit_render_invitation_html_for_vertical( $vertical_key, array $invitation, $order = null, $render_context = 'preview', $product_id = 0 ) {
+function teinvit_render_invitation_html_for_vertical( $vertical_key, array $invitation, $order = null, $render_context = 'preview', $product_id = 0, array $token_context = [] ) {
     $vertical_key = function_exists( 'teinvit_normalize_vertical_key' ) ? teinvit_normalize_vertical_key( $vertical_key ) : 'wedding';
     $GLOBALS['TEINVIT_RENDER_CONTEXT'] = $render_context === 'pdf' ? 'pdf' : 'preview';
+    $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = max( 0, (int) $product_id );
+    $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] = $token_context;
+    $GLOBALS['TEINVIT_RENDER_TOKEN'] = sanitize_text_field( (string) ( $token_context['token'] ?? '' ) );
 
     if ( $vertical_key === 'wedding' && $order instanceof WC_Order ) {
         return TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $invitation, $order );
@@ -296,6 +299,8 @@ function teinvit_render_invitation_html_for_vertical( $vertical_key, array $invi
         'order' => $order,
         'render_context' => $GLOBALS['TEINVIT_RENDER_CONTEXT'],
         'product_id' => (int) $product_id,
+        'token_context' => $token_context,
+        'token' => sanitize_text_field( (string) ( $token_context['token'] ?? '' ) ),
     ] );
 
     return is_string( $html ) && $html !== '' ? $html : '<p>Invitație indisponibilă.</p>';

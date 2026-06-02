@@ -268,9 +268,15 @@ $admin_toggle_fields = [
     ],
 ];
 
-$preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
 $product_id = $token_effective_product_id > 0 ? $token_effective_product_id : teinvit_get_order_primary_product_id( $order );
 $product = $product_id ? wc_get_product( $product_id ) : null;
+$GLOBALS['TEINVIT_RENDER_CONTEXT'] = 'preview';
+$GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = max( 0, (int) $product_id );
+$GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] = is_array( $token_context ) ? $token_context : [];
+$GLOBALS['TEINVIT_RENDER_TOKEN'] = $token;
+$preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
+    ? teinvit_render_invitation_html_for_vertical( 'wedding', $current_invitation, $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] )
+    : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';

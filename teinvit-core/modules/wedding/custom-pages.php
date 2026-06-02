@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-function teinvit_get_product_background_url( $product_or_id ) {
+function teinvit_get_product_background_details( $product_or_id ) {
     $product_id = 0;
 
     if ( $product_or_id instanceof WC_Product ) {
@@ -12,17 +12,111 @@ function teinvit_get_product_background_url( $product_or_id ) {
         $product_id = (int) $product_or_id;
     }
 
+    $details = [
+        'product_id' => $product_id,
+        'attachment_id' => 0,
+        'url' => '',
+    ];
+
     if ( $product_id > 0 ) {
         $attachment_id = (int) get_post_meta( $product_id, '_teinvit_background_image_id', true );
         if ( $attachment_id > 0 ) {
             $url = wp_get_attachment_image_url( $attachment_id, 'full' );
             if ( $url ) {
-                return esc_url_raw( $url );
+                $details['attachment_id'] = $attachment_id;
+                $details['url'] = esc_url_raw( $url );
+                return $details;
             }
         }
     }
 
-    return "";
+    return $details;
+}
+
+function teinvit_get_product_background_url( $product_or_id ) {
+    $details = teinvit_get_product_background_details( $product_or_id );
+    return is_array( $details ) ? (string) ( $details['url'] ?? '' ) : '';
+}
+
+function teinvit_get_token_background_details( $token_or_context, $fallback_order = null, $fallback_product_id = 0 ) {
+    $context = [];
+    $token = '';
+
+    if ( is_array( $token_or_context ) ) {
+        $context = $token_or_context;
+        $token = sanitize_text_field( (string) ( $context['token'] ?? '' ) );
+    } else {
+        $token = sanitize_text_field( (string) $token_or_context );
+        if ( $token !== '' && function_exists( 'teinvit_resolve_token_context' ) ) {
+            $resolved = teinvit_resolve_token_context( $token );
+            if ( is_array( $resolved ) && ! empty( $resolved['valid'] ) ) {
+                $context = $resolved;
+            }
+        }
+    }
+
+    $fallback_product_id = max( 0, (int) $fallback_product_id );
+    $candidates = [];
+    $legacy = is_array( $context ) && ! empty( $context['legacy'] );
+    if ( is_array( $context ) && ! empty( $context['valid'] ) && ! $legacy ) {
+        $variation_id = max( 0, (int) ( $context['variation_id'] ?? 0 ) );
+        $product_id = max( 0, (int) ( $context['product_id'] ?? 0 ) );
+        if ( $variation_id > 0 ) {
+            $candidates[] = [ 'product_id' => $variation_id, 'source' => 'token_variation' ];
+        }
+        if ( $product_id > 0 ) {
+            $candidates[] = [ 'product_id' => $product_id, 'source' => 'token_product' ];
+        }
+    }
+
+    if ( $fallback_product_id > 0 ) {
+        $candidates[] = [ 'product_id' => $fallback_product_id, 'source' => 'fallback_product' ];
+    }
+
+    if ( $fallback_order instanceof WC_Order ) {
+        $items = $fallback_order->get_items( 'line_item' );
+        if ( ! empty( $items ) ) {
+            $first_item = reset( $items );
+            if ( $first_item instanceof WC_Order_Item_Product ) {
+                $first_product_id = max( 0, (int) $first_item->get_product_id() );
+                if ( $first_product_id > 0 ) {
+                    $candidates[] = [ 'product_id' => $first_product_id, 'source' => 'legacy_order_first_product' ];
+                }
+            }
+        }
+    }
+
+    $seen = [];
+    foreach ( $candidates as $candidate ) {
+        $candidate_product_id = max( 0, (int) ( $candidate['product_id'] ?? 0 ) );
+        if ( $candidate_product_id <= 0 || isset( $seen[ $candidate_product_id ] ) ) {
+            continue;
+        }
+        $seen[ $candidate_product_id ] = true;
+        $details = teinvit_get_product_background_details( $candidate_product_id );
+        if ( ! empty( $details['url'] ) ) {
+            $details['source'] = (string) ( $candidate['source'] ?? '' );
+            $details['token'] = $token;
+            return $details;
+        }
+    }
+
+    if ( $token !== '' && is_array( $context ) && ! empty( $context['valid'] ) && empty( $context['legacy'] ) ) {
+        error_log( '[TeInvit] Background missing for token ' . $token . ' product_id=' . (int) ( $context['product_id'] ?? 0 ) . ' variation_id=' . (int) ( $context['variation_id'] ?? 0 ) );
+    }
+
+    return [
+        'product_id' => 0,
+        'attachment_id' => 0,
+        'url' => '',
+        'source' => 'missing',
+        'token' => $token,
+    ];
+}
+
+function teinvit_get_token_background_url( $token_or_context, $fallback_order = null, $fallback_product_id = 0 ) {
+    $details = teinvit_get_token_background_details( $token_or_context, $fallback_order, $fallback_product_id );
+    return is_array( $details ) ? (string) ( $details['url'] ?? '' ) : '';
 }
 
 function teinvit_extract_admin_client_global_zone( $content, $zone ) {

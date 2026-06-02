@@ -213,7 +213,7 @@ if ( $subtitle === '' ) {
 }
 
 $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
-    ? teinvit_render_invitation_html_for_vertical( 'baptism', $current_invitation, $order, 'preview', $product_id )
+    ? teinvit_render_invitation_html_for_vertical( 'baptism', $current_invitation, $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] )
     : '';
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 

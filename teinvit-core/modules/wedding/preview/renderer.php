@@ -145,9 +145,12 @@ class TeInvit_Wedding_Preview_Renderer {
         if ( $order_or_product instanceof WC_Order ) {
             $order = $order_or_product;
             $GLOBALS['order'] = $order_or_product;
+            unset( $GLOBALS['product'] );
         } elseif ( $order_or_product instanceof WC_Product ) {
             $product = $order_or_product;
             $GLOBALS['product'] = $order_or_product;
+            $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = (int) $order_or_product->get_id();
+            unset( $GLOBALS['order'] );
         }
         $GLOBALS['invitation'] = $invitation;
 

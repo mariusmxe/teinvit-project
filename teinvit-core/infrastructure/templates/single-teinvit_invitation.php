@@ -137,12 +137,15 @@ if ( $mode === 'invitati' && $token !== '' ) {
 
         if ( ! empty( $payload['invitation'] ) && is_array( $payload['invitation'] ) ) {
             $preview_invitation_data = $payload['invitation'];
-            if ( $vertical_key === 'wedding' ) {
+            $product_id = $token_effective_product_id > 0 ? $token_effective_product_id : ( function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0 );
+            if ( $vertical_key === 'wedding' && ! function_exists( 'teinvit_render_invitation_html_for_vertical' ) ) {
+                $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = max( 0, (int) $product_id );
+                $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] = is_array( $token_context ) ? $token_context : [];
+                $GLOBALS['TEINVIT_RENDER_TOKEN'] = $token;
                 $preview_html = TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
             } else {
-                $product_id = $token_effective_product_id > 0 ? $token_effective_product_id : ( function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0 );
                 $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
-                    ? teinvit_render_invitation_html_for_vertical( $vertical_key, $payload['invitation'], $order, 'preview', $product_id )
+                    ? teinvit_render_invitation_html_for_vertical( $vertical_key, $payload['invitation'], $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] )
                     : '';
             }
             $preview_html = preg_replace( '/<script>\s*window\.TEINVIT_INVITATION_DATA\s*=.*?<\/script>/s', '', (string) $preview_html );

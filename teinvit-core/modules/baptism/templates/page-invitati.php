@@ -48,7 +48,7 @@ if ( $use_context_preview ) {
 }
 if ( ! empty( $invitation ) && function_exists( 'teinvit_render_invitation_html_for_vertical' ) ) {
     if ( $preview_html === '' ) {
-        $preview_html = teinvit_render_invitation_html_for_vertical( 'baptism', $invitation, $order, 'preview', $product_id );
+        $preview_html = teinvit_render_invitation_html_for_vertical( 'baptism', $invitation, $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] );
     }
     $preview_html = preg_replace( '/<script>\s*window\.TEINVIT_INVITATION_DATA\s*=.*?<\/script>/s', '', (string) $preview_html );
     $preview_html = preg_replace( '/window\.TEINVIT_INVITATION_DATA\s*=\s*.*?;\s*/s', '', (string) $preview_html );

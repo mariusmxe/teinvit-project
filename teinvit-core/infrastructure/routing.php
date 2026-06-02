@@ -96,8 +96,14 @@ add_action( 'template_redirect', function () {
         exit;
     }
 
+    $route_token_context = is_array( $route_context['context'] ?? null ) ? $route_context['context'] : [];
+    $GLOBALS['TEINVIT_RENDER_CONTEXT'] = 'preview';
+    $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = max( 0, (int) $product_id );
+    $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] = $route_token_context;
+    $GLOBALS['TEINVIT_RENDER_TOKEN'] = $token;
+
     $html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
-        ? teinvit_render_invitation_html_for_vertical( $vertical, $payload['invitation'], $order, 'preview', $product_id )
+        ? teinvit_render_invitation_html_for_vertical( $vertical, $payload['invitation'], $order, 'preview', $product_id, $route_token_context )
         : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
 
     status_header( 200 );
@@ -180,8 +186,13 @@ add_action( 'template_redirect', function () {
         exit;
     }
 
+    $route_token_context = is_array( $route_context['context'] ?? null ) ? $route_context['context'] : [];
+    $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = max( 0, (int) $product_id );
+    $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] = $route_token_context;
+    $GLOBALS['TEINVIT_RENDER_TOKEN'] = $token;
+
     echo function_exists( 'teinvit_render_invitation_html_for_vertical' )
-        ? teinvit_render_invitation_html_for_vertical( $vertical, $payload['invitation'], $order, 'pdf', $product_id )
+        ? teinvit_render_invitation_html_for_vertical( $vertical, $payload['invitation'], $order, 'pdf', $product_id, $route_token_context )
         : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $payload['invitation'], $order );
 
     echo '</body></html>';
