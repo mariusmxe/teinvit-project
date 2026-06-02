@@ -17,14 +17,36 @@ if ( ! $order ) {
     return;
 }
 
-$product_id = function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0;
+$token_context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+$token_order_item = null;
+if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
+    if ( ! empty( $token_context['order'] ) && $token_context['order'] instanceof WC_Order ) {
+        $order = $token_context['order'];
+    }
+    if ( ! empty( $token_context['order_item'] ) && $token_context['order_item'] instanceof WC_Order_Item_Product ) {
+        $token_order_item = $token_context['order_item'];
+    } elseif ( ! empty( $token_context['order_item_id'] ) && method_exists( $order, 'get_item' ) ) {
+        $maybe_item = $order->get_item( (int) $token_context['order_item_id'] );
+        if ( $maybe_item instanceof WC_Order_Item_Product ) {
+            $token_order_item = $maybe_item;
+        }
+    }
+}
+$token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+$token_variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+$product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+if ( $product_id <= 0 && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
+    $product_id = (int) teinvit_get_order_primary_product_id( $order );
+}
 $product = $product_id ? wc_get_product( $product_id ) : null;
-$order_wapf = function_exists( 'teinvit_extract_order_wapf_field_map' ) ? teinvit_extract_order_wapf_field_map( $order ) : [];
+$order_wapf = $token_order_item && function_exists( 'teinvit_extract_order_item_wapf_field_map' )
+    ? teinvit_extract_order_item_wapf_field_map( $token_order_item )
+    : ( function_exists( 'teinvit_extract_order_wapf_field_map' ) ? teinvit_extract_order_wapf_field_map( $order ) : [] );
 $order_payload = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
     ? teinvit_build_invitation_payload_from_wapf_map( 'birthday', $order_wapf, $product_id )
     : [ 'invitation' => [], 'wapf_fields' => $order_wapf ];
 $order_invitation = isset( $order_payload['invitation'] ) && is_array( $order_payload['invitation'] ) ? $order_payload['invitation'] : [];
-$order_pdf_url = (string) $order->get_meta( '_teinvit_pdf_url' );
+$order_pdf_url = is_array( $token_context ) && ! empty( $token_context['legacy'] ) ? (string) $order->get_meta( '_teinvit_pdf_url' ) : '';
 
 $versions = function_exists( 'teinvit_get_versions_for_token_from_storage' ) ? teinvit_get_versions_for_token_from_storage( $token, 'birthday' ) : [];
 usort( $versions, static function( $a, $b ) {
@@ -110,7 +132,8 @@ if ( function_exists( 'teinvit_edit_balance_summary' ) ) {
     $edits_paid_remaining = (int) $edit_balance['paid'];
     $edits_remaining = (int) $edit_balance['total'];
 } else {
-    $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+    $edits_free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? $default_included_edits ) );
     $edits_admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
     $edits_paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
     $edits_remaining = $edits_free_remaining + $edits_admin_remaining + $edits_paid_remaining;
@@ -188,7 +211,7 @@ if ( $subtitle === '' ) {
 }
 
 $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
-    ? teinvit_render_invitation_html_for_vertical( 'birthday', $current_invitation, $order, 'preview', $product_id )
+    ? teinvit_render_invitation_html_for_vertical( 'birthday', $current_invitation, $order, 'preview', $product_id, is_array( $token_context ) ? $token_context : [] )
     : '';
 $apf_html = ( $product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
 $show_deadline = ! empty( $config['show_rsvp_deadline'] );

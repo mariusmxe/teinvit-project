@@ -354,11 +354,14 @@ function teinvit_birthday_payload_from_wapf_map( array $wapf, array $context = [
 
 function teinvit_birthday_payload_builder( array $context = [] ) {
     $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
-    if ( ! $order ) {
+    $item = isset( $context['order_item'] ) && $context['order_item'] instanceof WC_Order_Item_Product ? $context['order_item'] : null;
+    if ( ! $order && ! $item ) {
         return [ 'invitation' => [], 'wapf_fields' => [] ];
     }
 
-    $wapf = teinvit_extract_order_wapf_field_map( $order );
+    $wapf = $item && function_exists( 'teinvit_extract_order_item_wapf_field_map' )
+        ? teinvit_extract_order_item_wapf_field_map( $item )
+        : teinvit_extract_order_wapf_field_map( $order );
     return teinvit_birthday_payload_from_wapf_map( $wapf );
 }
 
@@ -367,19 +370,37 @@ function teinvit_birthday_renderer( array $context = [] ) {
     $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
     $is_pdf = ( isset( $context['render_context'] ) && $context['render_context'] === 'pdf' );
 
-    $product_id = 0;
-    if ( $order ) {
-        $items = $order->get_items();
-        if ( ! empty( $items ) ) {
-            $item = reset( $items );
-            $product_id = $item ? (int) $item->get_product_id() : 0;
+    $product_id = isset( $context['product_id'] ) ? max( 0, (int) $context['product_id'] ) : 0;
+    $token_context = isset( $context['token_context'] ) && is_array( $context['token_context'] ) ? $context['token_context'] : [];
+
+    if ( ! empty( $context['token'] ) && function_exists( 'teinvit_resolve_token_context' ) ) {
+        $resolved_context = teinvit_resolve_token_context( (string) $context['token'] );
+        if ( is_array( $resolved_context ) && ! empty( $resolved_context['valid'] ) ) {
+            $token_context = $resolved_context;
         }
     }
-    if ( $product_id <= 0 ) {
-        $product_id = isset( $context['product_id'] ) ? (int) $context['product_id'] : 0;
+
+    if ( $product_id <= 0 && is_array( $token_context ) ) {
+        $product_id = max( 0, (int) ( $token_context['variation_id'] ?? 0 ) );
+        if ( $product_id <= 0 ) {
+            $product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
+        }
     }
 
-    $background_url = function_exists( 'teinvit_get_product_background_url' ) ? teinvit_get_product_background_url( $product_id ) : '';
+    $background_url = '';
+    if ( function_exists( 'teinvit_get_token_background_url' ) ) {
+        $background_url = teinvit_get_token_background_url( $token_context, $order, $product_id );
+    } elseif ( function_exists( 'teinvit_get_product_background_url' ) ) {
+        $background_url = teinvit_get_product_background_url( $product_id );
+        if ( $background_url === '' && $order ) {
+            $items = $order->get_items();
+            if ( ! empty( $items ) ) {
+                $item = reset( $items );
+                $fallback_product_id = $item ? (int) $item->get_product_id() : 0;
+                $background_url = teinvit_get_product_background_url( $fallback_product_id );
+            }
+        }
+    }
     $theme_class = teinvit_birthday_theme_class( $invitation['theme'] ?? 'editorial-luxury' );
     $party = isset( $invitation['events']['party'] ) && is_array( $invitation['events']['party'] ) ? $invitation['events']['party'] : [];
 

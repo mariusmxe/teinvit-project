@@ -37,24 +37,47 @@ app.post('/api/render', async (req, res) => {
 
     const { token, order_id, filename, version_id } = req.body || {};
 
-    if (!token || !order_id || !filename) {
+    const parsedOrderId = parseInt(order_id, 10);
+    if (!token || !Number.isFinite(parsedOrderId) || parsedOrderId <= 0 || !filename) {
         return res.status(400).json({
             status: 'error',
             code: 'INVALID_PAYLOAD'
         });
     }
 
+    const rawFilename = String(filename || '').trim();
+    const safeFilename = path.basename(rawFilename);
+    if (
+        !safeFilename ||
+        safeFilename !== rawFilename ||
+        /[<>:"|?*\\\x00-\x1F\x7F]/.test(safeFilename) ||
+        !/\.pdf$/i.test(safeFilename)
+    ) {
+        return res.status(400).json({
+            status: 'error',
+            code: 'INVALID_FILENAME'
+        });
+    }
+
     const parsedVersionId = parseInt(version_id, 10);
     const hasVersion = Number.isFinite(parsedVersionId) && parsedVersionId > 0;
     const versionQuery = hasVersion ? `?teinvit_version_id=${encodeURIComponent(parsedVersionId)}` : '';
-    const targetUrl = `${PDF_BASE_URL}/pdf/${token}/${versionQuery}`;
-    const orderDir  = path.join(OUTPUT_DIR, String(order_id));
+    const targetUrl = `${PDF_BASE_URL}/pdf/${encodeURIComponent(String(token).trim())}/${versionQuery}`;
+    const orderDir  = path.join(OUTPUT_DIR, String(parsedOrderId));
 
     if (!fs.existsSync(orderDir)) {
         fs.mkdirSync(orderDir, { recursive: true });
     }
 
-    const pdfPath = path.join(orderDir, filename);
+    const pdfPath = path.join(orderDir, safeFilename);
+    const resolvedPdfPath = path.resolve(pdfPath);
+    const resolvedOrderDir = path.resolve(orderDir);
+    if (!resolvedPdfPath.startsWith(resolvedOrderDir + path.sep)) {
+        return res.status(400).json({
+            status: 'error',
+            code: 'INVALID_FILENAME_PATH'
+        });
+    }
 
     let browser;
 
@@ -105,7 +128,7 @@ app.post('/api/render', async (req, res) => {
 
         return res.json({
             status: 'ok',
-            pdf_url: `/pdf/${order_id}/${filename}`
+            pdf_url: `/pdf/${parsedOrderId}/${safeFilename}`
         });
 
     } catch (err) {

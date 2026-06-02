@@ -16,18 +16,39 @@ $is_pdf = (
    BACKGROUND IMAGE
 ========================= */
 $product_id_for_background = 0;
+$background_url = '';
+$token_background_context = isset( $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] ) && is_array( $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT'] )
+    ? $GLOBALS['TEINVIT_RENDER_TOKEN_CONTEXT']
+    : [];
+$token_background_product_id = isset( $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] ) ? max( 0, (int) $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] ) : 0;
 if ( isset( $product ) && $product instanceof WC_Product ) {
     $product_id_for_background = (int) $product->get_id();
+    if ( $token_background_product_id <= 0 ) {
+        $token_background_product_id = $product_id_for_background;
+    }
 } elseif ( isset( $order ) && $order instanceof WC_Order ) {
-    $items = $order->get_items();
-    if ( ! empty( $items ) ) {
-        $first_item = reset( $items );
-        $product_id_for_background = $first_item ? (int) $first_item->get_product_id() : 0;
+    if ( function_exists( 'teinvit_get_token_background_url' ) && ( ! empty( $token_background_context ) || $token_background_product_id > 0 ) ) {
+        $background_url = teinvit_get_token_background_url( $token_background_context, $order, $token_background_product_id );
+    }
+    if ( $background_url === '' ) {
+        $items = $order->get_items();
+        if ( ! empty( $items ) ) {
+            $first_item = reset( $items );
+            $product_id_for_background = $first_item ? (int) $first_item->get_product_id() : 0;
+        }
     }
 }
-$background_url = function_exists( 'teinvit_get_product_background_url' )
+if ( $background_url === '' && function_exists( 'teinvit_get_token_background_url' ) && ( ! empty( $token_background_context ) || $token_background_product_id > 0 ) ) {
+    $background_url = teinvit_get_token_background_url( $token_background_context, isset( $order ) && $order instanceof WC_Order ? $order : null, $token_background_product_id );
+}
+if ( $background_url === '' && $product_id_for_background <= 0 ) {
+    $product_id_for_background = $token_background_product_id;
+}
+if ( $background_url === '' ) {
+    $background_url = function_exists( 'teinvit_get_product_background_url' )
     ? teinvit_get_product_background_url( $product_id_for_background )
     : '';
+}
 ?>
 
 <div class="teinvit-wedding">

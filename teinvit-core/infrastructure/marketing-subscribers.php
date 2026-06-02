@@ -105,7 +105,7 @@ function teinvit_marketing_upsert_contact( $email, array $changes ) {
 
     $result = $wpdb->replace( $tables['marketing_contacts'], $row );
     if ( false === $result ) {
-        error_log( '[TeInvit Marketing] upsert failed for email=' . $email );
+        teinvit_email_log( 'error', 'marketing_upsert_failed', [ 'recipient_email' => $email ] );
     }
 }
 

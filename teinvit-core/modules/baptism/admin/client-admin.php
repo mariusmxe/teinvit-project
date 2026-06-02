@@ -44,6 +44,7 @@ function teinvit_baptism_config_with_defaults( array $config = [] ) {
     $defaults = function_exists( 'teinvit_default_rsvp_config_for_vertical' )
         ? teinvit_default_rsvp_config_for_vertical( 'baptism' )
         : [];
+    $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
 
     $defaults = array_merge(
         [
@@ -66,7 +67,7 @@ function teinvit_baptism_config_with_defaults( array $config = [] ) {
             'show_special_observations' => 0,
             'show_gifts_section' => 0,
             'gifts_extra_slots' => 0,
-            'edits_free_remaining' => 2,
+            'edits_free_remaining' => $default_included_edits,
             'edits_admin_remaining' => 0,
             'edits_paid_remaining' => 0,
         ],
@@ -114,6 +115,7 @@ function teinvit_baptism_admin_post_guard( $token, $required_capability = '' ) {
     return [
         'order_id' => (int) $ctx[0],
         'order' => $ctx[1],
+        'token_context' => isset( $ctx[2] ) && is_array( $ctx[2] ) ? $ctx[2] : [],
         'invitation' => $inv,
         'capabilities' => $caps,
     ];
@@ -869,6 +871,18 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
     $order_id = (int) $ctx['order_id'];
     $order = $ctx['order'];
     $inv = $ctx['invitation'];
+    $token_context = is_array( $ctx['token_context'] ?? null ) ? $ctx['token_context'] : [];
+    if ( empty( $token_context['valid'] ) && function_exists( 'teinvit_resolve_token_context' ) ) {
+        $token_context = teinvit_resolve_token_context( $token );
+    }
+    $token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+    $token_variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+    $token_order_item_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['order_item_id'] ?? 0 ) ) : 0;
+    $token_effective_product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
+    $version_product_ids = array_values( array_filter( [ $token_product_id, $token_variation_id ] ) );
+    if ( empty( $version_product_ids ) ) {
+        $version_product_ids = teinvit_baptism_order_product_ids( $order );
+    }
 
     $config = teinvit_baptism_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] );
     if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
@@ -879,7 +893,8 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
         $paid_remaining = (int) $edit_balance['paid'];
         $remaining = (int) $edit_balance['total'];
     } else {
-        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? 2 ) );
+        $default_included_edits = function_exists( 'teinvit_default_included_edits_fallback' ) ? teinvit_default_included_edits_fallback() : 2;
+        $free_remaining = max( 0, (int) ( $config['edits_free_remaining'] ?? $default_included_edits ) );
         $admin_remaining = max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) );
         $paid_remaining = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
         $remaining = $free_remaining + $admin_remaining + $paid_remaining;
@@ -889,7 +904,7 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
     }
 
     $wapf = function_exists( 'teinvit_extract_posted_wapf_map' ) ? teinvit_extract_posted_wapf_map( $_POST ) : [];
-    $product_id = function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0;
+    $product_id = $token_effective_product_id > 0 ? $token_effective_product_id : ( function_exists( 'teinvit_get_order_primary_product_id' ) ? (int) teinvit_get_order_primary_product_id( $order ) : 0 );
     $built = function_exists( 'teinvit_build_invitation_payload_from_wapf_map' )
         ? teinvit_build_invitation_payload_from_wapf_map( 'baptism', $wapf, $product_id )
         : [ 'invitation' => [], 'wapf_fields' => $wapf ];
@@ -905,6 +920,9 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
         'wapf_fields' => $snapshot_wapf,
         'meta' => [
             'order_id' => $order_id,
+            'order_item_id' => $token_order_item_id,
+            'product_id' => $token_product_id,
+            'variation_id' => $token_variation_id,
             'vertical' => 'baptism',
         ],
     ];
@@ -931,7 +949,7 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
     $version_index = max( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$tables['versions']} WHERE token = %s AND id <= %d", $token, $version_id ) ) - 1 );
 
     if ( function_exists( 'teinvit_pdf_filename_for_version' ) && function_exists( 'teinvit_generate_pdf_for_version' ) ) {
-        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index );
+        $pdf_filename = teinvit_pdf_filename_for_version( $order, $version_index, $token, $version_id );
         $wpdb->update( $tables['versions'], [
             'pdf_status' => 'processing',
             'pdf_filename' => $pdf_filename,
@@ -941,8 +959,9 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
         if ( is_wp_error( $pdf_result ) ) {
             $pdf_status = 'failed';
         } else {
-            $pdf_status = 'ready';
+            $pdf_status = 'generated';
             $pdf_url = (string) ( $pdf_result['pdf_url'] ?? '' );
+            $pdf_filename = sanitize_file_name( (string) ( $pdf_result['pdf_filename'] ?? $pdf_filename ) );
         }
 
         $wpdb->update( $tables['versions'], [
@@ -964,6 +983,9 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
     }
 
     teinvit_save_invitation_config_for_token( $token, [ 'config' => $config ], 'baptism' );
+    if ( function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $token, $config );
+    }
 
     do_action( 'teinvit_invitation_version_saved', $token, $version_id, [
         'token' => $token,
@@ -977,7 +999,13 @@ add_action( 'admin_post_teinvit_baptism_save_version_snapshot', function() {
         'pdf_filename' => $pdf_filename,
         'admin_client_url' => home_url( '/admin-client/' . rawurlencode( $token ) ),
         'invitati_url' => home_url( '/invitati/' . rawurlencode( $token ) ),
-        'product_ids' => teinvit_baptism_order_product_ids( $order ),
+        'order_item_id' => $token_order_item_id,
+        'product_id' => $token_product_id,
+        'variation_id' => $token_variation_id,
+        'product_name' => is_array( $token_context ) && ! empty( $token_context['product_name'] ) ? (string) $token_context['product_name'] : '',
+        'product_slug' => is_array( $token_context ) && ! empty( $token_context['product_slug'] ) ? (string) $token_context['product_slug'] : '',
+        'package_type' => is_array( $token_context ) && ! empty( $token_context['package_type'] ) ? (string) $token_context['package_type'] : '',
+        'product_ids' => $version_product_ids,
         'snapshot_hash' => hash( 'sha256', (string) $snapshot_json ),
     ] );
 

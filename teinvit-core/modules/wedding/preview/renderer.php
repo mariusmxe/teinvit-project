@@ -85,6 +85,14 @@ class TeInvit_Wedding_Preview_Renderer {
         }
 
         $item = reset( $items );
+        return self::get_order_item_wapf_field_map( $item );
+    }
+
+    public static function get_order_item_wapf_field_map( $item ) {
+        if ( ! $item instanceof WC_Order_Item_Product ) {
+            return [];
+        }
+
         $normalized = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
         $map = [];
         foreach ( $normalized as $field ) {
@@ -105,6 +113,14 @@ class TeInvit_Wedding_Preview_Renderer {
         }
 
         $item = reset( $items );
+        return self::get_order_item_invitation_data( $item );
+    }
+
+    public static function get_order_item_invitation_data( $item ) {
+        if ( ! $item instanceof WC_Order_Item_Product ) {
+            return [];
+        }
+
         $wapf_data = self::normalize_wapf_meta( $item->get_meta( '_wapf_meta' ), $item, self::get_wapf_field_ids() );
 
         return self::build_invitation_from_wapf_data( $wapf_data );
@@ -129,9 +145,12 @@ class TeInvit_Wedding_Preview_Renderer {
         if ( $order_or_product instanceof WC_Order ) {
             $order = $order_or_product;
             $GLOBALS['order'] = $order_or_product;
+            unset( $GLOBALS['product'] );
         } elseif ( $order_or_product instanceof WC_Product ) {
             $product = $order_or_product;
             $GLOBALS['product'] = $order_or_product;
+            $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = (int) $order_or_product->get_id();
+            unset( $GLOBALS['order'] );
         }
         $GLOBALS['invitation'] = $invitation;
 
