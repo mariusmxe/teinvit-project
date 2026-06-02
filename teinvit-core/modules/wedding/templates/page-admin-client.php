@@ -272,22 +272,31 @@ $render_product_id = $token_effective_product_id > 0 ? $token_effective_product_
 $apf_product_context = function_exists( 'teinvit_wedding_get_wapf_product_from_token_context' )
     ? teinvit_wedding_get_wapf_product_from_token_context( $token_context, $render_product_id )
     : [
-        'product' => null,
-        'product_id' => $token_variation_id > 0 ? $token_variation_id : ( $token_product_id > 0 ? $token_product_id : $render_product_id ),
         'requested_product_id' => $token_variation_id > 0 ? $token_variation_id : ( $token_product_id > 0 ? $token_product_id : $render_product_id ),
-        'source' => 'token_or_fallback_id',
+        'resolved_product_id' => 0,
+        'resolved_product_object' => null,
+        'resolved_product_source' => 'fallback_unavailable',
+        'resolved_product_valid' => false,
+        'resolved_product_type' => '',
+        'resolved_product_name' => '',
+        'variation_id' => $token_variation_id,
+        'parent_id' => 0,
     ];
-$product = $apf_product_context['product'] instanceof WC_Product ? $apf_product_context['product'] : null;
-$product_id = max( 0, (int) ( $apf_product_context['product_id'] ?? 0 ) );
-$apf_requested_product_id = max( 0, (int) ( $apf_product_context['requested_product_id'] ?? $product_id ) );
-$apf_product_source = (string) ( $apf_product_context['source'] ?? 'none' );
-if ( ! ( $product instanceof WC_Product ) && $product_id > 0 && function_exists( 'wc_get_product' ) ) {
-    $wc_product_fallback = wc_get_product( $product_id );
+$apf_requested_product_id = max( 0, (int) ( $apf_product_context['requested_product_id'] ?? 0 ) );
+$apf_resolved_product_object = $apf_product_context['resolved_product_object'] ?? null;
+$apf_product = $apf_resolved_product_object instanceof WC_Product ? $apf_resolved_product_object : null;
+$product_id = max( 0, (int) ( $apf_product_context['resolved_product_id'] ?? 0 ) );
+$apf_product_source = (string) ( $apf_product_context['resolved_product_source'] ?? 'none' );
+if ( ! ( $apf_product instanceof WC_Product ) && $apf_requested_product_id > 0 && function_exists( 'wc_get_product' ) ) {
+    $wc_product_fallback = wc_get_product( $apf_requested_product_id );
     if ( $wc_product_fallback instanceof WC_Product ) {
-        $product = $wc_product_fallback;
-        $product_id = (int) $product->get_id();
-        $apf_product_source = $apf_product_source !== '' ? $apf_product_source . '+wc_get_product_fallback' : 'wc_get_product_fallback';
+        $apf_product = $wc_product_fallback;
+        $product_id = (int) $apf_product->get_id();
+        $apf_product_source = 'wc_get_product';
     }
+}
+if ( $product_id <= 0 ) {
+    $product_id = $apf_requested_product_id;
 }
 $GLOBALS['TEINVIT_RENDER_CONTEXT'] = 'preview';
 $GLOBALS['TEINVIT_RENDER_PRODUCT_ID'] = max( 0, (int) $render_product_id );
@@ -298,6 +307,10 @@ $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
     : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
 $had_global_product = array_key_exists( 'product', $GLOBALS );
 $previous_global_product = $had_global_product ? $GLOBALS['product'] : null;
+$had_global_post = array_key_exists( 'post', $GLOBALS );
+$previous_global_post = $had_global_post ? $GLOBALS['post'] : null;
+$apf_post = $product_id > 0 ? get_post( $product_id ) : null;
+$apf_did_setup_postdata = false;
 $apf_field_groups = [];
 $apf_api_html = '';
 $apf_hook_html = '';
@@ -306,21 +319,28 @@ $apf_render_source = 'none';
 $apf_display_function_exists = function_exists( 'wapf_display_field_groups_for_product' );
 $apf_get_function_exists = function_exists( 'wapf_get_field_groups_of_product' );
 $apf_hook_registered = function_exists( 'has_action' ) ? has_action( 'woocommerce_before_add_to_cart_button' ) : false;
-if ( $product instanceof WC_Product ) {
-    $GLOBALS['product'] = $product;
+if ( $apf_product instanceof WC_Product ) {
+    $GLOBALS['product'] = $apf_product;
+    if ( $apf_post instanceof WP_Post ) {
+        $GLOBALS['post'] = $apf_post;
+        if ( function_exists( 'setup_postdata' ) ) {
+            setup_postdata( $apf_post );
+            $apf_did_setup_postdata = true;
+        }
+    }
     if ( $apf_get_function_exists ) {
-        $apf_field_groups = wapf_get_field_groups_of_product( $product );
+        $apf_field_groups = wapf_get_field_groups_of_product( $apf_product );
     }
 }
 $apf_html = '';
-if ( $product instanceof WC_Product && $apf_display_function_exists ) {
-    $apf_api_html = (string) wapf_display_field_groups_for_product( $product );
+if ( $apf_product instanceof WC_Product && $apf_display_function_exists ) {
+    $apf_api_html = (string) wapf_display_field_groups_for_product( $apf_product );
     if ( trim( $apf_api_html ) !== '' ) {
         $apf_html = $apf_api_html;
         $apf_render_source = 'wapf_display_field_groups_for_product';
     }
 }
-if ( $product instanceof WC_Product && trim( $apf_html ) === '' && false !== $apf_hook_registered ) {
+if ( $apf_product instanceof WC_Product && trim( $apf_html ) === '' && false !== $apf_hook_registered ) {
     ob_start();
     do_action( 'woocommerce_before_add_to_cart_button' );
     $apf_hook_html = (string) ob_get_clean();
@@ -336,18 +356,26 @@ if ( $had_global_product ) {
 } else {
     unset( $GLOBALS['product'] );
 }
+if ( $apf_did_setup_postdata && function_exists( 'wp_reset_postdata' ) ) {
+    wp_reset_postdata();
+}
+if ( $had_global_post ) {
+    $GLOBALS['post'] = $previous_global_post;
+} else {
+    unset( $GLOBALS['post'] );
+}
 $apf_fallback_reason = 'rendered';
 if ( $apf_html === '' ) {
-    if ( ! ( $product instanceof WC_Product ) ) {
+    if ( ! ( $apf_product instanceof WC_Product ) ) {
         $apf_fallback_reason = 'product_invalid';
     } elseif ( ! $apf_display_function_exists && false === $apf_hook_registered ) {
         $apf_fallback_reason = 'wapf_renderer_missing';
     } elseif ( empty( $apf_field_groups ) ) {
-        $apf_fallback_reason = 'wapf_field_groups_empty_for_product';
+        $apf_fallback_reason = 'wapf_groups_empty';
     } elseif ( $apf_hook_output_length > 0 ) {
         $apf_fallback_reason = 'wapf_hook_output_without_wapf_fields';
     } else {
-        $apf_fallback_reason = 'wapf_render_output_empty';
+        $apf_fallback_reason = 'wapf_render_empty';
     }
 }
 $apf_debug_enabled = isset( $_GET['teinvit_debug_wapf'] ) && current_user_can( 'manage_options' );
@@ -395,7 +423,7 @@ if ( $apf_debug_enabled ) {
             'post_title' => $post instanceof WP_Post ? (string) $post->post_title : '',
         ];
     };
-    $product_parent_id = $product instanceof WC_Product && method_exists( $product, 'get_parent_id' ) ? max( 0, (int) $product->get_parent_id() ) : 0;
+    $product_parent_id = $apf_product instanceof WC_Product && method_exists( $apf_product, 'get_parent_id' ) ? max( 0, (int) $apf_product->get_parent_id() ) : 0;
     $debug_order_item_product = $token_order_item instanceof WC_Order_Item_Product && method_exists( $token_order_item, 'get_product' ) ? $token_order_item->get_product() : null;
     $debug_direct_wc_product = $apf_requested_product_id > 0 && function_exists( 'wc_get_product' ) ? wc_get_product( $apf_requested_product_id ) : null;
     $apf_debug = [
@@ -408,11 +436,19 @@ if ( $apf_debug_enabled ) {
         'apf_requested_product_id' => (int) $apf_requested_product_id,
         'apf_product_id' => (int) $product_id,
         'apf_product_source' => (string) $apf_product_source,
-        'product_valid' => $product instanceof WC_Product,
-        'product_type' => $product instanceof WC_Product && method_exists( $product, 'get_type' ) ? (string) $product->get_type() : '',
+        'resolved_product_valid' => $apf_product instanceof WC_Product,
+        'resolved_product_id' => $apf_product instanceof WC_Product ? (int) $apf_product->get_id() : 0,
+        'resolved_product_type' => $apf_product instanceof WC_Product && method_exists( $apf_product, 'get_type' ) ? (string) $apf_product->get_type() : '',
+        'resolved_product_name' => $apf_product instanceof WC_Product && method_exists( $apf_product, 'get_name' ) ? (string) $apf_product->get_name() : '',
+        'resolved_product_source' => (string) $apf_product_source,
+        'product_valid' => $apf_product instanceof WC_Product,
+        'product_type' => $apf_product instanceof WC_Product && method_exists( $apf_product, 'get_type' ) ? (string) $apf_product->get_type() : '',
         'product_parent_id' => $product_parent_id,
-        'product_name' => $product instanceof WC_Product && method_exists( $product, 'get_name' ) ? (string) $product->get_name() : '',
-        'token_context_product_valid' => is_array( $token_context ) && ! empty( $token_context['product'] ) && $token_context['product'] instanceof WC_Product,
+        'product_name' => $apf_product instanceof WC_Product && method_exists( $apf_product, 'get_name' ) ? (string) $apf_product->get_name() : '',
+        'context_post_set' => $apf_post instanceof WP_Post,
+        'context_post_id' => $apf_post instanceof WP_Post ? (int) $apf_post->ID : 0,
+        'context_setup_postdata' => $apf_did_setup_postdata,
+        'token_context_product_valid' => is_array( $token_context ) && isset( $token_context['product'] ) && $token_context['product'] instanceof WC_Product,
         'order_item_get_product_valid' => $debug_order_item_product instanceof WC_Product,
         'order_item_get_product_id' => $debug_order_item_product instanceof WC_Product ? (int) $debug_order_item_product->get_id() : 0,
         'direct_wc_get_requested_product_valid' => $debug_direct_wc_product instanceof WC_Product,

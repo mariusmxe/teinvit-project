@@ -258,48 +258,48 @@ function teinvit_wedding_get_wapf_product_id_from_token_context( $token_context,
 function teinvit_wedding_get_wapf_product_from_token_context( $token_context, $fallback_product_id = 0 ) {
     $fallback_product_id = max( 0, (int) $fallback_product_id );
     $requested_product_id = teinvit_wedding_get_wapf_product_id_from_token_context( $token_context, $fallback_product_id );
-    $source = $requested_product_id > 0 ? 'token_or_fallback_id' : 'none';
+    $variation_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['variation_id'] ?? 0 ) ) : 0;
+    $token_product_id = is_array( $token_context ) ? max( 0, (int) ( $token_context['product_id'] ?? 0 ) ) : 0;
+
+    $build_result = static function( $product, $source ) use ( $requested_product_id, $variation_id, $token_product_id ) {
+        $valid = $product instanceof WC_Product;
+        $resolved_product_id = $valid ? (int) $product->get_id() : 0;
+        $parent_id = $valid && method_exists( $product, 'get_parent_id' ) ? max( 0, (int) $product->get_parent_id() ) : 0;
+
+        return [
+            'requested_product_id' => $requested_product_id,
+            'resolved_product_id' => $resolved_product_id,
+            'resolved_product_object' => $valid ? $product : null,
+            'resolved_product_source' => (string) $source,
+            'resolved_product_valid' => $valid,
+            'resolved_product_type' => $valid && method_exists( $product, 'get_type' ) ? (string) $product->get_type() : '',
+            'resolved_product_name' => $valid && method_exists( $product, 'get_name' ) ? (string) $product->get_name() : '',
+            'variation_id' => $variation_id,
+            'parent_id' => $parent_id,
+            'token_product_id' => $token_product_id,
+            'product' => $valid ? $product : null,
+            'product_id' => $valid ? $resolved_product_id : $requested_product_id,
+            'source' => (string) $source,
+        ];
+    };
 
     if ( is_array( $token_context ) ) {
-        if ( ! empty( $token_context['product'] ) && $token_context['product'] instanceof WC_Product ) {
-            return [
-                'product' => $token_context['product'],
-                'product_id' => (int) $token_context['product']->get_id(),
-                'requested_product_id' => $requested_product_id,
-                'source' => 'token_context_product',
-            ];
+        if ( isset( $token_context['product'] ) && $token_context['product'] instanceof WC_Product ) {
+            return $build_result( $token_context['product'], 'token_context_product' );
         }
 
-        $order_item = ! empty( $token_context['order_item'] ) ? $token_context['order_item'] : null;
+        $order_item = isset( $token_context['order_item'] ) ? $token_context['order_item'] : null;
         if ( $order_item instanceof WC_Order_Item_Product && method_exists( $order_item, 'get_product' ) ) {
             $order_item_product = $order_item->get_product();
             if ( $order_item_product instanceof WC_Product ) {
-                return [
-                    'product' => $order_item_product,
-                    'product_id' => (int) $order_item_product->get_id(),
-                    'requested_product_id' => $requested_product_id,
-                    'source' => 'order_item_product',
-                ];
+                return $build_result( $order_item_product, 'order_item_product' );
             }
-        }
-
-        $variation_id = max( 0, (int) ( $token_context['variation_id'] ?? 0 ) );
-        $product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
-        if ( $variation_id > 0 && $requested_product_id === $variation_id ) {
-            $source = 'token_variation';
-        } elseif ( $product_id > 0 && $requested_product_id === $product_id ) {
-            $source = 'token_product';
         }
     }
 
     $product = $requested_product_id > 0 && function_exists( 'wc_get_product' ) ? wc_get_product( $requested_product_id ) : null;
     if ( $product instanceof WC_Product ) {
-        return [
-            'product' => $product,
-            'product_id' => (int) $product->get_id(),
-            'requested_product_id' => $requested_product_id,
-            'source' => $source,
-        ];
+        return $build_result( $product, 'wc_get_product' );
     }
 
     if ( is_array( $token_context ) ) {
@@ -307,22 +307,12 @@ function teinvit_wedding_get_wapf_product_from_token_context( $token_context, $f
         if ( $product_id > 0 && $product_id !== $requested_product_id && function_exists( 'wc_get_product' ) ) {
             $fallback_product = wc_get_product( $product_id );
             if ( $fallback_product instanceof WC_Product ) {
-                return [
-                    'product' => $fallback_product,
-                    'product_id' => (int) $fallback_product->get_id(),
-                    'requested_product_id' => $requested_product_id,
-                    'source' => 'token_product_fallback',
-                ];
+                return $build_result( $fallback_product, 'wc_get_product_fallback' );
             }
         }
     }
 
-    return [
-        'product' => null,
-        'product_id' => $requested_product_id,
-        'requested_product_id' => $requested_product_id,
-        'source' => $source,
-    ];
+    return $build_result( null, 'unresolved' );
 }
 
 function teinvit_get_wapf_defs_for_product( $product_or_id ) {
@@ -1616,8 +1606,8 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
 
     $wapf = teinvit_extract_posted_wapf_map( $_POST );
     $primary_product_context = teinvit_wedding_get_wapf_product_from_token_context( $token_context, teinvit_get_order_primary_product_id( $order ) );
-    $primary_product = $primary_product_context['product'] ?? null;
-    $primary_product_id = max( 0, (int) ( $primary_product_context['product_id'] ?? 0 ) );
+    $primary_product = $primary_product_context['resolved_product_object'] ?? null;
+    $primary_product_id = max( 0, (int) ( $primary_product_context['resolved_product_id'] ?? $primary_product_context['requested_product_id'] ?? 0 ) );
     $defs_source = $primary_product instanceof WC_Product ? $primary_product : $primary_product_id;
     $defs = teinvit_get_wapf_defs_for_product( $defs_source );
     $canonical = teinvit_build_invitation_from_wapf_map_canonical( $wapf, $defs );
@@ -2196,10 +2186,10 @@ add_action( 'rest_api_init', function() {
                 $token_context = teinvit_resolve_token_context( $token );
                 if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
                     $token_product_context = teinvit_wedding_get_wapf_product_from_token_context( $token_context, 0 );
-                    if ( ! empty( $token_product_context['product'] ) && $token_product_context['product'] instanceof WC_Product ) {
-                        $product_id = (int) $token_product_context['product']->get_id();
+                    if ( isset( $token_product_context['resolved_product_object'] ) && $token_product_context['resolved_product_object'] instanceof WC_Product ) {
+                        $product_id = (int) $token_product_context['resolved_product_object']->get_id();
                     } else {
-                        $product_id = max( 0, (int) ( $token_product_context['product_id'] ?? 0 ) );
+                        $product_id = max( 0, (int) ( $token_product_context['requested_product_id'] ?? 0 ) );
                     }
                 }
             }
