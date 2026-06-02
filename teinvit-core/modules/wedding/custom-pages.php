@@ -1526,7 +1526,16 @@ add_action( 'admin_post_teinvit_save_version_snapshot', function() {
     }
 
     $wapf = teinvit_extract_posted_wapf_map( $_POST );
-    $primary_product_id = $token_effective_product_id > 0 ? $token_effective_product_id : teinvit_get_order_primary_product_id( $order );
+    $primary_product_id = $token_product_id > 0 ? $token_product_id : ( $token_effective_product_id > 0 ? $token_effective_product_id : teinvit_get_order_primary_product_id( $order ) );
+    if ( $token_product_id <= 0 && $token_variation_id > 0 && function_exists( 'wc_get_product' ) ) {
+        $variation_product = wc_get_product( $token_variation_id );
+        if ( $variation_product instanceof WC_Product && method_exists( $variation_product, 'get_parent_id' ) ) {
+            $variation_parent_id = max( 0, (int) $variation_product->get_parent_id() );
+            if ( $variation_parent_id > 0 ) {
+                $primary_product_id = $variation_parent_id;
+            }
+        }
+    }
     $defs = teinvit_get_wapf_defs_for_product( $primary_product_id );
     $canonical = teinvit_build_invitation_from_wapf_map_canonical( $wapf, $defs );
     $wapf = is_array( $canonical['wapf_map'] ?? null ) ? $canonical['wapf_map'] : [];
@@ -2103,7 +2112,7 @@ add_action( 'rest_api_init', function() {
                 if ( is_array( $token_context ) && ! empty( $token_context['valid'] ) ) {
                     $variation_id = max( 0, (int) ( $token_context['variation_id'] ?? 0 ) );
                     $token_product_id = max( 0, (int) ( $token_context['product_id'] ?? 0 ) );
-                    $product_id = $variation_id > 0 ? $variation_id : $token_product_id;
+                    $product_id = $token_product_id > 0 ? $token_product_id : $variation_id;
                 }
             }
 

@@ -24,6 +24,7 @@ $product_id = $token_variation_id > 0 ? $token_variation_id : $token_product_id;
 if ( $product_id <= 0 && $order && function_exists( 'teinvit_get_order_primary_product_id' ) ) {
     $product_id = (int) teinvit_get_order_primary_product_id( $order );
 }
+$in_cpt_template = ! empty( $GLOBALS['TEINVIT_IN_CPT_TEMPLATE'] );
 $config = function_exists( 'teinvit_baptism_config_with_defaults' )
     ? teinvit_baptism_config_with_defaults( is_array( $inv['config'] ?? null ) ? $inv['config'] : [] )
     : wp_parse_args( is_array( $inv['config'] ?? null ) ? $inv['config'] : [], function_exists( 'teinvit_default_rsvp_config_for_vertical' ) ? teinvit_default_rsvp_config_for_vertical( 'baptism' ) : [] );
@@ -102,7 +103,7 @@ if ( $show_gifts_section ) {
 .teinvit-baptism-invitati .teinvit-rsvp-card{max-width:100%;min-width:0}
 @media (max-width:768px){.teinvit-slot-preview{padding:8px;margin-bottom:12px}.teinvit-rsvp-grid,.teinvit-rsvp-question-grid{grid-template-columns:1fr}.teinvit-surface-card{padding:14px}.teinvit-rsvp-dependent{margin-left:0}.teinvit-rsvp-dependent input{max-width:100%}}
 </style>
-<?php if ( ! empty( $preview_html ) ) : ?>
+<?php if ( ! $in_cpt_template && ! empty( $preview_html ) ) : ?>
   <script>window.TEINVIT_INVITATION_DATA = <?php echo wp_json_encode( $invitation ); ?>;</script>
   <div class="teinvit-slot teinvit-slot-preview" data-teinvit-slot="preview">
     <?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
