@@ -269,16 +269,23 @@ $admin_toggle_fields = [
 ];
 
 $render_product_id = $token_effective_product_id > 0 ? $token_effective_product_id : teinvit_get_order_primary_product_id( $order );
-$product_id = $token_product_id > 0 ? $token_product_id : $render_product_id;
-$product = $product_id ? wc_get_product( $product_id ) : null;
-if ( $product instanceof WC_Product && method_exists( $product, 'is_type' ) && $product->is_type( 'variation' ) && method_exists( $product, 'get_parent_id' ) ) {
-    $parent_product_id = max( 0, (int) $product->get_parent_id() );
-    if ( $parent_product_id > 0 ) {
-        $parent_product = wc_get_product( $parent_product_id );
-        if ( $parent_product instanceof WC_Product ) {
-            $product = $parent_product;
-            $product_id = $parent_product_id;
-        }
+$apf_product_id = function_exists( 'teinvit_wedding_get_wapf_product_id_from_token_context' )
+    ? teinvit_wedding_get_wapf_product_id_from_token_context( $token_context, $render_product_id )
+    : ( $token_variation_id > 0 ? $token_variation_id : ( $token_product_id > 0 ? $token_product_id : $render_product_id ) );
+$apf_product_source = 'fallback_product';
+if ( $token_variation_id > 0 && $apf_product_id === $token_variation_id ) {
+    $apf_product_source = 'token_variation';
+} elseif ( $token_product_id > 0 && $apf_product_id === $token_product_id ) {
+    $apf_product_source = 'token_product';
+}
+$product_id = $apf_product_id;
+$product = $product_id > 0 ? wc_get_product( $product_id ) : null;
+if ( ! ( $product instanceof WC_Product ) && $token_product_id > 0 && $token_product_id !== $product_id ) {
+    $fallback_product = wc_get_product( $token_product_id );
+    if ( $fallback_product instanceof WC_Product ) {
+        $product = $fallback_product;
+        $product_id = (int) $fallback_product->get_id();
+        $apf_product_source = 'token_product_fallback';
     }
 }
 $GLOBALS['TEINVIT_RENDER_CONTEXT'] = 'preview';
@@ -290,14 +297,120 @@ $preview_html = function_exists( 'teinvit_render_invitation_html_for_vertical' )
     : TeInvit_Wedding_Preview_Renderer::render_from_invitation_data( $current_invitation, $order );
 $had_global_product = array_key_exists( 'product', $GLOBALS );
 $previous_global_product = $had_global_product ? $GLOBALS['product'] : null;
+$apf_field_groups = [];
+$apf_api_html = '';
+$apf_hook_html = '';
+$apf_hook_output_length = 0;
+$apf_render_source = 'none';
+$apf_display_function_exists = function_exists( 'wapf_display_field_groups_for_product' );
+$apf_get_function_exists = function_exists( 'wapf_get_field_groups_of_product' );
+$apf_hook_registered = function_exists( 'has_action' ) ? has_action( 'woocommerce_before_add_to_cart_button' ) : false;
 if ( $product instanceof WC_Product ) {
     $GLOBALS['product'] = $product;
+    if ( $apf_get_function_exists ) {
+        $apf_field_groups = wapf_get_field_groups_of_product( $product );
+    }
 }
-$apf_html = ( $product instanceof WC_Product && function_exists( 'wapf_display_field_groups_for_product' ) ) ? wapf_display_field_groups_for_product( $product ) : '';
+$apf_html = '';
+if ( $product instanceof WC_Product && $apf_display_function_exists ) {
+    $apf_api_html = (string) wapf_display_field_groups_for_product( $product );
+    if ( trim( $apf_api_html ) !== '' ) {
+        $apf_html = $apf_api_html;
+        $apf_render_source = 'wapf_display_field_groups_for_product';
+    }
+}
+if ( $product instanceof WC_Product && trim( $apf_html ) === '' && false !== $apf_hook_registered ) {
+    ob_start();
+    do_action( 'woocommerce_before_add_to_cart_button' );
+    $apf_hook_html = (string) ob_get_clean();
+    $apf_hook_output_length = strlen( $apf_hook_html );
+    if ( trim( $apf_hook_html ) !== '' && false !== strpos( $apf_hook_html, 'name="wapf_field_groups"' ) ) {
+        $apf_html = $apf_hook_html;
+        $apf_render_source = 'woocommerce_before_add_to_cart_button';
+    }
+}
+$apf_html = trim( $apf_html );
 if ( $had_global_product ) {
     $GLOBALS['product'] = $previous_global_product;
 } else {
     unset( $GLOBALS['product'] );
+}
+$apf_fallback_reason = 'rendered';
+if ( $apf_html === '' ) {
+    if ( ! ( $product instanceof WC_Product ) ) {
+        $apf_fallback_reason = 'product_invalid';
+    } elseif ( ! $apf_display_function_exists && false === $apf_hook_registered ) {
+        $apf_fallback_reason = 'wapf_renderer_missing';
+    } elseif ( empty( $apf_field_groups ) ) {
+        $apf_fallback_reason = 'wapf_field_groups_empty_for_product';
+    } elseif ( $apf_hook_output_length > 0 ) {
+        $apf_fallback_reason = 'wapf_hook_output_without_wapf_fields';
+    } else {
+        $apf_fallback_reason = 'wapf_render_output_empty';
+    }
+}
+$apf_debug_enabled = isset( $_GET['teinvit_debug_wapf'] ) && current_user_can( 'manage_options' );
+$apf_debug = [];
+if ( $apf_debug_enabled ) {
+    $teinvit_wapf_group_summary = static function( $groups ) {
+        $summary = [];
+        if ( ! is_array( $groups ) ) {
+            return $summary;
+        }
+        foreach ( $groups as $group ) {
+            $fields = is_object( $group ) && isset( $group->fields ) ? (array) $group->fields : [];
+            $variables = is_object( $group ) && isset( $group->variables ) ? (array) $group->variables : [];
+            $summary[] = [
+                'id' => is_object( $group ) && isset( $group->id ) ? (string) $group->id : '',
+                'type' => is_object( $group ) && isset( $group->type ) ? (string) $group->type : '',
+                'fields_count' => count( $fields ),
+                'variables_count' => count( $variables ),
+            ];
+        }
+        return $summary;
+    };
+    $teinvit_wapf_local_meta_summary = static function( $meta_product_id ) {
+        $meta_product_id = max( 0, (int) $meta_product_id );
+        $raw = $meta_product_id > 0 ? get_post_meta( $meta_product_id, '_wapf_fieldgroup', true ) : null;
+        $fields = is_array( $raw ) && isset( $raw['fields'] ) && is_array( $raw['fields'] ) ? $raw['fields'] : [];
+        $variables = is_array( $raw ) && isset( $raw['variables'] ) && is_array( $raw['variables'] ) ? $raw['variables'] : [];
+        return [
+            'post_id' => $meta_product_id,
+            'exists' => ! empty( $raw ),
+            'raw_type' => gettype( $raw ),
+            'id' => is_array( $raw ) && isset( $raw['id'] ) ? (string) $raw['id'] : '',
+            'fields_count' => count( $fields ),
+            'variables_count' => count( $variables ),
+        ];
+    };
+    $product_parent_id = $product instanceof WC_Product && method_exists( $product, 'get_parent_id' ) ? max( 0, (int) $product->get_parent_id() ) : 0;
+    $apf_debug = [
+        'token' => (string) $token,
+        'order_id' => $order instanceof WC_Order ? (int) $order->get_id() : 0,
+        'order_item_id' => is_array( $token_context ) ? max( 0, (int) ( $token_context['order_item_id'] ?? 0 ) ) : 0,
+        'token_product_id' => (int) $token_product_id,
+        'token_variation_id' => (int) $token_variation_id,
+        'render_product_id' => (int) $render_product_id,
+        'apf_product_id' => (int) $product_id,
+        'apf_product_source' => (string) $apf_product_source,
+        'product_valid' => $product instanceof WC_Product,
+        'product_type' => $product instanceof WC_Product && method_exists( $product, 'get_type' ) ? (string) $product->get_type() : '',
+        'product_parent_id' => $product_parent_id,
+        'product_name' => $product instanceof WC_Product && method_exists( $product, 'get_name' ) ? (string) $product->get_name() : '',
+        'wapf_display_function_exists' => $apf_display_function_exists,
+        'wapf_get_function_exists' => $apf_get_function_exists,
+        'wapf_hook_registered' => false !== $apf_hook_registered ? $apf_hook_registered : false,
+        'wapf_field_groups_count' => is_array( $apf_field_groups ) ? count( $apf_field_groups ) : 0,
+        'wapf_field_groups' => $teinvit_wapf_group_summary( $apf_field_groups ),
+        'local_meta_for_apf_product' => $teinvit_wapf_local_meta_summary( $product_id ),
+        'local_meta_for_parent' => $teinvit_wapf_local_meta_summary( $product_parent_id ),
+        'api_output_length' => strlen( $apf_api_html ),
+        'hook_output_length' => $apf_hook_output_length,
+        'render_source' => $apf_render_source,
+        'fallback_reason' => $apf_fallback_reason,
+        'did_wp_enqueue_scripts' => function_exists( 'did_action' ) ? (int) did_action( 'wp_enqueue_scripts' ) : 0,
+        'did_woocommerce_before_add_to_cart_button' => function_exists( 'did_action' ) ? (int) did_action( 'woocommerce_before_add_to_cart_button' ) : 0,
+    ];
 }
 $capabilities = function_exists( 'teinvit_capabilities_for_token' ) ? teinvit_capabilities_for_token( $token ) : [];
 $token_state = isset( $capabilities['state'] ) ? (string) $capabilities['state'] : 'premium_native';
@@ -327,6 +440,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 .teinvit-admin-preview-block .teinvit-wedding{display:flex!important;justify-content:center!important;min-height:320px;padding:0}
 .teinvit-admin-page .teinvit-page,.teinvit-admin-page .teinvit-container{display:block!important;max-width:100%;overflow:visible}
 .teinvit-admin-page .teinvit-preview{display:block!important;visibility:visible!important;opacity:1!important;max-width:760px;margin:0 auto;overflow:hidden}
+.teinvit-wapf-debug{margin:12px 0;padding:12px;max-height:420px;overflow:auto;background:#111827;color:#e5e7eb;border-radius:6px;font-size:12px;line-height:1.45;white-space:pre-wrap}
 
 .teinvit-gifts-title{text-align:center}
 .teinvit-gifts-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0}
@@ -476,6 +590,10 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
           <?php echo $apf_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         <?php else : ?>
           <p>Câmpurile APF nu sunt disponibile (plugin/APF hooks).</p>
+        <?php endif; ?>
+
+        <?php if ( $apf_debug_enabled && ! empty( $apf_debug ) ) : ?>
+          <pre class="teinvit-wapf-debug"><?php echo esc_html( wp_json_encode( $apf_debug, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ); ?></pre>
         <?php endif; ?>
 
                 <?php if ( ! empty( $capabilities['can_save_version_snapshot'] ) ) : ?>
