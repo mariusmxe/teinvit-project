@@ -1920,23 +1920,47 @@ function teinvit_validate_generated_xlsx_xml( $xlsx_path ) {
         return new WP_Error( 'xlsx_invalid_zip', 'Nu s-a putut deschide arhiva XLSX generată.' );
     }
 
-    $sheets = [
+    $required_parts = [
+        '[Content_Types].xml',
+        '_rels/.rels',
+        'docProps/core.xml',
+        'docProps/app.xml',
+        'xl/workbook.xml',
+        'xl/_rels/workbook.xml.rels',
+        'xl/styles.xml',
+        'xl/theme/theme1.xml',
         'xl/worksheets/sheet1.xml',
         'xl/worksheets/sheet2.xml',
         'xl/worksheets/sheet3.xml',
     ];
 
-    foreach ( $sheets as $sheet_path ) {
-        $xml = $zip->getFromName( $sheet_path );
+    foreach ( $required_parts as $part_path ) {
+        $xml = $zip->getFromName( $part_path );
         if ( $xml === false || $xml === '' ) {
             $zip->close();
-            return new WP_Error( 'xlsx_missing_sheet', 'Lipsește XML-ul pentru ' . $sheet_path );
+            return new WP_Error( 'xlsx_missing_part', 'Lipsește XML-ul pentru ' . $part_path );
         }
 
         $dom = new DOMDocument();
         if ( ! @$dom->loadXML( $xml ) ) {
             $zip->close();
-            return new WP_Error( 'xlsx_invalid_xml', 'XML invalid în ' . $sheet_path );
+            return new WP_Error( 'xlsx_invalid_xml', 'XML invalid în ' . $part_path );
+        }
+
+        if ( strpos( $part_path, 'xl/worksheets/' ) === 0 ) {
+            $namespace = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+            if ( $dom->getElementsByTagNameNS( $namespace, 'dimension' )->length < 1 ) {
+                $zip->close();
+                return new WP_Error( 'xlsx_missing_dimension', 'Lipsește dimension în ' . $part_path );
+            }
+            if ( $dom->getElementsByTagNameNS( $namespace, 'sheetViews' )->length < 1 ) {
+                $zip->close();
+                return new WP_Error( 'xlsx_missing_sheet_views', 'Lipsesc sheetViews în ' . $part_path );
+            }
+            if ( $dom->getElementsByTagNameNS( $namespace, 'sheetFormatPr' )->length < 1 ) {
+                $zip->close();
+                return new WP_Error( 'xlsx_missing_sheet_format', 'Lipsește sheetFormatPr în ' . $part_path );
+            }
         }
     }
 
@@ -2114,29 +2138,6 @@ function teinvit_export_guest_report_handler() {
         $summary_rows[] = [ (string) $metric, (string) $value ];
     }
 
-    $sheet_xml = static function( $rows ) {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
-        $xml .= '<sheetData>';
-        foreach ( $rows as $ri => $cells ) {
-            $row_num = $ri + 1;
-            $xml .= '<row r="' . $row_num . '">';
-            foreach ( $cells as $ci => $v ) {
-                $col = '';
-                $n = $ci;
-                do { $col = chr(65 + ($n % 26)) . $col; $n = intdiv($n, 26) - 1; } while ($n >= 0);
-                $ref = $col . $row_num;
-                $safe = teinvit_xlsx_safe_text( $v );
-                $val = htmlspecialchars( $safe, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8' );
-                $xml .= '<c r="' . $ref . '" t="inlineStr"><is><t>' . $val . '</t></is></c>';
-            }
-            $xml .= '</row>';
-        }
-        $xml .= '</sheetData>';
-        $xml .= '</worksheet>';
-        return $xml;
-    };
-
     $active = function_exists( 'teinvit_get_active_snapshot' ) ? teinvit_get_active_snapshot( $token ) : null;
     $payload = ! empty( $active['snapshot'] ) ? json_decode( (string) $active['snapshot'], true ) : [];
     $names = trim( (string) ( $payload['invitation']['names'] ?? '' ) );
@@ -2146,13 +2147,11 @@ function teinvit_export_guest_report_handler() {
     $tmp = wp_tempnam( 'teinvit-report-' . $token . '.xlsx' );
     $zip = new ZipArchive();
     $zip->open( $tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE );
-    $zip->addFromString('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
-    $zip->addFromString('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-    $zip->addFromString('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rezumat" sheetId="1" r:id="rId1"/><sheet name="Unic" sheetId="2" r:id="rId2"/><sheet name="Istoric" sheetId="3" r:id="rId3"/></sheets></workbook>');
-    $zip->addFromString('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/></Relationships>');
-    $zip->addFromString('xl/worksheets/sheet1.xml', $sheet_xml( $summary_rows ));
-    $zip->addFromString('xl/worksheets/sheet2.xml', $sheet_xml( array_merge( [ $headers ], $rows_unique ) ));
-    $zip->addFromString('xl/worksheets/sheet3.xml', $sheet_xml( array_merge( [ $headers ], $rows_history ) ));
+    teinvit_xlsx_write_report_workbook( $zip, [
+        'Rezumat' => $summary_rows,
+        'Unic' => array_merge( [ $headers ], $rows_unique ),
+        'Istoric' => array_merge( [ $headers ], $rows_history ),
+    ] );
     $zip->close();
 
     $xlsx_validation = teinvit_validate_generated_xlsx_xml( $tmp );

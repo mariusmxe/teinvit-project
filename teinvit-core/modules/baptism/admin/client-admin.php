@@ -666,6 +666,10 @@ function teinvit_baptism_xlsx_safe_text( $value ) {
 }
 
 function teinvit_baptism_xlsx_sheet_xml( array $rows ) {
+    if ( function_exists( 'teinvit_xlsx_sheet_xml' ) ) {
+        return teinvit_xlsx_sheet_xml( $rows );
+    }
+
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
     $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
     $xml .= '<sheetData>';
@@ -1078,13 +1082,11 @@ function teinvit_baptism_export_guest_report_handler() {
         @unlink( $tmp );
         wp_die( 'Nu s-a putut inițializa exportul XLSX.' );
     }
-    $zip->addFromString( '[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>' );
-    $zip->addFromString( '_rels/.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' );
-    $zip->addFromString( 'xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rezumat" sheetId="1" r:id="rId1"/><sheet name="Unic" sheetId="2" r:id="rId2"/><sheet name="Istoric" sheetId="3" r:id="rId3"/></sheets></workbook>' );
-    $zip->addFromString( 'xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/></Relationships>' );
-    $zip->addFromString( 'xl/worksheets/sheet1.xml', teinvit_baptism_xlsx_sheet_xml( $summary_rows ) );
-    $zip->addFromString( 'xl/worksheets/sheet2.xml', teinvit_baptism_xlsx_sheet_xml( array_merge( [ $headers ], $rows_unique ) ) );
-    $zip->addFromString( 'xl/worksheets/sheet3.xml', teinvit_baptism_xlsx_sheet_xml( array_merge( [ $headers ], $rows_history ) ) );
+    teinvit_xlsx_write_report_workbook( $zip, [
+        'Rezumat' => $summary_rows,
+        'Unic' => array_merge( [ $headers ], $rows_unique ),
+        'Istoric' => array_merge( [ $headers ], $rows_history ),
+    ] );
     $zip->close();
 
     if ( function_exists( 'teinvit_validate_generated_xlsx_xml' ) ) {
