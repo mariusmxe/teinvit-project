@@ -23,6 +23,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/security.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/helpers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/database.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/tokens.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-description.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/verticals.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-runtime.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-config.php';

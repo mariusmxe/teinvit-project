@@ -1,0 +1,33 @@
+.teinvit-checkmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 999px;
+  margin-right: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: -4px;
+  box-sizing: border-box;
+  background: #7a3ff2;
+  box-shadow: 0 5px 12px rgba(122, 63, 242, 0.22);
+}
+
+.teinvit-checkmark--brand {
+  background: linear-gradient(135deg, #7a3ff2 0%, #1fc7c9 100%);
+}
+
+@media (max-width: 480px) {
+  .teinvit-checkmark {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    margin-right: 7px;
+    font-size: 13px;
+    vertical-align: -3px;
+  }
+}
