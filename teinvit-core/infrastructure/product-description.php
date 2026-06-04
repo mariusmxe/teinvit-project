@@ -54,6 +54,55 @@ function teinvit_product_description_should_filter_current_product() {
     return teinvit_product_description_product_is_te_invit( teinvit_product_description_current_product() );
 }
 
+function teinvit_product_description_is_token_route() {
+    foreach ( [ 'teinvit_token', 'teinvit_pdf_token', 'teinvit_admin_client_token' ] as $query_var ) {
+        if ( function_exists( 'get_query_var' ) && get_query_var( $query_var ) ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function teinvit_product_description_has_checkmark_markers( $html ) {
+    $html = (string) $html;
+    if ( $html === '' ) {
+        return false;
+    }
+    if ( strpos( $html, teinvit_product_description_checkmark_emoji() ) !== false ) {
+        return true;
+    }
+    if ( stripos( $html, '2705.svg' ) !== false ) {
+        return true;
+    }
+
+    return (bool) preg_match( '/\bclass\s*=\s*(?:"[^"]*\bemoji\b[^"]*"|\'[^\']*\bemoji\b[^\']*\'|[^\s>]*\bemoji\b[^\s>]*)/i', $html );
+}
+
+function teinvit_product_description_should_filter_the_content( $html ) {
+    if ( ! teinvit_product_description_has_checkmark_markers( $html ) ) {
+        return false;
+    }
+    if ( teinvit_product_description_is_token_route() ) {
+        return false;
+    }
+    if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+        return false;
+    }
+
+    $post_id = function_exists( 'get_the_ID' ) ? (int) get_the_ID() : 0;
+    if ( $post_id <= 0 || ! function_exists( 'get_post_type' ) || get_post_type( $post_id ) !== 'product' ) {
+        return false;
+    }
+
+    $product = function_exists( 'wc_get_product' ) ? wc_get_product( $post_id ) : null;
+    if ( ! $product ) {
+        $product = teinvit_product_description_current_product();
+    }
+
+    return teinvit_product_description_product_is_te_invit( $product );
+}
+
 function teinvit_product_description_checkmark_emoji() {
     return html_entity_decode( '&#x2705;', ENT_QUOTES, 'UTF-8' );
 }
@@ -212,7 +261,16 @@ function teinvit_product_description_filter_short_description( $short_descriptio
 
     return teinvit_product_description_brand_checkmarks( $short_description );
 }
-add_filter( 'woocommerce_short_description', 'teinvit_product_description_filter_short_description', 20 );
+add_filter( 'woocommerce_short_description', 'teinvit_product_description_filter_short_description', 999 );
+
+function teinvit_product_description_filter_the_content( $content ) {
+    if ( ! teinvit_product_description_should_filter_the_content( $content ) ) {
+        return $content;
+    }
+
+    return teinvit_product_description_brand_checkmarks( $content );
+}
+add_filter( 'the_content', 'teinvit_product_description_filter_the_content', 999 );
 
 function teinvit_product_description_filter_product_tabs( $tabs ) {
     if ( ! teinvit_product_description_should_filter_current_product() ) {
@@ -237,4 +295,4 @@ function teinvit_product_description_filter_product_tabs( $tabs ) {
 
     return $tabs;
 }
-add_filter( 'woocommerce_product_tabs', 'teinvit_product_description_filter_product_tabs', 20 );
+add_filter( 'woocommerce_product_tabs', 'teinvit_product_description_filter_product_tabs', 999 );
