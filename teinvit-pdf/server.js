@@ -155,12 +155,47 @@ app.post('/api/delete', async (req, res) => {
     }
 
     const { order_id, filenames } = req.body || {};
+    const hasFilenameFilter = Object.prototype.hasOwnProperty.call(req.body || {}, 'filenames');
     const parsedOrderId = parseInt(order_id, 10);
     if (!Number.isFinite(parsedOrderId) || parsedOrderId <= 0) {
         return res.status(400).json({
             status: 'error',
             code: 'INVALID_ORDER_ID'
         });
+    }
+
+    if (hasFilenameFilter && !Array.isArray(filenames)) {
+        return res.status(400).json({
+            status: 'error',
+            code: 'INVALID_FILENAMES'
+        });
+    }
+
+    const requested = [];
+    if (hasFilenameFilter) {
+        for (const name of filenames) {
+            const rawName = String(name || '').trim();
+            const safeName = path.basename(rawName);
+            if (
+                !safeName ||
+                safeName !== rawName ||
+                /[<>:"|?*\\\x00-\x1F\x7F]/.test(safeName) ||
+                !/\.pdf$/i.test(safeName)
+            ) {
+                return res.status(400).json({
+                    status: 'error',
+                    code: 'INVALID_FILENAME'
+                });
+            }
+            requested.push(safeName);
+        }
+
+        if (requested.length === 0) {
+            return res.status(400).json({
+                status: 'error',
+                code: 'INVALID_FILENAMES'
+            });
+        }
     }
 
     const orderDir = path.join(OUTPUT_DIR, String(parsedOrderId));
@@ -178,23 +213,30 @@ app.post('/api/delete', async (req, res) => {
             status: 'ok',
             order_id: parsedOrderId,
             deleted_files: [],
+            missing_files: hasFilenameFilter ? requested : [],
             folder_deleted: false,
             folder_missing: true
         });
     }
 
-    const requested = Array.isArray(filenames)
-        ? filenames.map((name) => path.basename(String(name || '').trim())).filter(Boolean)
-        : [];
-
     const deletedFiles = [];
+    const missingFiles = [];
     const errors = [];
 
     try {
         const filesInDir = fs.readdirSync(orderDir);
-        const targetSet = requested.length > 0
+        const targetSet = hasFilenameFilter
             ? new Set(requested)
             : new Set(filesInDir.filter((f) => /\.pdf$/i.test(f)));
+
+        if (hasFilenameFilter) {
+            const filesInDirSet = new Set(filesInDir);
+            for (const fileName of requested) {
+                if (!filesInDirSet.has(fileName)) {
+                    missingFiles.push(fileName);
+                }
+            }
+        }
 
         for (const fileName of filesInDir) {
             if (!targetSet.has(fileName)) continue;
@@ -207,6 +249,8 @@ app.post('/api/delete', async (req, res) => {
                 if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
                     fs.unlinkSync(fullPath);
                     deletedFiles.push(fileName);
+                } else if (fs.existsSync(fullPath)) {
+                    errors.push({ file: fileName, message: 'NOT_A_FILE' });
                 }
             } catch (err) {
                 errors.push({ file: fileName, message: err.message });
@@ -235,16 +279,18 @@ app.post('/api/delete', async (req, res) => {
                 code: 'DELETE_PARTIAL',
                 order_id: parsedOrderId,
                 deleted_files: deletedFiles,
+                missing_files: missingFiles,
                 errors
             });
         }
 
-        if (!folderMissing && deletedFiles.length === 0 && !folderDeleted) {
+        if (!folderMissing && deletedFiles.length === 0 && missingFiles.length === 0 && !folderDeleted) {
             return res.status(409).json({
                 status: 'error',
                 code: 'NOTHING_DELETED',
                 order_id: parsedOrderId,
                 deleted_files: [],
+                missing_files: [],
                 folder_deleted: false,
                 folder_missing: false
             });
@@ -254,6 +300,7 @@ app.post('/api/delete', async (req, res) => {
             status: 'ok',
             order_id: parsedOrderId,
             deleted_files: deletedFiles,
+            missing_files: missingFiles,
             folder_deleted: folderDeleted,
             folder_missing: folderMissing
         });
