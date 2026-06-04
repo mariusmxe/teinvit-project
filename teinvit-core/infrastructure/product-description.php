@@ -59,21 +59,104 @@ function teinvit_product_description_checkmark_emoji() {
 }
 
 function teinvit_product_description_checkmark_markup() {
-    return '<span class="teinvit-checkmark teinvit-checkmark--brand" aria-hidden="true">&#10003;</span>';
+    return '<span class="teinvit-checkmark teinvit-checkmark--brand">✓</span>';
+}
+
+function teinvit_product_description_decode_attr_value( $value ) {
+    $decoded = (string) $value;
+    for ( $i = 0; $i < 2; $i++ ) {
+        $next = html_entity_decode( $decoded, ENT_QUOTES, 'UTF-8' );
+        if ( $next === $decoded ) {
+            break;
+        }
+        $decoded = $next;
+    }
+
+    return $decoded;
+}
+
+function teinvit_product_description_img_attr( $tag, $attr ) {
+    $attr = preg_quote( (string) $attr, '/' );
+    if ( ! preg_match( '/\b' . $attr . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', (string) $tag, $matches ) ) {
+        return '';
+    }
+
+    $value = '';
+    if ( isset( $matches[1] ) && $matches[1] !== '' ) {
+        $value = $matches[1];
+    } elseif ( isset( $matches[2] ) && $matches[2] !== '' ) {
+        $value = $matches[2];
+    } elseif ( isset( $matches[3] ) && $matches[3] !== '' ) {
+        $value = $matches[3];
+    }
+
+    return teinvit_product_description_decode_attr_value( $value );
+}
+
+function teinvit_product_description_is_wordpress_checkmark_emoji_img( $tag ) {
+    $class = teinvit_product_description_img_attr( $tag, 'class' );
+    if ( $class === '' || ! preg_match( '/(?:^|\s)emoji(?:\s|$)/i', $class ) ) {
+        return false;
+    }
+
+    $alt = teinvit_product_description_img_attr( $tag, 'alt' );
+    if ( $alt === teinvit_product_description_checkmark_emoji() ) {
+        return true;
+    }
+
+    $src = teinvit_product_description_img_attr( $tag, 'src' );
+    return $src !== '' && strpos( $src, '/2705.svg' ) !== false;
+}
+
+function teinvit_product_description_replace_wordpress_emoji_imgs( $html ) {
+    $replaced = preg_replace_callback(
+        '/<img\b[^>]*>/i',
+        static function( $matches ) {
+            $tag = (string) ( $matches[0] ?? '' );
+            return teinvit_product_description_is_wordpress_checkmark_emoji_img( $tag )
+                ? teinvit_product_description_checkmark_markup()
+                : $tag;
+        },
+        $html
+    );
+
+    return is_string( $replaced ) ? $replaced : $html;
+}
+
+function teinvit_product_description_replace_raw_checkmarks( $html ) {
+    $parts = preg_split( '/(<[^>]+>)/', (string) $html, -1, PREG_SPLIT_DELIM_CAPTURE );
+    if ( ! is_array( $parts ) ) {
+        return str_replace(
+            teinvit_product_description_checkmark_emoji(),
+            teinvit_product_description_checkmark_markup(),
+            (string) $html
+        );
+    }
+
+    foreach ( $parts as $index => $part ) {
+        if ( $part !== '' && $part[0] === '<' ) {
+            continue;
+        }
+
+        $parts[ $index ] = str_replace(
+            teinvit_product_description_checkmark_emoji(),
+            teinvit_product_description_checkmark_markup(),
+            $part
+        );
+    }
+
+    return implode( '', $parts );
 }
 
 function teinvit_product_description_replace_checkmarks_outside_existing_markup( $html ) {
-    $emoji = teinvit_product_description_checkmark_emoji();
-    if ( strpos( $html, $emoji ) === false ) {
-        return $html;
-    }
+    $html = (string) teinvit_product_description_replace_wordpress_emoji_imgs( (string) $html );
 
-    return str_replace( $emoji, teinvit_product_description_checkmark_markup(), $html );
+    return teinvit_product_description_replace_raw_checkmarks( $html );
 }
 
 function teinvit_product_description_brand_checkmarks( $html ) {
     $html = (string) $html;
-    if ( $html === '' || strpos( $html, teinvit_product_description_checkmark_emoji() ) === false ) {
+    if ( $html === '' ) {
         return $html;
     }
 
