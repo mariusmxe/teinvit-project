@@ -117,7 +117,13 @@ function teinvit_admin_render_settings_page() {
     }
 
     echo '<div class="wrap"><h1>TeInvit Setari</h1>';
+    if ( isset( $_GET['teinvit_settings_saved'] ) && (string) $_GET['teinvit_settings_saved'] === '1' ) {
+        echo '<div class="notice notice-success is-dismissible"><p>Setarile TeInvit au fost salvate.</p></div>';
+    }
     echo '<p>Zona rezervata pentru setari administrative TeInvit. Setarile existente raman in sectiunile lor dedicate.</p>';
+    if ( function_exists( 'teinvit_paid_order_auto_complete_render_settings_section' ) ) {
+        teinvit_paid_order_auto_complete_render_settings_section();
+    }
     echo '</div>';
 }
 

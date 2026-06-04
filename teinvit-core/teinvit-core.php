@@ -38,6 +38,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/newsman-api.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/integrations.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/marketing-subscribers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/media-seo-importer.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/paid-order-auto-complete.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/admin-integrations.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/media-seo-admin.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/token-grants.php';
