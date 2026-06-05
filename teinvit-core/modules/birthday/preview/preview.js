@@ -562,6 +562,40 @@
         }).filter(Boolean);
     }
 
+    function galleryIsTheme(canvas, themeClass) {
+        return !!(
+            window.__TEINVIT_GALLERY_MODE__ &&
+            canvas &&
+            canvas.classList &&
+            canvas.classList.contains(themeClass)
+        );
+    }
+
+    function galleryExpandVerticalOverflowBox(node) {
+        if (!node || node.clientHeight <= 0) return false;
+        var deltaHeight = node.scrollHeight - node.clientHeight;
+        if (!(deltaHeight > 1)) return false;
+        var nextMinHeight = Math.ceil(node.scrollHeight + 1);
+        var currentMinHeight = parseFloat(node.style.minHeight || '0');
+        if (!isFinite(currentMinHeight)) currentMinHeight = 0;
+        if (nextMinHeight <= currentMinHeight) return false;
+        node.style.minHeight = nextMinHeight + 'px';
+        return true;
+    }
+
+    function applyBirthdayMidnightGalleryOverflowFix(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-birthday-midnight-glam')) return;
+        var targets = qsa('.inv-age, .inv-event-name', canvas);
+        var changed = false;
+        targets.forEach(function (node) {
+            if (galleryExpandVerticalOverflowBox(node)) changed = true;
+        });
+        if (changed) {
+            distributeVerticalSpace(canvas);
+            targets.forEach(galleryExpandVerticalOverflowBox);
+        }
+    }
+
     function galleryBox(root) {
         if (!root || !root.getBoundingClientRect) return { width: 0, height: 0 };
         var rect = root.getBoundingClientRect();
@@ -892,6 +926,7 @@
             distributeVerticalSpace(canvas);
         }
         protectNameSection(canvas);
+        applyBirthdayMidnightGalleryOverflowFix(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
         window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
