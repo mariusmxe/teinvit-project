@@ -567,6 +567,7 @@
         var style = node && window.getComputedStyle ? window.getComputedStyle(node) : null;
         return {
             selector: (item && item.selector) || galleryDiagnosticSelector(node, canvas),
+            className: galleryClassName(node),
             textSample: galleryTextSample(node),
             scrollHeight: node ? node.scrollHeight : 0,
             clientHeight: node ? node.clientHeight : 0,
@@ -600,6 +601,11 @@
         var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
         if (!diagnostics || typeof diagnostics !== 'object') return null;
         return diagnostics;
+    }
+
+    function galleryHasFixDiagnostics(key) {
+        var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        return !!(diagnostics && typeof diagnostics === 'object' && diagnostics[key]);
     }
 
     function galleryOverflowElements(canvas) {
@@ -651,9 +657,8 @@
         return true;
     }
 
-    function applyBaptismLittlePrinceGalleryOverflowFix(canvas) {
-        if (!galleryIsTheme(canvas, 'theme-baptism-little-prince')) return;
-        var targets = [
+    function baptismLittlePrinceGalleryTargets(canvas) {
+        return [
             '.inv-parents-wrapper',
             '.inv-parents-wrapper .inv-parents-grid',
             '.inv-parents-wrapper .inv-parent-col',
@@ -668,6 +673,26 @@
             });
             return items;
         }, []);
+    }
+
+    function ensureBaptismLittlePrinceGalleryDiagnostics(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-baptism-little-prince')) return;
+        if (galleryHasFixDiagnostics('baptism_little_prince')) return;
+        var targets = baptismLittlePrinceGalleryTargets(canvas);
+        galleryStoreFixDiagnostics('baptism_little_prince', {
+            theme_match: true,
+            fix_function_called: false,
+            targets_found: targets.length,
+            before: [],
+            after: [],
+            final: galleryFixSnapshot(targets, canvas),
+            redistributed: false
+        });
+    }
+
+    function applyBaptismLittlePrinceGalleryOverflowFix(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-baptism-little-prince')) return;
+        var targets = baptismLittlePrinceGalleryTargets(canvas);
         var diagnostics = {
             theme_match: true,
             fix_function_called: true,
@@ -811,6 +836,7 @@
                 var actualTheme = galleryActualThemeClass(canvas);
                 var overflowCount = galleryOverflowCount(canvas);
                 var finalPassDone = window.__TEINVIT_FINAL_PASS_DONE__ === true && overflowCount === 0;
+                ensureBaptismLittlePrinceGalleryDiagnostics(canvas);
                 var state = {
                     fonts_ready: fontsReady,
                     background_loaded: bg.background_loaded,

@@ -258,6 +258,7 @@ function baseGalleryMetadata(payload) {
             height: 0
         },
         overflow_elements: [],
+        gallery_fix_diagnostics: {},
         timings_ms: {
             goto: 0,
             ready: 0,
@@ -285,6 +286,19 @@ async function collectGalleryDomMetadata(page, payload) {
         const actualTheme = state.actual_theme_class || (canvas ? Array.from(canvas.classList || []).find((cls) => cls.indexOf('theme-') === 0) || '' : '');
         const actualBackground = state.background_url || (bg ? (bg.currentSrc || bg.src || '') : '');
         const normalizeUrl = (url) => String(url || '').replace(/#.*$/, '');
+        const fixDiagnostics = (
+            state.gallery_fix_diagnostics &&
+            typeof state.gallery_fix_diagnostics === 'object' &&
+            !Array.isArray(state.gallery_fix_diagnostics)
+        )
+            ? state.gallery_fix_diagnostics
+            : (
+                window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ &&
+                typeof window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ === 'object' &&
+                !Array.isArray(window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__)
+                    ? window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__
+                    : {}
+            );
         return {
             state,
             capture_box: {
@@ -302,6 +316,7 @@ async function collectGalleryDomMetadata(page, payload) {
                 height: bg ? (bg.naturalHeight || 0) : 0
             },
             overflow_elements: Array.isArray(state.overflow_elements) ? state.overflow_elements : [],
+            gallery_fix_diagnostics: fixDiagnostics,
             readiness: {
                 fonts_ready: state.fonts_ready === true,
                 images_decoded: state.images_decoded === true,
@@ -326,6 +341,11 @@ function mergeGalleryDomMetadata(metadata, domMetadata) {
     metadata.background_natural = domMetadata.background_natural || { width: 0, height: 0 };
     metadata.capture_box = domMetadata.capture_box || { width: 0, height: 0 };
     metadata.overflow_elements = Array.isArray(domMetadata.overflow_elements) ? domMetadata.overflow_elements : [];
+    metadata.gallery_fix_diagnostics = (
+        domMetadata.gallery_fix_diagnostics &&
+        typeof domMetadata.gallery_fix_diagnostics === 'object' &&
+        !Array.isArray(domMetadata.gallery_fix_diagnostics)
+    ) ? domMetadata.gallery_fix_diagnostics : {};
     metadata.readiness = Object.assign({}, metadata.readiness, domMetadata.readiness || {});
     return metadata;
 }

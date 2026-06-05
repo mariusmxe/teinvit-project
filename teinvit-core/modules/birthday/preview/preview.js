@@ -539,6 +539,7 @@
         var style = node && window.getComputedStyle ? window.getComputedStyle(node) : null;
         return {
             selector: (item && item.selector) || galleryDiagnosticSelector(node, canvas),
+            className: galleryClassName(node),
             textSample: galleryTextSample(node),
             scrollHeight: node ? node.scrollHeight : 0,
             clientHeight: node ? node.clientHeight : 0,
@@ -572,6 +573,11 @@
         var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
         if (!diagnostics || typeof diagnostics !== 'object') return null;
         return diagnostics;
+    }
+
+    function galleryHasFixDiagnostics(key) {
+        var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        return !!(diagnostics && typeof diagnostics === 'object' && diagnostics[key]);
     }
 
     function galleryOverflowElements(canvas) {
@@ -623,14 +629,33 @@
         return true;
     }
 
-    function applyBirthdayMidnightGalleryOverflowFix(canvas) {
-        if (!galleryIsTheme(canvas, 'theme-birthday-midnight-glam')) return;
-        var targets = [
+    function birthdayMidnightGalleryTargets(canvas) {
+        return [
             { selector: '.inv-age', node: qs('.inv-age', canvas) },
             { selector: '.inv-event-name', node: qs('.inv-event-name', canvas) }
         ].filter(function (item) {
             return !!item.node;
         });
+    }
+
+    function ensureBirthdayMidnightGalleryDiagnostics(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-birthday-midnight-glam')) return;
+        if (galleryHasFixDiagnostics('birthday_midnight_glam')) return;
+        var targets = birthdayMidnightGalleryTargets(canvas);
+        galleryStoreFixDiagnostics('birthday_midnight_glam', {
+            theme_match: true,
+            fix_function_called: false,
+            targets_found: targets.length,
+            before: [],
+            after: [],
+            final: galleryFixSnapshot(targets, canvas),
+            redistributed: false
+        });
+    }
+
+    function applyBirthdayMidnightGalleryOverflowFix(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-birthday-midnight-glam')) return;
+        var targets = birthdayMidnightGalleryTargets(canvas);
         var diagnostics = {
             theme_match: true,
             fix_function_called: true,
@@ -774,6 +799,7 @@
                 var actualTheme = galleryActualThemeClass(canvas);
                 var overflowCount = galleryOverflowCount(canvas);
                 var finalPassDone = window.__TEINVIT_FINAL_PASS_DONE__ === true && overflowCount === 0;
+                ensureBirthdayMidnightGalleryDiagnostics(canvas);
                 var state = {
                     fonts_ready: fontsReady,
                     background_loaded: bg.background_loaded,
