@@ -41,6 +41,7 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/media-seo-importer.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-themes.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-demo-payloads.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-storage.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-bulk.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-render.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/paid-order-auto-complete.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/admin-integrations.php';
