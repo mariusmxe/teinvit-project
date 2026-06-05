@@ -866,6 +866,7 @@
     }
 
     function clearPrefilledCloneInputs(scope) {
+        if (isDeferredAdminPreviewContext()) return;
         qsa('[name^="wapf[field_' + REPEATABLE_ID + '_"]', scope || document).forEach(function (el) {
             var name = String(el.getAttribute('name') || '');
             var m = name.match(new RegExp('^wapf\\[field_' + REPEATABLE_ID + '_(?:clone_)?(\\d+)\\]$'));
