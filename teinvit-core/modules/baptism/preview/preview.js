@@ -562,6 +562,46 @@
         return text.length > 140 ? text.slice(0, 137) + '...' : text;
     }
 
+    function galleryFixNodeSnapshot(item, canvas) {
+        var node = item && item.node;
+        var style = node && window.getComputedStyle ? window.getComputedStyle(node) : null;
+        return {
+            selector: (item && item.selector) || galleryDiagnosticSelector(node, canvas),
+            textSample: galleryTextSample(node),
+            scrollHeight: node ? node.scrollHeight : 0,
+            clientHeight: node ? node.clientHeight : 0,
+            scrollWidth: node ? node.scrollWidth : 0,
+            clientWidth: node ? node.clientWidth : 0,
+            deltaHeight: node ? (node.scrollHeight - node.clientHeight) : 0,
+            deltaWidth: node ? (node.scrollWidth - node.clientWidth) : 0,
+            styleMinHeight: node && node.style ? (node.style.minHeight || '') : '',
+            computedMinHeight: style ? style.minHeight : '',
+            computedHeight: style ? style.height : ''
+        };
+    }
+
+    function galleryFixSnapshot(items, canvas) {
+        return (items || []).map(function (item) {
+            return galleryFixNodeSnapshot(item, canvas);
+        });
+    }
+
+    function galleryStoreFixDiagnostics(key, diagnostics) {
+        if (!window.__TEINVIT_GALLERY_MODE__) return;
+        var root = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        if (!root || typeof root !== 'object') {
+            root = {};
+        }
+        root[key] = diagnostics;
+        window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ = root;
+    }
+
+    function galleryCurrentFixDiagnostics() {
+        var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        if (!diagnostics || typeof diagnostics !== 'object') return null;
+        return diagnostics;
+    }
+
     function galleryOverflowElements(canvas) {
         var root = canvas || getCanvas();
         if (!root) return [];
@@ -613,7 +653,7 @@
 
     function applyBaptismLittlePrinceGalleryOverflowFix(canvas) {
         if (!galleryIsTheme(canvas, 'theme-baptism-little-prince')) return;
-        var targets = qsa([
+        var targets = [
             '.inv-parents-wrapper',
             '.inv-parents-wrapper .inv-parents-grid',
             '.inv-parents-wrapper .inv-parent-col',
@@ -622,15 +662,35 @@
             '.inv-nasi .inv-parents-grid',
             '.inv-nasi .inv-parent-col',
             '.inv-nasi .inv-parent-sep'
-        ].join(', '), canvas);
+        ].reduce(function (items, selector) {
+            qsa(selector, canvas).forEach(function (node) {
+                items.push({ selector: galleryDiagnosticSelector(node, canvas), node: node });
+            });
+            return items;
+        }, []);
+        var diagnostics = {
+            theme_match: true,
+            fix_function_called: true,
+            targets_found: targets.length,
+            before: galleryFixSnapshot(targets, canvas),
+            after: [],
+            final: [],
+            redistributed: false
+        };
         var changed = false;
-        targets.forEach(function (node) {
-            if (galleryExpandVerticalOverflowBox(node)) changed = true;
+        targets.forEach(function (item) {
+            if (galleryExpandVerticalOverflowBox(item.node)) changed = true;
         });
+        diagnostics.after = galleryFixSnapshot(targets, canvas);
         if (changed) {
+            diagnostics.redistributed = true;
             distributeVerticalSpace(canvas);
-            targets.forEach(galleryExpandVerticalOverflowBox);
+            targets.forEach(function (item) {
+                galleryExpandVerticalOverflowBox(item.node);
+            });
         }
+        diagnostics.final = galleryFixSnapshot(targets, canvas);
+        galleryStoreFixDiagnostics('baptism_little_prince', diagnostics);
     }
 
     function galleryBox(root) {
@@ -768,8 +828,15 @@
                     background_match: bg.background_match,
                     background_natural: bg.background_natural
                 };
+                var fixDiagnostics = galleryCurrentFixDiagnostics();
+                if (fixDiagnostics) {
+                    state.gallery_fix_diagnostics = fixDiagnostics;
+                }
                 if (window.__TEINVIT_GALLERY_MODE__ && overflowCount > 0) {
                     state.overflow_elements = galleryOverflowElements(canvas);
+                    if (fixDiagnostics && state.overflow_elements.length > 0) {
+                        state.overflow_elements[0].gallery_fix_diagnostics = fixDiagnostics;
+                    }
                 }
                 window.__TEINVIT_GALLERY_STATE__ = state;
                 if (
