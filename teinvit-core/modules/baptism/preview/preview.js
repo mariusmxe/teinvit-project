@@ -15,6 +15,7 @@
     var inFlightController = null;
     var pdfReadyCheckTimer = null;
     var pdfReadyCheckAttempts = 0;
+    var galleryReadyCheckTimer = null;
     var FINAL_PRODUCT_PASS_DEBOUNCE_MS = 320;
     var finalProductPassTimer = null;
     var lastStableProductSignature = '';
@@ -475,7 +476,196 @@
                     finalizeBaptismPreviewLayout(canvas);
                     pendingPreviewLayoutCanvas = null;
                     window.TEINVIT_RENDER_READY = true;
+                    if (window.__TEINVIT_GALLERY_MODE__) {
+                        scheduleGalleryReadyCheck(canvas);
+                    }
                 });
+            });
+        }, 0);
+    }
+
+    function galleryConfig() {
+        return window.TEINVIT_GALLERY_CONFIG && typeof window.TEINVIT_GALLERY_CONFIG === 'object'
+            ? window.TEINVIT_GALLERY_CONFIG
+            : {};
+    }
+
+    function galleryCaptureRoot() {
+        return qs('[data-teinvit-gallery-capture="1"]') || (getCanvas() ? getCanvas().parentElement : null);
+    }
+
+    function galleryVisibleNodes(root) {
+        return qsa('*', root).filter(function (node) {
+            if (!node || node.nodeType !== 1 || !window.getComputedStyle) return false;
+            var style = window.getComputedStyle(node);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        });
+    }
+
+    function galleryOverflowCount(canvas) {
+        var root = canvas || getCanvas();
+        if (!root) return 1;
+        var count = hasOverflow(root) ? 1 : 0;
+        galleryVisibleNodes(root).forEach(function (node) {
+            if (node.tagName && /^(svg|path|line|circle|text)$/i.test(node.tagName)) return;
+            if (node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1) count += 1;
+            if (node.clientHeight > 0 && node.scrollHeight > node.clientHeight + 1) count += 1;
+        });
+        return count;
+    }
+
+    function galleryBox(root) {
+        if (!root || !root.getBoundingClientRect) return { width: 0, height: 0 };
+        var rect = root.getBoundingClientRect();
+        return { width: Math.round(rect.width), height: Math.round(rect.height) };
+    }
+
+    function galleryExpectedThemeClass() {
+        var cfg = galleryConfig();
+        return String(cfg.theme_css_class || '').trim();
+    }
+
+    function galleryActualThemeClass(canvas) {
+        var expected = galleryExpectedThemeClass();
+        if (expected && canvas && canvas.classList && canvas.classList.contains(expected)) return expected;
+        if (!canvas || !canvas.className) return '';
+        var match = String(canvas.className || '').match(/theme-baptism-[a-z0-9-]+/);
+        return match ? match[0] : '';
+    }
+
+    function galleryNormalizeUrl(url) {
+        return String(url || '').replace(/#.*$/, '');
+    }
+
+    function galleryBackgroundState(root) {
+        var cfg = galleryConfig();
+        var img = qs('.teinvit-bg', root);
+        var actual = img ? (img.currentSrc || img.src || '') : '';
+        var expected = String(cfg.background_url || '');
+        var loaded = !!(img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+        return {
+            background_loaded: loaded,
+            background_decoded: loaded,
+            background_url: actual,
+            background_match: expected !== '' && galleryNormalizeUrl(actual) === galleryNormalizeUrl(expected),
+            background_natural: {
+                width: img ? (img.naturalWidth || 0) : 0,
+                height: img ? (img.naturalHeight || 0) : 0
+            }
+        };
+    }
+
+    function galleryWaitImages(root) {
+        var images = qsa('img', root);
+        if (!images.length) return Promise.resolve(false);
+        return Promise.all(images.map(function (img) {
+            if (!img) return Promise.resolve(false);
+            var decoded = (img.complete && img.naturalWidth > 0)
+                ? Promise.resolve(true)
+                : new Promise(function (resolve) {
+                    img.addEventListener('load', function () { resolve(true); }, { once: true });
+                    img.addEventListener('error', function () { resolve(false); }, { once: true });
+                });
+            return decoded.then(function (ok) {
+                if (!ok || typeof img.decode !== 'function') return ok;
+                return img.decode().then(function () { return true; }).catch(function () { return false; });
+            });
+        })).then(function (values) {
+            return values.every(Boolean);
+        });
+    }
+
+    function galleryWaitLayoutStable(root) {
+        return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    var first = galleryBox(root);
+                    setTimeout(function () {
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(function () {
+                                var second = galleryBox(root);
+                                resolve(first.width === second.width && first.height === second.height);
+                            });
+                        });
+                    }, 80);
+                });
+            });
+        });
+    }
+
+    function galleryWaitDomStable(root) {
+        return new Promise(function (resolve) {
+            if (!root || typeof MutationObserver === 'undefined') {
+                resolve(true);
+                return;
+            }
+            var changed = false;
+            var observer = new MutationObserver(function () { changed = true; });
+            observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true });
+            setTimeout(function () {
+                observer.disconnect();
+                resolve(!changed);
+            }, 200);
+        });
+    }
+
+    function scheduleGalleryReadyCheck(canvas) {
+        if (!window.__TEINVIT_GALLERY_MODE__ || !canvas) return;
+        if (galleryReadyCheckTimer) clearTimeout(galleryReadyCheckTimer);
+        window.__TEINVIT_GALLERY_READY__ = false;
+        galleryReadyCheckTimer = setTimeout(function () {
+            var root = galleryCaptureRoot();
+            var fontsPromise = (document.fonts && document.fonts.ready) ? document.fonts.ready.then(function () { return true; }).catch(function () { return false; }) : Promise.resolve(true);
+            Promise.all([
+                fontsPromise,
+                galleryWaitImages(root),
+                galleryWaitLayoutStable(root),
+                galleryWaitDomStable(root)
+            ]).then(function (values) {
+                var fontsReady = !!values[0];
+                var imagesDecoded = !!values[1];
+                var layoutStable = !!values[2];
+                var domStable = !!values[3];
+                var box = galleryBox(root);
+                var bg = galleryBackgroundState(root);
+                var expectedTheme = galleryExpectedThemeClass();
+                var actualTheme = galleryActualThemeClass(canvas);
+                var overflowCount = galleryOverflowCount(canvas);
+                var finalPassDone = window.__TEINVIT_FINAL_PASS_DONE__ === true && overflowCount === 0;
+                var state = {
+                    fonts_ready: fontsReady,
+                    background_loaded: bg.background_loaded,
+                    images_decoded: imagesDecoded,
+                    theme_applied: expectedTheme !== '' && actualTheme === expectedTheme,
+                    autofit_done: window.__TEINVIT_AUTOFIT_DONE__ === true,
+                    final_pass_done: finalPassDone,
+                    layout_stable: layoutStable,
+                    dom_stable: domStable,
+                    overflow_count: overflowCount,
+                    capture_box: box,
+                    expected_theme_key: String((galleryConfig().theme_key_internal || galleryConfig().theme_file_key || '') || ''),
+                    actual_theme_class: actualTheme,
+                    background_url: bg.background_url,
+                    background_match: bg.background_match,
+                    background_natural: bg.background_natural
+                };
+                window.__TEINVIT_GALLERY_STATE__ = state;
+                if (
+                    state.fonts_ready &&
+                    state.background_loaded &&
+                    state.images_decoded &&
+                    state.theme_applied &&
+                    state.autofit_done &&
+                    state.final_pass_done &&
+                    state.layout_stable &&
+                    state.dom_stable &&
+                    state.overflow_count === 0 &&
+                    state.capture_box.width === 559 &&
+                    state.capture_box.height === 794 &&
+                    state.background_match
+                ) {
+                    window.__TEINVIT_GALLERY_READY__ = true;
+                }
             });
         }, 0);
     }
@@ -597,7 +787,7 @@
         protectNameSection(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
-        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+        window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
     }
 
     function finalizeBaptismPreviewLayout(canvas) {
@@ -620,7 +810,7 @@
         protectNameSection(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
-        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+        window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
     }
 
     function applyAutoFit(canvas) {

@@ -369,6 +369,8 @@ function teinvit_birthday_renderer( array $context = [] ) {
     $invitation = isset( $context['invitation'] ) && is_array( $context['invitation'] ) ? $context['invitation'] : [];
     $order = isset( $context['order'] ) && $context['order'] instanceof WC_Order ? $context['order'] : null;
     $is_pdf = ( isset( $context['render_context'] ) && $context['render_context'] === 'pdf' );
+    $is_gallery = ( isset( $context['render_context'] ) && $context['render_context'] === 'gallery' );
+    $use_final_css = $is_pdf || $is_gallery;
 
     $product_id = isset( $context['product_id'] ) ? max( 0, (int) $context['product_id'] ) : 0;
     $token_context = isset( $context['token_context'] ) && is_array( $context['token_context'] ) ? $context['token_context'] : [];
@@ -404,7 +406,12 @@ function teinvit_birthday_renderer( array $context = [] ) {
     $theme_class = teinvit_birthday_theme_class( $invitation['theme'] ?? 'editorial-luxury' );
     $party = isset( $invitation['events']['party'] ) && is_array( $invitation['events']['party'] ) ? $invitation['events']['party'] : [];
 
-    $html = '<div class="teinvit-wedding teinvit-birthday"><div class="teinvit-page"><div class="teinvit-container"><div class="teinvit-preview">';
+    $gallery_attrs = '';
+    if ( $is_gallery ) {
+        $gallery_attrs = ' data-teinvit-gallery-capture="1" data-teinvit-vertical="birthday" data-teinvit-theme-key="' . esc_attr( (string) ( $invitation['theme'] ?? '' ) ) . '" data-teinvit-product-id="' . esc_attr( (string) $product_id ) . '"';
+    }
+
+    $html = '<div class="teinvit-wedding teinvit-birthday"><div class="teinvit-page"><div class="teinvit-container"><div class="teinvit-preview"' . $gallery_attrs . '>';
     if ( $background_url ) {
         $html .= '<img src="' . esc_url( $background_url ) . '" alt="" class="teinvit-bg" draggable="false">';
     }
@@ -439,15 +446,20 @@ function teinvit_birthday_renderer( array $context = [] ) {
     if ( ! $assets_loaded ) {
         $assets_loaded = true;
         $ver = defined( 'TEINVIT_CORE_VERSION' ) ? (string) TEINVIT_CORE_VERSION : '1';
-        $base_css = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BIRTHDAY_MODULE_URL . 'preview/' . ( $is_pdf ? 'pdf.css' : 'base.css' ) );
+        $base_css = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BIRTHDAY_MODULE_URL . 'preview/' . ( $use_final_css ? 'pdf.css' : 'base.css' ) );
         $theme_css = add_query_arg( 'ver', rawurlencode( $ver ), TEINVIT_BIRTHDAY_MODULE_URL . 'preview/themes.css' );
         $html = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Source+Serif+4:wght@400;600&family=Inter:wght@400;600;700&family=Parisienne&family=Lora:wght@400;600&family=Montserrat:wght@500;600;700&family=Poppins:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=EB+Garamond:wght@400;600;700&family=Libre+Baskerville:wght@400;700&family=Baloo+2:wght@400;600;700&family=Oswald:wght@400;500;600&family=Satisfy&family=Raleway:wght@500;600;700&family=Unna:wght@400;700&family=Nunito:wght@400;600;700&family=Bodoni+Moda:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@400;600;700&family=Spectral:wght@400;600&family=DM+Serif+Display&family=Prata&family=Noto+Sans+Symbols+2&display=swap">'
             . '<link rel="stylesheet" href="' . esc_url( $base_css ) . '">'
-            . ( $is_pdf ? '' : '<link rel="stylesheet" href="' . esc_url( $theme_css ) . '">' ) . $html;
+            . ( $use_final_css ? '' : '<link rel="stylesheet" href="' . esc_url( $theme_css ) . '">' ) . $html;
     }
 
     $html .= '<script>window.TEINVIT_INVITATION_DATA = ' . wp_json_encode( $invitation ) . ';</script>';
-    $html .= '<script>window.__TEINVIT_PDF_MODE__ = ' . ( $is_pdf ? 'true' : 'false' ) . ';</script>';
+    if ( $is_pdf ) {
+        $html .= '<script>window.__TEINVIT_PDF_MODE__ = true;</script>';
+    }
+    if ( $is_gallery ) {
+        $html .= '<script>window.__TEINVIT_GALLERY_MODE__ = true;</script>';
+    }
     $html .= '<script>window.teinvitBirthdayPreviewConfig = ' . wp_json_encode( [ 'previewBuildUrl' => esc_url_raw( rest_url( 'teinvit/v2/preview/build' ) ) ] ) . ';</script>';
 
     $is_product_page = function_exists( 'is_product' ) ? (bool) is_product() : false;

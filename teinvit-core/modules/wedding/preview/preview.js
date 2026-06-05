@@ -8,6 +8,225 @@ document.addEventListener('DOMContentLoaded', function () {
         '696451a951467': true
     };
 
+    function galleryConfig() {
+        return window.TEINVIT_GALLERY_CONFIG || {};
+    }
+
+    function galleryCaptureRoot() {
+        return qs('[data-teinvit-gallery-capture="1"]') || qs('.teinvit-preview');
+    }
+
+    function galleryVisibleNodes(canvas) {
+        return [canvas].concat(qsa('.inv-names, .inv-message, .inv-parents-wrapper, .inv-nasi, .inv-events, .inv-event', canvas))
+            .filter(function (node) {
+                if (!node || node.nodeType !== 1 || !window.getComputedStyle) return false;
+                var style = window.getComputedStyle(node);
+                return style.display !== 'none' && style.visibility !== 'hidden';
+            });
+    }
+
+    function galleryOverflowCount(canvas) {
+        return galleryVisibleNodes(canvas).filter(function (node) {
+            return (node.clientHeight > 0 && node.scrollHeight > node.clientHeight + 1) ||
+                (node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1);
+        }).length;
+    }
+
+    function galleryBox(node) {
+        if (!node || !node.getBoundingClientRect) return { width: 0, height: 0, top: 0, left: 0 };
+        var rect = node.getBoundingClientRect();
+        return {
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            top: Math.round(rect.top * 100) / 100,
+            left: Math.round(rect.left * 100) / 100
+        };
+    }
+
+    function galleryNormalizeUrl(url) {
+        return String(url || '').replace(/#.*$/, '');
+    }
+
+    function galleryWaitImages(root) {
+        var images = qsa('img', root);
+        if (!images.length) return Promise.resolve(false);
+        return Promise.all(images.map(function (img) {
+            var loaded = (img.complete && img.naturalWidth > 0)
+                ? Promise.resolve(true)
+                : new Promise(function (resolve) {
+                    img.addEventListener('load', function () { resolve(true); }, { once: true });
+                    img.addEventListener('error', function () { resolve(false); }, { once: true });
+                });
+            return loaded.then(function (ok) {
+                if (!ok || !img.decode) return ok;
+                return img.decode().then(function () { return true; }).catch(function () { return false; });
+            });
+        })).then(function (values) {
+            return values.every(Boolean);
+        });
+    }
+
+    function galleryWaitDomStable(root, waitMs) {
+        return new Promise(function (resolve) {
+            var mutated = false;
+            var observer = null;
+            if (window.MutationObserver && root) {
+                observer = new MutationObserver(function () { mutated = true; });
+                observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'style'] });
+            }
+            setTimeout(function () {
+                if (observer) observer.disconnect();
+                resolve(!mutated);
+            }, waitMs || 200);
+        });
+    }
+
+    function galleryWaitLayoutStable(root, canvas) {
+        return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+                var a = JSON.stringify({ root: galleryBox(root), canvas: galleryBox(canvas) });
+                requestAnimationFrame(function () {
+                    var b = JSON.stringify({ root: galleryBox(root), canvas: galleryBox(canvas) });
+                    requestAnimationFrame(function () {
+                        var c = JSON.stringify({ root: galleryBox(root), canvas: galleryBox(canvas) });
+                        resolve(a === b && b === c);
+                    });
+                });
+            });
+        });
+    }
+
+    function galleryBackgroundState(root) {
+        var cfg = galleryConfig();
+        var img = qs('.teinvit-bg', root);
+        if (!img) {
+            return { loaded: false, decoded: false, url: '', match: false, natural: { width: 0, height: 0 } };
+        }
+        var actual = img.currentSrc || img.src || '';
+        var expected = String(cfg.background_url || '');
+        var loaded = !!(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+        return {
+            loaded: loaded,
+            decoded: loaded,
+            url: actual,
+            match: expected !== '' && galleryNormalizeUrl(actual) === galleryNormalizeUrl(expected),
+            natural: { width: img.naturalWidth || 0, height: img.naturalHeight || 0 }
+        };
+    }
+
+    function galleryThemeClass(canvas) {
+        if (!canvas) return '';
+        var cfg = galleryConfig();
+        var expected = String(cfg.theme_css_class || '');
+        if (expected && canvas.classList && canvas.classList.contains(expected)) return expected;
+        var classes = Array.prototype.slice.call(canvas.classList || []);
+        return classes.filter(function (cls) { return cls.indexOf('theme-') === 0; })[0] || '';
+    }
+
+    function setGalleryState(canvas, extra) {
+        var root = galleryCaptureRoot();
+        var cfg = galleryConfig();
+        var box = galleryBox(root);
+        var bg = galleryBackgroundState(root);
+        var actualTheme = galleryThemeClass(canvas);
+        var expectedTheme = cfg.theme_css_class || '';
+        var overflowCount = galleryOverflowCount(canvas);
+        var state = {
+            fonts_ready: !(document.fonts && document.fonts.status) || document.fonts.status === 'loaded',
+            background_loaded: bg.loaded,
+            images_decoded: !!(extra && extra.images_decoded),
+            theme_applied: expectedTheme !== '' && actualTheme === expectedTheme,
+            autofit_done: window.__TEINVIT_AUTOFIT_DONE__ === true,
+            final_pass_done: window.__TEINVIT_GALLERY_FINAL_PASS_DONE__ === true && overflowCount === 0,
+            layout_stable: !!(extra && extra.layout_stable),
+            dom_stable: !!(extra && extra.dom_stable),
+            overflow_count: overflowCount,
+            capture_box: { width: box.width, height: box.height },
+            expected_theme_key: cfg.theme_key_internal || '',
+            actual_theme_class: actualTheme,
+            background_url: bg.url,
+            background_match: bg.match,
+            background_natural: bg.natural
+        };
+        window.__TEINVIT_GALLERY_STATE__ = state;
+        return state;
+    }
+
+    function maybeFinalizeGalleryReady(canvas) {
+        if (!window.__TEINVIT_GALLERY_MODE__ || !canvas) return;
+        var root = galleryCaptureRoot();
+        if (!root) return;
+        window.__TEINVIT_GALLERY_READY__ = false;
+        var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready.catch(function () {}) : Promise.resolve();
+        fontsReady
+            .then(function () { return galleryWaitImages(root); })
+            .then(function (imagesDecoded) {
+                return galleryWaitLayoutStable(root, canvas).then(function (layoutStable) {
+                    return { imagesDecoded: imagesDecoded, layoutStable: layoutStable };
+                });
+            })
+            .then(function (ready) {
+                return galleryWaitDomStable(root, 200).then(function (domStable) {
+                    var state = setGalleryState(canvas, { images_decoded: ready.imagesDecoded, layout_stable: ready.layoutStable, dom_stable: domStable });
+                    if (
+                        state.fonts_ready &&
+                        state.background_loaded &&
+                        state.images_decoded &&
+                        state.theme_applied &&
+                        state.autofit_done &&
+                        state.final_pass_done &&
+                        state.layout_stable &&
+                        state.dom_stable &&
+                        state.overflow_count === 0 &&
+                        state.capture_box.width === 559 &&
+                        state.capture_box.height === 794 &&
+                        state.background_match
+                    ) {
+                        window.__TEINVIT_GALLERY_READY__ = true;
+                    }
+                });
+            });
+    }
+
+    function finalizeWeddingGalleryLayout(canvas) {
+        return new Promise(function (resolve) {
+            galleryReadyCheckTimer = setTimeout(function runAttempt() {
+                window.__TEINVIT_AUTOFIT_DONE__ = false;
+                applyAutoFit(canvas);
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        var overflow = galleryOverflowCount(canvas);
+                        if (overflow > 0 && galleryReadyCheckAttempts < 5) {
+                            galleryReadyCheckAttempts++;
+                            galleryReadyCheckTimer = setTimeout(runAttempt, 40);
+                            return;
+                        }
+                        window.__TEINVIT_AUTOFIT_DONE__ = true;
+                        window.__TEINVIT_GALLERY_FINAL_PASS_DONE__ = overflow === 0;
+                        resolve(overflow);
+                    });
+                });
+            }, 0);
+        });
+    }
+
+    function scheduleGalleryReadyCheck(canvas) {
+        if (!window.__TEINVIT_GALLERY_MODE__ || !canvas) return;
+        if (galleryReadyCheckTimer) {
+            clearTimeout(galleryReadyCheckTimer);
+        }
+        galleryReadyCheckAttempts = 0;
+        window.__TEINVIT_GALLERY_READY__ = false;
+        window.__TEINVIT_GALLERY_FINAL_PASS_DONE__ = false;
+
+        var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready.catch(function () {}) : Promise.resolve();
+        fontsReady.then(function () {
+            finalizeWeddingGalleryLayout(canvas).then(function () {
+                maybeFinalizeGalleryReady(canvas);
+            });
+        });
+    }
+
     /* ==================================================
        HELPERS
     ================================================== */
@@ -489,6 +708,8 @@ function formatNames(text) {
     var canonicalPreviewLastAppliedSeq = 0;
     var pdfReadyCheckTimer = null;
     var pdfReadyCheckAttempts = 0;
+    var galleryReadyCheckTimer = null;
+    var galleryReadyCheckAttempts = 0;
 
     function invitationLayoutSignature(data) {
         if (!data || typeof data !== 'object') return '';
@@ -857,6 +1078,8 @@ applyAutoFit(canvas);
         // ================================
         if (window.__TEINVIT_PDF_MODE__) {
             schedulePdfReadyCheck(canvas);
+        } else if (window.__TEINVIT_GALLERY_MODE__) {
+            scheduleGalleryReadyCheck(canvas);
         } else {
             window.TEINVIT_RENDER_READY = true;
         }
@@ -888,7 +1111,6 @@ applyAutoFit(canvas);
     ) {
         return;
     }
-
 
         var baseFont = 1;
         var minFont = 0.52;
