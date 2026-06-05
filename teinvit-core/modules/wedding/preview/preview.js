@@ -125,6 +125,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }).filter(Boolean);
     }
 
+    function galleryResetNamesBoxFix(canvas) {
+        if (!window.__TEINVIT_GALLERY_MODE__ || !canvas) return;
+        var names = qs('.inv-names', canvas);
+        if (!names || names.getAttribute('data-teinvit-gallery-names-box-fix') !== '1') return;
+        names.style.minHeight = '';
+        names.removeAttribute('data-teinvit-gallery-names-box-fix');
+    }
+
+    function galleryFixNamesVerticalOverflow(canvas) {
+        if (!window.__TEINVIT_GALLERY_MODE__ || !canvas) return false;
+        var names = qs('.inv-names', canvas);
+        if (!galleryIsVisibleNode(names)) return false;
+
+        var deltaHeight = names.scrollHeight - names.clientHeight;
+        var hasVerticalOverflow = names.clientHeight > 0 && deltaHeight > 1;
+        if (!hasVerticalOverflow) return false;
+
+        names.style.minHeight = names.scrollHeight + 'px';
+        names.setAttribute('data-teinvit-gallery-names-box-fix', '1');
+        return true;
+    }
+
     function galleryBox(node) {
         if (!node || !node.getBoundingClientRect) return { width: 0, height: 0, top: 0, left: 0 };
         var rect = node.getBoundingClientRect();
@@ -288,7 +310,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return new Promise(function (resolve) {
             galleryReadyCheckTimer = setTimeout(function runAttempt() {
                 window.__TEINVIT_AUTOFIT_DONE__ = false;
+                galleryResetNamesBoxFix(canvas);
                 applyAutoFit(canvas);
+                galleryFixNamesVerticalOverflow(canvas);
                 requestAnimationFrame(function () {
                     requestAnimationFrame(function () {
                         var overflow = galleryOverflowCount(canvas);
