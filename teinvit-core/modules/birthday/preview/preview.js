@@ -486,6 +486,82 @@
         return count;
     }
 
+    function galleryClassName(node) {
+        if (!node) return '';
+        if (typeof node.className === 'string') return node.className;
+        return node.getAttribute ? (node.getAttribute('class') || '') : '';
+    }
+
+    function gallerySimpleSelector(node) {
+        if (!node || !node.tagName) return '';
+        var className = galleryClassName(node);
+        var classes = className.split(/\s+/).filter(function (cls) {
+            return /^[A-Za-z0-9_-]+$/.test(cls);
+        });
+        return classes.length ? '.' + classes.join('.') : node.tagName.toLowerCase();
+    }
+
+    function gallerySiblingIndex(node) {
+        if (!node || !node.parentElement || !node.tagName) return 0;
+        var tagName = node.tagName;
+        var siblings = Array.prototype.filter.call(node.parentElement.children, function (child) {
+            return child.tagName === tagName;
+        });
+        return siblings.length > 1 ? siblings.indexOf(node) + 1 : 0;
+    }
+
+    function galleryDiagnosticSelector(node, canvas) {
+        if (!node) return '';
+        if (node === canvas) return '.teinvit-canvas';
+        var parts = [];
+        var current = node;
+        while (current && current !== canvas && current.nodeType === 1) {
+            var part = gallerySimpleSelector(current);
+            var index = gallerySiblingIndex(current);
+            if (index > 0) {
+                part += ':nth-of-type(' + index + ')';
+            }
+            parts.unshift(part);
+            current = current.parentElement;
+        }
+        return parts.length ? '.teinvit-canvas > ' + parts.join(' > ') : gallerySimpleSelector(node);
+    }
+
+    function galleryTextSample(node) {
+        var text = String((node && (node.innerText || node.textContent)) || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return text.length > 140 ? text.slice(0, 137) + '...' : text;
+    }
+
+    function galleryOverflowElements(canvas) {
+        var root = canvas || getCanvas();
+        if (!root) return [];
+        var seen = [];
+        return [root].concat(galleryVisibleNodes(root)).map(function (node) {
+            if (!node || seen.indexOf(node) !== -1) return null;
+            seen.push(node);
+            if (node.tagName && /^(svg|path|line|circle|text)$/i.test(node.tagName)) return null;
+            var deltaHeight = node.scrollHeight - node.clientHeight;
+            var deltaWidth = node.scrollWidth - node.clientWidth;
+            var vertical = node.clientHeight > 0 && deltaHeight > 1;
+            var horizontal = node.clientWidth > 0 && deltaWidth > 1;
+            if (!vertical && !horizontal) return null;
+            return {
+                selector: galleryDiagnosticSelector(node, root),
+                className: galleryClassName(node),
+                axis: vertical && horizontal ? 'both' : (horizontal ? 'horizontal' : 'vertical'),
+                scrollHeight: node.scrollHeight,
+                clientHeight: node.clientHeight,
+                scrollWidth: node.scrollWidth,
+                clientWidth: node.clientWidth,
+                deltaHeight: deltaHeight,
+                deltaWidth: deltaWidth,
+                textSample: galleryTextSample(node)
+            };
+        }).filter(Boolean);
+    }
+
     function galleryBox(root) {
         if (!root || !root.getBoundingClientRect) return { width: 0, height: 0 };
         var rect = root.getBoundingClientRect();
@@ -621,6 +697,9 @@
                     background_match: bg.background_match,
                     background_natural: bg.background_natural
                 };
+                if (window.__TEINVIT_GALLERY_MODE__ && overflowCount > 0) {
+                    state.overflow_elements = galleryOverflowElements(canvas);
+                }
                 window.__TEINVIT_GALLERY_STATE__ = state;
                 if (
                     state.fonts_ready &&
