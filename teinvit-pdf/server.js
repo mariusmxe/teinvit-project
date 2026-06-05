@@ -257,6 +257,7 @@ function baseGalleryMetadata(payload) {
             width: 0,
             height: 0
         },
+        overflow_elements: [],
         timings_ms: {
             goto: 0,
             ready: 0,
@@ -300,6 +301,7 @@ async function collectGalleryDomMetadata(page, payload) {
                 width: bg ? (bg.naturalWidth || 0) : 0,
                 height: bg ? (bg.naturalHeight || 0) : 0
             },
+            overflow_elements: Array.isArray(state.overflow_elements) ? state.overflow_elements : [],
             readiness: {
                 fonts_ready: state.fonts_ready === true,
                 images_decoded: state.images_decoded === true,
@@ -323,6 +325,7 @@ function mergeGalleryDomMetadata(metadata, domMetadata) {
     metadata.background_match = !!domMetadata.background_match;
     metadata.background_natural = domMetadata.background_natural || { width: 0, height: 0 };
     metadata.capture_box = domMetadata.capture_box || { width: 0, height: 0 };
+    metadata.overflow_elements = Array.isArray(domMetadata.overflow_elements) ? domMetadata.overflow_elements : [];
     metadata.readiness = Object.assign({}, metadata.readiness, domMetadata.readiness || {});
     return metadata;
 }

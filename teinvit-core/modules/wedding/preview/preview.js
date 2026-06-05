@@ -16,13 +16,15 @@ document.addEventListener('DOMContentLoaded', function () {
         return qs('[data-teinvit-gallery-capture="1"]') || qs('.teinvit-preview');
     }
 
+    function galleryIsVisibleNode(node) {
+        if (!node || node.nodeType !== 1 || !window.getComputedStyle) return false;
+        var style = window.getComputedStyle(node);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+    }
+
     function galleryVisibleNodes(canvas) {
         return [canvas].concat(qsa('.inv-names, .inv-message, .inv-parents-wrapper, .inv-nasi, .inv-events, .inv-event', canvas))
-            .filter(function (node) {
-                if (!node || node.nodeType !== 1 || !window.getComputedStyle) return false;
-                var style = window.getComputedStyle(node);
-                return style.display !== 'none' && style.visibility !== 'hidden';
-            });
+            .filter(galleryIsVisibleNode);
     }
 
     function galleryOverflowCount(canvas) {
@@ -30,6 +32,97 @@ document.addEventListener('DOMContentLoaded', function () {
             return (node.clientHeight > 0 && node.scrollHeight > node.clientHeight + 1) ||
                 (node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1);
         }).length;
+    }
+
+    function galleryClassName(node) {
+        if (!node) return '';
+        if (typeof node.className === 'string') return node.className;
+        return node.getAttribute ? (node.getAttribute('class') || '') : '';
+    }
+
+    function gallerySimpleSelector(node) {
+        if (!node || !node.tagName) return '';
+        var className = galleryClassName(node);
+        var classes = className.split(/\s+/).filter(function (cls) {
+            return /^[A-Za-z0-9_-]+$/.test(cls);
+        });
+        return classes.length ? '.' + classes.join('.') : node.tagName.toLowerCase();
+    }
+
+    function gallerySiblingIndex(node) {
+        if (!node || !node.parentElement || !node.tagName) return 0;
+        var tagName = node.tagName;
+        var siblings = Array.prototype.filter.call(node.parentElement.children, function (child) {
+            return child.tagName === tagName;
+        });
+        return siblings.length > 1 ? siblings.indexOf(node) + 1 : 0;
+    }
+
+    function galleryDiagnosticSelector(node, canvas) {
+        if (!node) return '';
+        if (node === canvas) return '.teinvit-canvas';
+        var parts = [];
+        var current = node;
+        while (current && current !== canvas && current.nodeType === 1) {
+            var part = gallerySimpleSelector(current);
+            var index = gallerySiblingIndex(current);
+            if (index > 0) {
+                part += ':nth-of-type(' + index + ')';
+            }
+            parts.unshift(part);
+            current = current.parentElement;
+        }
+        return parts.length ? '.teinvit-canvas > ' + parts.join(' > ') : gallerySimpleSelector(node);
+    }
+
+    function galleryTextSample(node) {
+        var text = String((node && (node.innerText || node.textContent)) || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return text.length > 140 ? text.slice(0, 137) + '...' : text;
+    }
+
+    function galleryDiagnosticNodes(canvas) {
+        var selector = [
+            '.inv-names',
+            '.inv-divider',
+            '.inv-message',
+            '.inv-parents-wrapper',
+            '.inv-parents',
+            '.inv-parent-col',
+            '.inv-nasi',
+            '.nasi-row',
+            '.inv-events',
+            '.events-row',
+            '.inv-event',
+            '.inv-event strong',
+            '.inv-event > div',
+            '.inv-event > a',
+            '.section-title'
+        ].join(', ');
+        return [canvas].concat(qsa(selector, canvas)).filter(galleryIsVisibleNode);
+    }
+
+    function galleryOverflowElements(canvas) {
+        return galleryDiagnosticNodes(canvas).map(function (node) {
+            var deltaHeight = node.scrollHeight - node.clientHeight;
+            var deltaWidth = node.scrollWidth - node.clientWidth;
+            var vertical = node.clientHeight > 0 && deltaHeight > 1;
+            var horizontal = node.clientWidth > 0 && deltaWidth > 1;
+            if (!vertical && !horizontal) return null;
+            return {
+                selector: galleryDiagnosticSelector(node, canvas),
+                className: galleryClassName(node),
+                axis: vertical && horizontal ? 'both' : (horizontal ? 'horizontal' : 'vertical'),
+                scrollHeight: node.scrollHeight,
+                clientHeight: node.clientHeight,
+                scrollWidth: node.scrollWidth,
+                clientWidth: node.clientWidth,
+                deltaHeight: deltaHeight,
+                deltaWidth: deltaWidth,
+                textSample: galleryTextSample(node)
+            };
+        }).filter(Boolean);
     }
 
     function galleryBox(node) {
@@ -148,6 +241,9 @@ document.addEventListener('DOMContentLoaded', function () {
             background_match: bg.match,
             background_natural: bg.natural
         };
+        if (window.__TEINVIT_GALLERY_MODE__ && overflowCount > 0) {
+            state.overflow_elements = galleryOverflowElements(canvas);
+        }
         window.__TEINVIT_GALLERY_STATE__ = state;
         return state;
     }
