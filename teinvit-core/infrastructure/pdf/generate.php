@@ -814,7 +814,452 @@ function teinvit_pdf_cleanup_eligibility( array $invitation, array $versions ) {
     ];
 }
 
-function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames = [] ) {
+function teinvit_pdf_cleanup_table_exists( $table_name ) {
+    global $wpdb;
+
+    $table_name = (string) $table_name;
+    if ( $table_name === '' ) {
+        return false;
+    }
+
+    if ( function_exists( 'teinvit_database_table_exists' ) ) {
+        return teinvit_database_table_exists( $table_name );
+    }
+
+    $found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+    return (string) $found === $table_name;
+}
+
+function teinvit_pdf_cleanup_vertical_table_sets() {
+    $sets = [];
+    $verticals = function_exists( 'teinvit_vertical_keys' ) ? teinvit_vertical_keys() : [ 'wedding', 'baptism', 'birthday' ];
+
+    foreach ( $verticals as $vertical ) {
+        $vertical = function_exists( 'teinvit_normalize_vertical_key' )
+            ? teinvit_normalize_vertical_key( $vertical )
+            : sanitize_key( (string) $vertical );
+
+        if ( function_exists( 'teinvit_storage_tables_for_vertical' ) ) {
+            $tables = teinvit_storage_tables_for_vertical( $vertical );
+        } elseif ( $vertical === 'wedding' && function_exists( 'teinvit_db_tables' ) ) {
+            $tables = teinvit_db_tables();
+        } else {
+            $tables = [];
+        }
+
+        if ( ! is_array( $tables ) || empty( $tables['invitations'] ) || empty( $tables['versions'] ) ) {
+            continue;
+        }
+
+        $key = $tables['invitations'] . '|' . $tables['versions'];
+        if ( isset( $sets[ $key ] ) ) {
+            continue;
+        }
+
+        $sets[ $key ] = [
+            'vertical' => $vertical !== '' ? $vertical : 'wedding',
+            'invitations' => (string) $tables['invitations'],
+            'versions' => (string) $tables['versions'],
+        ];
+    }
+
+    if ( empty( $sets ) && function_exists( 'teinvit_db_tables' ) ) {
+        $tables = teinvit_db_tables();
+        if ( ! empty( $tables['invitations'] ) && ! empty( $tables['versions'] ) ) {
+            $sets['fallback'] = [
+                'vertical' => 'wedding',
+                'invitations' => (string) $tables['invitations'],
+                'versions' => (string) $tables['versions'],
+            ];
+        }
+    }
+
+    return array_values( $sets );
+}
+
+function teinvit_pdf_cleanup_filename_from_version( array $version ) {
+    $filename = sanitize_file_name( (string) ( $version['pdf_filename'] ?? '' ) );
+    if ( $filename === '' && ! empty( $version['pdf_url'] ) ) {
+        $path = wp_parse_url( (string) $version['pdf_url'], PHP_URL_PATH );
+        if ( is_string( $path ) && $path !== '' ) {
+            $filename = sanitize_file_name( rawurldecode( basename( str_replace( '\\', '/', $path ) ) ) );
+        }
+    }
+
+    if ( $filename === '' || ! preg_match( '/\.pdf$/i', $filename ) ) {
+        return '';
+    }
+
+    return $filename;
+}
+
+function teinvit_pdf_cleanup_summary_seed() {
+    $vertical_seed = [
+        'tokens' => 0,
+        'candidate_files' => 0,
+        'eligible_files' => 0,
+        'deleted_files' => 0,
+        'failed_files' => 0,
+        'skipped_files' => 0,
+    ];
+
+    $summary = [
+        'tokens' => 0,
+        'candidate_files' => 0,
+        'eligible_files' => 0,
+        'deleted_files' => 0,
+        'failed_files' => 0,
+        'skipped_files' => 0,
+        'by_vertical' => [],
+    ];
+
+    $verticals = function_exists( 'teinvit_vertical_keys' ) ? teinvit_vertical_keys() : [ 'wedding', 'baptism', 'birthday' ];
+    foreach ( $verticals as $vertical ) {
+        $summary['by_vertical'][ sanitize_key( (string) $vertical ) ] = $vertical_seed;
+    }
+
+    return $summary;
+}
+
+function teinvit_pdf_cleanup_ensure_vertical_summary( array &$summary, $vertical ) {
+    $vertical = sanitize_key( (string) $vertical );
+    if ( $vertical === '' ) {
+        $vertical = 'wedding';
+    }
+
+    if ( empty( $summary['by_vertical'][ $vertical ] ) ) {
+        $summary['by_vertical'][ $vertical ] = [
+            'tokens' => 0,
+            'candidate_files' => 0,
+            'eligible_files' => 0,
+            'deleted_files' => 0,
+            'failed_files' => 0,
+            'skipped_files' => 0,
+        ];
+    }
+}
+
+function teinvit_pdf_cleanup_collect_candidates( array $args = [] ) {
+    global $wpdb;
+
+    $now = isset( $args['now'] ) ? (int) $args['now'] : time();
+    $limit = isset( $args['limit'] ) ? max( 1, (int) $args['limit'] ) : 300;
+    $filter_order_id = isset( $args['order_id'] ) ? max( 0, (int) $args['order_id'] ) : 0;
+    $filter_token = isset( $args['token'] ) ? sanitize_text_field( (string) $args['token'] ) : '';
+    $filter_vertical = isset( $args['vertical'] ) ? sanitize_key( (string) $args['vertical'] ) : '';
+
+    $plan = [
+        'dry_run' => true,
+        'now' => $now,
+        'generated_at' => current_time( 'mysql' ),
+        'summary' => teinvit_pdf_cleanup_summary_seed(),
+        'tokens' => [],
+        'eligible_files' => [],
+        'delete_groups' => [],
+        'skipped' => [],
+    ];
+
+    $processed_tokens = 0;
+    foreach ( teinvit_pdf_cleanup_vertical_table_sets() as $set ) {
+        $vertical = sanitize_key( (string) ( $set['vertical'] ?? 'wedding' ) );
+        if ( $filter_vertical !== '' && $filter_vertical !== $vertical ) {
+            continue;
+        }
+
+        $invitations_table = (string) ( $set['invitations'] ?? '' );
+        $versions_table = (string) ( $set['versions'] ?? '' );
+        if ( ! teinvit_pdf_cleanup_table_exists( $invitations_table ) || ! teinvit_pdf_cleanup_table_exists( $versions_table ) ) {
+            continue;
+        }
+
+        teinvit_pdf_cleanup_ensure_vertical_summary( $plan['summary'], $vertical );
+
+        $where = [ "v.pdf_url IS NOT NULL AND v.pdf_url <> ''" ];
+        $params = [];
+        if ( $filter_token !== '' ) {
+            $where[] = 'i.token = %s';
+            $params[] = $filter_token;
+        }
+        if ( $filter_order_id > 0 ) {
+            $where[] = 'i.order_id = %d';
+            $params[] = $filter_order_id;
+        }
+
+        $remaining = max( 1, $limit - $processed_tokens );
+        $params[] = $remaining;
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT i.token, i.order_id
+                 FROM {$invitations_table} i
+                 INNER JOIN {$versions_table} v ON v.token = i.token
+                 WHERE " . implode( ' AND ', $where ) . "
+                 GROUP BY i.token, i.order_id
+                 ORDER BY i.order_id ASC
+                 LIMIT %d",
+                $params
+            ),
+            ARRAY_A
+        );
+
+        if ( empty( $rows ) ) {
+            continue;
+        }
+
+        foreach ( $rows as $row ) {
+            if ( $processed_tokens >= $limit ) {
+                break 2;
+            }
+
+            $token = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
+            $order_id = (int) ( $row['order_id'] ?? 0 );
+            $token_context = [];
+            if ( $token !== '' && function_exists( 'teinvit_resolve_token_context' ) ) {
+                $token_context = teinvit_resolve_token_context( $token );
+                if ( $order_id <= 0 && is_array( $token_context ) ) {
+                    $order_id = max( 0, (int) ( $token_context['order_id'] ?? 0 ) );
+                }
+            }
+
+            if ( $token === '' || $order_id <= 0 ) {
+                $plan['summary']['skipped_files']++;
+                $plan['summary']['by_vertical'][ $vertical ]['skipped_files']++;
+                $plan['skipped'][] = [
+                    'vertical' => $vertical,
+                    'token' => $token,
+                    'order_id' => $order_id,
+                    'reason' => 'missing_token_or_order',
+                ];
+                continue;
+            }
+
+            $versions = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, snapshot, pdf_url, pdf_status, pdf_filename, pdf_generated_at FROM {$versions_table} WHERE token = %s ORDER BY id ASC",
+                    $token
+                ),
+                ARRAY_A
+            );
+            if ( empty( $versions ) ) {
+                continue;
+            }
+
+            $processed_tokens++;
+            $plan['summary']['tokens']++;
+            $plan['summary']['by_vertical'][ $vertical ]['tokens']++;
+
+            $order_token_row = function_exists( 'teinvit_get_order_token_row' ) ? teinvit_get_order_token_row( $token ) : null;
+            $token_key = $vertical . ':' . $token;
+            $plan['tokens'][ $token_key ] = [
+                'vertical' => $vertical,
+                'token' => $token,
+                'order_id' => $order_id,
+                'versions_table' => $versions_table,
+                'invitations_table' => $invitations_table,
+                'has_order_token' => is_array( $order_token_row ),
+                'legacy_order_token' => is_array( $order_token_row ) && ! empty( $order_token_row['legacy'] ),
+                'eligible' => false,
+                'eligibility' => [],
+                'versions' => [],
+            ];
+
+            $eligibility = teinvit_pdf_cleanup_eligibility( [ 'order_id' => $order_id ], $versions );
+            $delete_from_ts = (int) ( $eligibility['delete_from_ts'] ?? 0 );
+            $is_due = $delete_from_ts > 0 && $now >= $delete_from_ts;
+            $plan['tokens'][ $token_key ]['eligible'] = $is_due;
+            $plan['tokens'][ $token_key ]['eligibility'] = $eligibility;
+
+            foreach ( $versions as $version ) {
+                $pdf_url = trim( (string) ( $version['pdf_url'] ?? '' ) );
+                if ( $pdf_url === '' ) {
+                    continue;
+                }
+
+                $status = sanitize_key( (string) ( $version['pdf_status'] ?? '' ) );
+                $filename = teinvit_pdf_cleanup_filename_from_version( $version );
+                $candidate = [
+                    'vertical' => $vertical,
+                    'token' => $token,
+                    'order_id' => $order_id,
+                    'version_id' => (int) ( $version['id'] ?? 0 ),
+                    'pdf_filename' => $filename,
+                    'pdf_url' => esc_url_raw( $pdf_url ),
+                    'pdf_status' => $status,
+                    'pdf_generated_at' => (string) ( $version['pdf_generated_at'] ?? '' ),
+                    'versions_table' => $versions_table,
+                    'invitations_table' => $invitations_table,
+                    'delete_from_ts' => $delete_from_ts,
+                    'eligibility_mode' => (string) ( $eligibility['mode'] ?? 'unknown' ),
+                    'max_event_ts' => (int) ( $eligibility['max_event_ts'] ?? 0 ),
+                    'has_order_token' => is_array( $order_token_row ),
+                    'legacy_order_token' => is_array( $order_token_row ) && ! empty( $order_token_row['legacy'] ),
+                    'token_context_source' => is_array( $token_context ) ? (string) ( $token_context['source'] ?? '' ) : '',
+                    'eligible' => false,
+                    'skip_reason' => '',
+                ];
+
+                $plan['summary']['candidate_files']++;
+                $plan['summary']['by_vertical'][ $vertical ]['candidate_files']++;
+
+                if ( $status === 'delete_in_progress' ) {
+                    $candidate['skip_reason'] = 'delete_in_progress';
+                } elseif ( ! $is_due ) {
+                    $candidate['skip_reason'] = 'retention_not_due';
+                } elseif ( $filename === '' ) {
+                    $candidate['skip_reason'] = 'missing_safe_filename';
+                } else {
+                    $candidate['eligible'] = true;
+                }
+
+                $plan['tokens'][ $token_key ]['versions'][] = $candidate;
+
+                if ( ! $candidate['eligible'] ) {
+                    $plan['summary']['skipped_files']++;
+                    $plan['summary']['by_vertical'][ $vertical ]['skipped_files']++;
+                    $plan['skipped'][] = $candidate;
+                    continue;
+                }
+
+                $plan['summary']['eligible_files']++;
+                $plan['summary']['by_vertical'][ $vertical ]['eligible_files']++;
+                $plan['eligible_files'][] = $candidate;
+
+                $group_key = (string) $order_id;
+                if ( empty( $plan['delete_groups'][ $group_key ] ) ) {
+                    $plan['delete_groups'][ $group_key ] = [
+                        'order_id' => $order_id,
+                        'filenames' => [],
+                        'candidates' => [],
+                    ];
+                }
+                $plan['delete_groups'][ $group_key ]['filenames'][] = $filename;
+                $plan['delete_groups'][ $group_key ]['filenames'] = array_values( array_unique( $plan['delete_groups'][ $group_key ]['filenames'] ) );
+                $plan['delete_groups'][ $group_key ]['candidates'][] = $candidate;
+            }
+        }
+    }
+
+    return $plan;
+}
+
+function teinvit_pdf_cleanup_update_version_row( array $candidate, array $data ) {
+    global $wpdb;
+
+    $versions_table = (string) ( $candidate['versions_table'] ?? '' );
+    $version_id = (int) ( $candidate['version_id'] ?? 0 );
+    $token = sanitize_text_field( (string) ( $candidate['token'] ?? '' ) );
+    if ( $versions_table === '' || $version_id <= 0 || $token === '' ) {
+        return false;
+    }
+
+    return $wpdb->update(
+        $versions_table,
+        $data,
+        [ 'id' => $version_id, 'token' => $token ]
+    );
+}
+
+function teinvit_pdf_cleanup_refresh_order_token_pdf_status( $token, $versions_table ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    $versions_table = (string) $versions_table;
+    if ( $token === '' || $versions_table === '' || ! function_exists( 'teinvit_get_order_token_row' ) || ! function_exists( 'teinvit_update_order_token_row' ) ) {
+        return false;
+    }
+
+    $order_token_row = teinvit_get_order_token_row( $token );
+    if ( ! is_array( $order_token_row ) || ! empty( $order_token_row['legacy'] ) ) {
+        return false;
+    }
+
+    $remaining = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$versions_table} WHERE token = %s AND pdf_url IS NOT NULL AND pdf_url <> '' AND pdf_status <> 'deleted_on_server'",
+            $token
+        )
+    );
+    $next_status = $remaining > 0 ? 'generated' : 'deleted_on_server';
+
+    return teinvit_update_order_token_row( (int) $order_token_row['id'], [
+        'pdf_status' => $next_status,
+        'last_error' => '',
+        'debug_context' => [
+            'phase' => 'pdf_cleanup',
+            'pdf_status' => $next_status,
+            'remaining_pdf_versions' => $remaining,
+        ],
+    ] );
+}
+
+function teinvit_pdf_cleanup_maybe_delete_order_pdf_meta( $order, array $filenames ) {
+    if ( ! $order || ! method_exists( $order, 'get_meta' ) || ! method_exists( $order, 'delete_meta_data' ) ) {
+        return false;
+    }
+
+    $pdf_url = (string) $order->get_meta( '_teinvit_pdf_url' );
+    if ( $pdf_url === '' ) {
+        return false;
+    }
+
+    $path = wp_parse_url( $pdf_url, PHP_URL_PATH );
+    $meta_filename = is_string( $path ) && $path !== ''
+        ? sanitize_file_name( rawurldecode( basename( str_replace( '\\', '/', $path ) ) ) )
+        : '';
+
+    if ( $meta_filename === '' || ! in_array( $meta_filename, $filenames, true ) ) {
+        return false;
+    }
+
+    $order->delete_meta_data( '_teinvit_pdf_url' );
+    return true;
+}
+
+function teinvit_pdf_cleanup_order_note_lines( array $candidates, $status, $reason ) {
+    $lines = [];
+    foreach ( $candidates as $candidate ) {
+        $lines[] = sprintf(
+            'file order=%d token=%s vertical=%s version_id=%d filename=%s status=%s reason=%s',
+            (int) ( $candidate['order_id'] ?? 0 ),
+            sanitize_text_field( (string) ( $candidate['token'] ?? '' ) ),
+            sanitize_key( (string) ( $candidate['vertical'] ?? '' ) ),
+            (int) ( $candidate['version_id'] ?? 0 ),
+            sanitize_file_name( (string) ( $candidate['pdf_filename'] ?? '' ) ),
+            sanitize_key( (string) $status ),
+            sanitize_text_field( (string) $reason )
+        );
+    }
+
+    return $lines;
+}
+
+function teinvit_pdf_cleanup_log_summary( array $summary, $dry_run = false ) {
+    $vertical_bits = [];
+    foreach ( (array) ( $summary['by_vertical'] ?? [] ) as $vertical => $data ) {
+        $vertical_bits[] = sprintf(
+            '%s:candidates=%d eligible=%d deleted=%d failed=%d skipped=%d',
+            sanitize_key( (string) $vertical ),
+            (int) ( $data['candidate_files'] ?? 0 ),
+            (int) ( $data['eligible_files'] ?? 0 ),
+            (int) ( $data['deleted_files'] ?? 0 ),
+            (int) ( $data['failed_files'] ?? 0 ),
+            (int) ( $data['skipped_files'] ?? 0 )
+        );
+    }
+
+    error_log( sprintf(
+        '[TeInvit PDF Cleanup] summary dry_run=%s tokens=%d candidates=%d eligible=%d deleted=%d failed=%d skipped=%d verticals=%s',
+        $dry_run ? 'yes' : 'no',
+        (int) ( $summary['tokens'] ?? 0 ),
+        (int) ( $summary['candidate_files'] ?? 0 ),
+        (int) ( $summary['eligible_files'] ?? 0 ),
+        (int) ( $summary['deleted_files'] ?? 0 ),
+        (int) ( $summary['failed_files'] ?? 0 ),
+        (int) ( $summary['skipped_files'] ?? 0 ),
+        implode( '; ', $vertical_bits )
+    ) );
+}
+
+function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames = [], $require_filenames = false ) {
     $payload = [
         'order_id'  => (int) $order_id,
     ];
@@ -823,6 +1268,9 @@ function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames = [] ) {
     }, $filenames ) ) ) );
     if ( ! empty( $clean_filenames ) ) {
         $payload['filenames'] = $clean_filenames;
+    }
+    if ( $require_filenames && empty( $clean_filenames ) ) {
+        return new WP_Error( 'cleanup_missing_filenames', 'Cleanup requires explicit PDF filenames.' );
     }
 
     $headers = [ 'Content-Type' => 'application/json' ];
@@ -850,9 +1298,10 @@ function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames = [] ) {
         return new WP_Error( 'node_delete_failed', 'Node delete failed', [ 'http_code' => $code, 'body' => $data ] );
     }
     $deleted_files = array_values( array_filter( array_map( 'sanitize_file_name', (array) ( $data['deleted_files'] ?? [] ) ) ) );
+    $missing_files = array_values( array_filter( array_map( 'sanitize_file_name', (array) ( $data['missing_files'] ?? [] ) ) ) );
     $folder_deleted = ! empty( $data['folder_deleted'] );
     $folder_missing = ! empty( $data['folder_missing'] );
-    if ( ! $folder_missing && empty( $deleted_files ) && ! $folder_deleted ) {
+    if ( ! $folder_missing && empty( $deleted_files ) && empty( $missing_files ) && ! $folder_deleted ) {
         return new WP_Error(
             'node_delete_no_effect',
             'Node delete finished without deleting any files',
@@ -863,148 +1312,102 @@ function teinvit_pdf_cleanup_node_delete( $order_id, array $filenames = [] ) {
     return $data;
 }
 
-function teinvit_pdf_cleanup_run_nightly() {
-    global $wpdb;
+function teinvit_pdf_cleanup_run_nightly( $dry_run = false, array $args = [] ) {
+    $dry_run = (bool) $dry_run;
+    $plan = teinvit_pdf_cleanup_collect_candidates( $args );
+    $plan['dry_run'] = $dry_run;
 
-    if ( ! function_exists( 'teinvit_db_tables' ) ) {
-        return;
-    }
-    $t = teinvit_db_tables();
-    $invitations_table = $t['invitations'] ?? '';
-    $versions_table = $t['versions'] ?? '';
-    if ( $invitations_table === '' || $versions_table === '' ) {
-        return;
+    if ( $dry_run || empty( $plan['delete_groups'] ) ) {
+        teinvit_pdf_cleanup_log_summary( $plan['summary'], $dry_run );
+        return $plan;
     }
 
-    $rows = $wpdb->get_results(
-        "SELECT i.token, i.order_id
-         FROM {$invitations_table} i
-         INNER JOIN {$versions_table} v ON v.token = i.token
-         WHERE v.pdf_url IS NOT NULL AND v.pdf_url <> ''
-         GROUP BY i.token, i.order_id
-         ORDER BY i.order_id ASC
-         LIMIT 300",
-        ARRAY_A
-    );
-    if ( empty( $rows ) ) {
-        return;
-    }
-
-    $now = time();
-    foreach ( $rows as $row ) {
-        $token = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
-        $order_id = (int) ( $row['order_id'] ?? 0 );
-        if ( $token === '' || $order_id <= 0 ) {
+    foreach ( $plan['delete_groups'] as $group ) {
+        $order_id = (int) ( $group['order_id'] ?? 0 );
+        $filenames = array_values( array_unique( array_filter( array_map( 'sanitize_file_name', (array) ( $group['filenames'] ?? [] ) ) ) ) );
+        $candidates = (array) ( $group['candidates'] ?? [] );
+        if ( $order_id <= 0 || empty( $filenames ) || empty( $candidates ) ) {
             continue;
         }
 
-        $versions = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, snapshot, pdf_url, pdf_status, pdf_filename FROM {$versions_table} WHERE token = %s ORDER BY id ASC",
-                $token
-            ),
-            ARRAY_A
-        );
-        if ( empty( $versions ) ) {
-            continue;
+        foreach ( $candidates as $candidate ) {
+            teinvit_pdf_cleanup_update_version_row( $candidate, [ 'pdf_status' => 'delete_in_progress' ] );
         }
 
-        $invitation = function_exists( 'teinvit_get_invitation' ) ? teinvit_get_invitation( $token ) : [ 'order_id' => $order_id ];
-        if ( ! is_array( $invitation ) ) {
-            $invitation = [ 'order_id' => $order_id ];
-        }
-
-        $eligibility = teinvit_pdf_cleanup_eligibility( $invitation, $versions );
-        $delete_from_ts = (int) ( $eligibility['delete_from_ts'] ?? 0 );
-        $mode = (string) ( $eligibility['mode'] ?? 'unknown' );
-        $max_event_ts = (int) ( $eligibility['max_event_ts'] ?? 0 );
-
-        if ( $delete_from_ts <= 0 || $now < $delete_from_ts ) {
-            continue;
-        }
-
-        $pdf_version_ids = [];
-        foreach ( $versions as $version ) {
-            $pdf_url = trim( (string) ( $version['pdf_url'] ?? '' ) );
-            $status = trim( (string) ( $version['pdf_status'] ?? '' ) );
-            if ( $pdf_url === '' && $status === 'deleted_on_server' ) {
-                continue;
-            }
-            if ( $status === 'delete_in_progress' ) {
-                continue;
-            }
-            $pdf_version_ids[] = (int) ( $version['id'] ?? 0 );
-        }
-        $pdf_version_ids = array_values( array_filter( array_unique( $pdf_version_ids ) ) );
-        if ( empty( $pdf_version_ids ) ) {
-            continue;
-        }
-
-        foreach ( $pdf_version_ids as $version_id ) {
-            $wpdb->update(
-                $versions_table,
-                [ 'pdf_status' => 'delete_in_progress' ],
-                [ 'id' => (int) $version_id ]
-            );
-        }
-
-        $result = teinvit_pdf_cleanup_node_delete( $order_id );
+        $result = teinvit_pdf_cleanup_node_delete( $order_id, $filenames, true );
         $order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
 
         if ( is_wp_error( $result ) ) {
-            foreach ( $pdf_version_ids as $version_id ) {
-                $wpdb->update(
-                    $versions_table,
-                    [ 'pdf_status' => 'delete_error' ],
-                    [ 'id' => (int) $version_id ]
-                );
+            foreach ( $candidates as $candidate ) {
+                teinvit_pdf_cleanup_update_version_row( $candidate, [ 'pdf_status' => 'delete_error' ] );
+                $vertical = sanitize_key( (string) ( $candidate['vertical'] ?? 'wedding' ) );
+                teinvit_pdf_cleanup_ensure_vertical_summary( $plan['summary'], $vertical );
+                $plan['summary']['failed_files']++;
+                $plan['summary']['by_vertical'][ $vertical ]['failed_files']++;
             }
+
             if ( $order ) {
+                $lines = teinvit_pdf_cleanup_order_note_lines( $candidates, 'failed', $result->get_error_message() );
                 $order->add_order_note(
-                    sprintf(
-                        '[TeInvit PDF Cleanup] order=%d token=%s mode=%s delete_from=%s ERROR=%s',
-                        $order_id,
-                        $token,
-                        $mode,
-                        gmdate( 'Y-m-d', $delete_from_ts ),
-                        $result->get_error_message()
-                    )
+                    "[TeInvit PDF Cleanup] order={$order_id} status=failed ERROR=" . $result->get_error_message() . "\n" . implode( "\n", $lines )
                 );
             }
             continue;
         }
 
-        foreach ( $pdf_version_ids as $version_id ) {
-            $wpdb->update(
-                $versions_table,
+        $affected_tokens = [];
+        foreach ( $candidates as $candidate ) {
+            teinvit_pdf_cleanup_update_version_row(
+                $candidate,
                 [
                     'pdf_status' => 'deleted_on_server',
                     'pdf_url' => '',
                     'pdf_generated_at' => current_time( 'mysql' ),
-                ],
-                [ 'id' => (int) $version_id ]
+                ]
             );
+
+            $token = sanitize_text_field( (string) ( $candidate['token'] ?? '' ) );
+            $versions_table = (string) ( $candidate['versions_table'] ?? '' );
+            if ( $token !== '' && $versions_table !== '' ) {
+                $affected_tokens[ $token . '|' . $versions_table ] = [ $token, $versions_table ];
+            }
+
+            $vertical = sanitize_key( (string) ( $candidate['vertical'] ?? 'wedding' ) );
+            teinvit_pdf_cleanup_ensure_vertical_summary( $plan['summary'], $vertical );
+            $plan['summary']['deleted_files']++;
+            $plan['summary']['by_vertical'][ $vertical ]['deleted_files']++;
+        }
+
+        foreach ( $affected_tokens as $token_table ) {
+            teinvit_pdf_cleanup_refresh_order_token_pdf_status( $token_table[0], $token_table[1] );
         }
 
         if ( $order ) {
-            $order->delete_meta_data( '_teinvit_pdf_url' );
+            $meta_deleted = teinvit_pdf_cleanup_maybe_delete_order_pdf_meta( $order, $filenames );
             $order->save();
+            $lines = teinvit_pdf_cleanup_order_note_lines( $candidates, 'success', 'deleted_on_server' );
             $order->add_order_note(
                 sprintf(
-                    '[TeInvit PDF Cleanup] order=%d token=%s max_event=%s mode=%s fallback_2y=%s delete_from=%s deleted_files=%s folder_deleted=%s folder_missing=%s',
+                    "[TeInvit PDF Cleanup] order=%d status=success requested_files=%s deleted_files=%s missing_files=%s folder_deleted=%s folder_missing=%s legacy_meta_deleted=%s\n%s",
                     $order_id,
-                    $token,
-                    $max_event_ts > 0 ? gmdate( 'Y-m-d', $max_event_ts ) : 'n/a',
-                    $mode,
-                    $mode === 'fallback_order_plus_2y' ? 'yes' : 'no',
-                    gmdate( 'Y-m-d', $delete_from_ts ),
+                    implode( ',', array_map( 'sanitize_text_field', $filenames ) ),
                     implode( ',', array_map( 'sanitize_text_field', (array) ( $result['deleted_files'] ?? [] ) ) ),
+                    implode( ',', array_map( 'sanitize_text_field', (array) ( $result['missing_files'] ?? [] ) ) ),
                     ! empty( $result['folder_deleted'] ) ? 'yes' : 'no',
-                    ! empty( $result['folder_missing'] ) ? 'yes' : 'no'
+                    ! empty( $result['folder_missing'] ) ? 'yes' : 'no',
+                    $meta_deleted ? 'yes' : 'no',
+                    implode( "\n", $lines )
                 )
             );
         }
     }
+
+    teinvit_pdf_cleanup_log_summary( $plan['summary'], false );
+    return $plan;
+}
+
+function teinvit_pdf_cleanup_dry_run( array $args = [] ) {
+    return teinvit_pdf_cleanup_run_nightly( true, $args );
 }
 
 function teinvit_pdf_cleanup_unschedule_internal_once() {
