@@ -1000,7 +1000,6 @@
             distributeVerticalSpace(canvas);
         }
         protectNameSection(canvas);
-        applyBaptismLittlePrinceGalleryOverflowFix(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
         window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
@@ -1024,6 +1023,7 @@
             distributeVerticalSpace(canvas);
         }
         protectNameSection(canvas);
+        applyBaptismLittlePrinceGalleryOverflowFix(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
         window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
@@ -1052,6 +1052,7 @@
             fitBaptismNameText(canvas, false);
             if (hasOverflow(canvas)) fitBaptismNameText(canvas, true);
         }
+        applyBaptismLittlePrinceGalleryOverflowFix(canvas);
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
             window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;

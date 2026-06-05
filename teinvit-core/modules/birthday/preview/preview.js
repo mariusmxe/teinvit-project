@@ -1019,7 +1019,6 @@
             distributeVerticalSpace(canvas);
         }
         protectNameSection(canvas);
-        applyBirthdayMidnightGalleryOverflowFix(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
         window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
@@ -1045,6 +1044,7 @@
             distributeVerticalSpace(canvas);
         }
         protectNameSection(canvas);
+        applyBirthdayMidnightGalleryOverflowFix(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
         window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
@@ -1081,6 +1081,7 @@
             fitBirthdayNameText(canvas, false);
             if (hasOverflow(canvas)) fitBirthdayNameText(canvas, true);
         }
+        applyBirthdayMidnightGalleryOverflowFix(canvas);
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
             window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
