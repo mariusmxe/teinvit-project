@@ -209,11 +209,13 @@ app.post('/api/delete', async (req, res) => {
     }
 
     if (!fs.existsSync(orderDir)) {
+        console.log(`[TeInvit PDF Delete] order=${parsedOrderId} folder missing path=${orderDir}`);
         return res.json({
             status: 'ok',
             order_id: parsedOrderId,
             deleted_files: [],
             missing_files: hasFilenameFilter ? requested : [],
+            remaining_entries: 0,
             folder_deleted: false,
             folder_missing: true
         });
@@ -259,15 +261,21 @@ app.post('/api/delete', async (req, res) => {
 
         let folderDeleted = false;
         let folderMissing = false;
+        let remainingEntries = 0;
         try {
             const remaining = fs.readdirSync(orderDir);
+            remainingEntries = remaining.length;
             if (remaining.length === 0) {
                 fs.rmdirSync(orderDir);
                 folderDeleted = true;
+                console.log(`[TeInvit PDF Delete] order=${parsedOrderId} empty folder removed path=${orderDir}`);
+            } else {
+                console.log(`[TeInvit PDF Delete] order=${parsedOrderId} folder kept path=${orderDir} remaining_entries=${remaining.length}`);
             }
         } catch (err) {
             if (err && err.code === 'ENOENT') {
                 folderMissing = true;
+                console.log(`[TeInvit PDF Delete] order=${parsedOrderId} folder missing path=${orderDir}`);
             } else {
                 errors.push({ folder: String(parsedOrderId), message: err.message });
             }
@@ -280,6 +288,7 @@ app.post('/api/delete', async (req, res) => {
                 order_id: parsedOrderId,
                 deleted_files: deletedFiles,
                 missing_files: missingFiles,
+                remaining_entries: remainingEntries,
                 errors
             });
         }
@@ -291,6 +300,7 @@ app.post('/api/delete', async (req, res) => {
                 order_id: parsedOrderId,
                 deleted_files: [],
                 missing_files: [],
+                remaining_entries: remainingEntries,
                 folder_deleted: false,
                 folder_missing: false
             });
@@ -301,6 +311,7 @@ app.post('/api/delete', async (req, res) => {
             order_id: parsedOrderId,
             deleted_files: deletedFiles,
             missing_files: missingFiles,
+            remaining_entries: remainingEntries,
             folder_deleted: folderDeleted,
             folder_missing: folderMissing
         });
