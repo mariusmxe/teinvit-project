@@ -497,16 +497,22 @@ class TeInvit_Wedding_Preview_Renderer {
             . 'family=DM+Sans:wght@600&'
             . 'family=Inter:wght@400;600&display=swap">';
 
+        $render_context = isset( $GLOBALS['TEINVIT_RENDER_CONTEXT'] ) ? (string) $GLOBALS['TEINVIT_RENDER_CONTEXT'] : 'preview';
+
         /* ===============================
-           CONTEXT PDF
+           CONTEXT PDF / GALLERY
         =============================== */
-        if ( isset( $GLOBALS['TEINVIT_RENDER_CONTEXT'] ) && $GLOBALS['TEINVIT_RENDER_CONTEXT'] === 'pdf' ) {
+        if ( in_array( $render_context, [ 'pdf', 'gallery' ], true ) ) {
 
             echo '<link rel="stylesheet" href="' . esc_url(
                 TEINVIT_WEDDING_MODULE_URL . 'preview/pdf.css'
             ) . '">';
 
-            echo '<script>window.__TEINVIT_PDF_MODE__ = true;</script>';
+            if ( $render_context === 'pdf' ) {
+                echo '<script>window.__TEINVIT_PDF_MODE__ = true;</script>';
+            } else {
+                echo '<script>window.__TEINVIT_GALLERY_MODE__ = true;</script>';
+            }
 
             echo '<script src="' . esc_url(
                 TEINVIT_WEDDING_MODULE_URL . 'preview/preview.js'

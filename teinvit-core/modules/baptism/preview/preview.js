@@ -15,6 +15,7 @@
     var inFlightController = null;
     var pdfReadyCheckTimer = null;
     var pdfReadyCheckAttempts = 0;
+    var galleryReadyCheckTimer = null;
     var FINAL_PRODUCT_PASS_DEBOUNCE_MS = 320;
     var finalProductPassTimer = null;
     var lastStableProductSignature = '';
@@ -475,7 +476,411 @@
                     finalizeBaptismPreviewLayout(canvas);
                     pendingPreviewLayoutCanvas = null;
                     window.TEINVIT_RENDER_READY = true;
+                    if (window.__TEINVIT_GALLERY_MODE__) {
+                        scheduleGalleryReadyCheck(canvas);
+                    }
                 });
+            });
+        }, 0);
+    }
+
+    function galleryConfig() {
+        return window.TEINVIT_GALLERY_CONFIG && typeof window.TEINVIT_GALLERY_CONFIG === 'object'
+            ? window.TEINVIT_GALLERY_CONFIG
+            : {};
+    }
+
+    function galleryCaptureRoot() {
+        return qs('[data-teinvit-gallery-capture="1"]') || (getCanvas() ? getCanvas().parentElement : null);
+    }
+
+    function galleryVisibleNodes(root) {
+        return qsa('*', root).filter(function (node) {
+            if (!node || node.nodeType !== 1 || !window.getComputedStyle) return false;
+            var style = window.getComputedStyle(node);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        });
+    }
+
+    function galleryOverflowCount(canvas) {
+        var root = canvas || getCanvas();
+        if (!root) return 1;
+        var count = hasOverflow(root) ? 1 : 0;
+        galleryVisibleNodes(root).forEach(function (node) {
+            if (node.tagName && /^(svg|path|line|circle|text)$/i.test(node.tagName)) return;
+            if (node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1) count += 1;
+            if (node.clientHeight > 0 && node.scrollHeight > node.clientHeight + 1) count += 1;
+        });
+        return count;
+    }
+
+    function galleryClassName(node) {
+        if (!node) return '';
+        if (typeof node.className === 'string') return node.className;
+        return node.getAttribute ? (node.getAttribute('class') || '') : '';
+    }
+
+    function gallerySimpleSelector(node) {
+        if (!node || !node.tagName) return '';
+        var className = galleryClassName(node);
+        var classes = className.split(/\s+/).filter(function (cls) {
+            return /^[A-Za-z0-9_-]+$/.test(cls);
+        });
+        return classes.length ? '.' + classes.join('.') : node.tagName.toLowerCase();
+    }
+
+    function gallerySiblingIndex(node) {
+        if (!node || !node.parentElement || !node.tagName) return 0;
+        var tagName = node.tagName;
+        var siblings = Array.prototype.filter.call(node.parentElement.children, function (child) {
+            return child.tagName === tagName;
+        });
+        return siblings.length > 1 ? siblings.indexOf(node) + 1 : 0;
+    }
+
+    function galleryDiagnosticSelector(node, canvas) {
+        if (!node) return '';
+        if (node === canvas) return '.teinvit-canvas';
+        var parts = [];
+        var current = node;
+        while (current && current !== canvas && current.nodeType === 1) {
+            var part = gallerySimpleSelector(current);
+            var index = gallerySiblingIndex(current);
+            if (index > 0) {
+                part += ':nth-of-type(' + index + ')';
+            }
+            parts.unshift(part);
+            current = current.parentElement;
+        }
+        return parts.length ? '.teinvit-canvas > ' + parts.join(' > ') : gallerySimpleSelector(node);
+    }
+
+    function galleryTextSample(node) {
+        var text = String((node && (node.innerText || node.textContent)) || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return text.length > 140 ? text.slice(0, 137) + '...' : text;
+    }
+
+    function galleryFixNodeSnapshot(item, canvas) {
+        var node = item && item.node;
+        var style = node && window.getComputedStyle ? window.getComputedStyle(node) : null;
+        return {
+            selector: (item && item.selector) || galleryDiagnosticSelector(node, canvas),
+            className: galleryClassName(node),
+            textSample: galleryTextSample(node),
+            scrollHeight: node ? node.scrollHeight : 0,
+            clientHeight: node ? node.clientHeight : 0,
+            scrollWidth: node ? node.scrollWidth : 0,
+            clientWidth: node ? node.clientWidth : 0,
+            deltaHeight: node ? (node.scrollHeight - node.clientHeight) : 0,
+            deltaWidth: node ? (node.scrollWidth - node.clientWidth) : 0,
+            styleMinHeight: node && node.style ? (node.style.minHeight || '') : '',
+            computedMinHeight: style ? style.minHeight : '',
+            computedHeight: style ? style.height : ''
+        };
+    }
+
+    function galleryFixSnapshot(items, canvas) {
+        return (items || []).map(function (item) {
+            return galleryFixNodeSnapshot(item, canvas);
+        });
+    }
+
+    function galleryStoreFixDiagnostics(key, diagnostics) {
+        if (!window.__TEINVIT_GALLERY_MODE__) return;
+        var root = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        if (!root || typeof root !== 'object') {
+            root = {};
+        }
+        root[key] = diagnostics;
+        window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ = root;
+    }
+
+    function galleryCurrentFixDiagnostics() {
+        var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        if (!diagnostics || typeof diagnostics !== 'object') return null;
+        return diagnostics;
+    }
+
+    function galleryHasFixDiagnostics(key) {
+        var diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        return !!(diagnostics && typeof diagnostics === 'object' && diagnostics[key]);
+    }
+
+    function galleryOverflowElements(canvas) {
+        var root = canvas || getCanvas();
+        if (!root) return [];
+        var seen = [];
+        return [root].concat(galleryVisibleNodes(root)).map(function (node) {
+            if (!node || seen.indexOf(node) !== -1) return null;
+            seen.push(node);
+            if (node.tagName && /^(svg|path|line|circle|text)$/i.test(node.tagName)) return null;
+            var deltaHeight = node.scrollHeight - node.clientHeight;
+            var deltaWidth = node.scrollWidth - node.clientWidth;
+            var vertical = node.clientHeight > 0 && deltaHeight > 1;
+            var horizontal = node.clientWidth > 0 && deltaWidth > 1;
+            if (!vertical && !horizontal) return null;
+            return {
+                selector: galleryDiagnosticSelector(node, root),
+                className: galleryClassName(node),
+                axis: vertical && horizontal ? 'both' : (horizontal ? 'horizontal' : 'vertical'),
+                scrollHeight: node.scrollHeight,
+                clientHeight: node.clientHeight,
+                scrollWidth: node.scrollWidth,
+                clientWidth: node.clientWidth,
+                deltaHeight: deltaHeight,
+                deltaWidth: deltaWidth,
+                textSample: galleryTextSample(node)
+            };
+        }).filter(Boolean);
+    }
+
+    function galleryIsTheme(canvas, themeClass) {
+        return !!(
+            window.__TEINVIT_GALLERY_MODE__ &&
+            canvas &&
+            canvas.classList &&
+            canvas.classList.contains(themeClass)
+        );
+    }
+
+    function galleryExpandVerticalOverflowBox(node) {
+        if (!node || node.clientHeight <= 0) return false;
+        var deltaHeight = node.scrollHeight - node.clientHeight;
+        if (!(deltaHeight > 1)) return false;
+        var nextMinHeight = Math.ceil(node.scrollHeight + 1);
+        var currentMinHeight = parseFloat(node.style.minHeight || '0');
+        if (!isFinite(currentMinHeight)) currentMinHeight = 0;
+        if (nextMinHeight <= currentMinHeight) return false;
+        node.style.minHeight = nextMinHeight + 'px';
+        return true;
+    }
+
+    function baptismLittlePrinceGalleryTargets(canvas) {
+        return [
+            '.inv-parents-wrapper',
+            '.inv-parents-wrapper .inv-parents-grid',
+            '.inv-parents-wrapper .inv-parent-col',
+            '.inv-parents-wrapper .inv-parent-sep',
+            '.inv-nasi',
+            '.inv-nasi .inv-parents-grid',
+            '.inv-nasi .inv-parent-col',
+            '.inv-nasi .inv-parent-sep'
+        ].reduce(function (items, selector) {
+            qsa(selector, canvas).forEach(function (node) {
+                items.push({ selector: galleryDiagnosticSelector(node, canvas), node: node });
+            });
+            return items;
+        }, []);
+    }
+
+    function ensureBaptismLittlePrinceGalleryDiagnostics(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-baptism-little-prince')) return;
+        if (galleryHasFixDiagnostics('baptism_little_prince')) return;
+        var targets = baptismLittlePrinceGalleryTargets(canvas);
+        galleryStoreFixDiagnostics('baptism_little_prince', {
+            theme_match: true,
+            fix_function_called: false,
+            targets_found: targets.length,
+            before: [],
+            after: [],
+            final: galleryFixSnapshot(targets, canvas),
+            redistributed: false
+        });
+    }
+
+    function applyBaptismLittlePrinceGalleryOverflowFix(canvas) {
+        if (!galleryIsTheme(canvas, 'theme-baptism-little-prince')) return;
+        var targets = baptismLittlePrinceGalleryTargets(canvas);
+        var diagnostics = {
+            theme_match: true,
+            fix_function_called: true,
+            targets_found: targets.length,
+            before: galleryFixSnapshot(targets, canvas),
+            after: [],
+            final: [],
+            redistributed: false
+        };
+        var changed = false;
+        targets.forEach(function (item) {
+            if (galleryExpandVerticalOverflowBox(item.node)) changed = true;
+        });
+        diagnostics.after = galleryFixSnapshot(targets, canvas);
+        if (changed) {
+            diagnostics.redistributed = true;
+            distributeVerticalSpace(canvas);
+            targets.forEach(function (item) {
+                galleryExpandVerticalOverflowBox(item.node);
+            });
+        }
+        diagnostics.final = galleryFixSnapshot(targets, canvas);
+        galleryStoreFixDiagnostics('baptism_little_prince', diagnostics);
+    }
+
+    function galleryBox(root) {
+        if (!root || !root.getBoundingClientRect) return { width: 0, height: 0 };
+        var rect = root.getBoundingClientRect();
+        return { width: Math.round(rect.width), height: Math.round(rect.height) };
+    }
+
+    function galleryExpectedThemeClass() {
+        var cfg = galleryConfig();
+        return String(cfg.theme_css_class || '').trim();
+    }
+
+    function galleryActualThemeClass(canvas) {
+        var expected = galleryExpectedThemeClass();
+        if (expected && canvas && canvas.classList && canvas.classList.contains(expected)) return expected;
+        if (!canvas || !canvas.className) return '';
+        var match = String(canvas.className || '').match(/theme-baptism-[a-z0-9-]+/);
+        return match ? match[0] : '';
+    }
+
+    function galleryNormalizeUrl(url) {
+        return String(url || '').replace(/#.*$/, '');
+    }
+
+    function galleryBackgroundState(root) {
+        var cfg = galleryConfig();
+        var img = qs('.teinvit-bg', root);
+        var actual = img ? (img.currentSrc || img.src || '') : '';
+        var expected = String(cfg.background_url || '');
+        var loaded = !!(img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+        return {
+            background_loaded: loaded,
+            background_decoded: loaded,
+            background_url: actual,
+            background_match: expected !== '' && galleryNormalizeUrl(actual) === galleryNormalizeUrl(expected),
+            background_natural: {
+                width: img ? (img.naturalWidth || 0) : 0,
+                height: img ? (img.naturalHeight || 0) : 0
+            }
+        };
+    }
+
+    function galleryWaitImages(root) {
+        var images = qsa('img', root);
+        if (!images.length) return Promise.resolve(false);
+        return Promise.all(images.map(function (img) {
+            if (!img) return Promise.resolve(false);
+            var decoded = (img.complete && img.naturalWidth > 0)
+                ? Promise.resolve(true)
+                : new Promise(function (resolve) {
+                    img.addEventListener('load', function () { resolve(true); }, { once: true });
+                    img.addEventListener('error', function () { resolve(false); }, { once: true });
+                });
+            return decoded.then(function (ok) {
+                if (!ok || typeof img.decode !== 'function') return ok;
+                return img.decode().then(function () { return true; }).catch(function () { return false; });
+            });
+        })).then(function (values) {
+            return values.every(Boolean);
+        });
+    }
+
+    function galleryWaitLayoutStable(root) {
+        return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    var first = galleryBox(root);
+                    setTimeout(function () {
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(function () {
+                                var second = galleryBox(root);
+                                resolve(first.width === second.width && first.height === second.height);
+                            });
+                        });
+                    }, 80);
+                });
+            });
+        });
+    }
+
+    function galleryWaitDomStable(root) {
+        return new Promise(function (resolve) {
+            if (!root || typeof MutationObserver === 'undefined') {
+                resolve(true);
+                return;
+            }
+            var changed = false;
+            var observer = new MutationObserver(function () { changed = true; });
+            observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true });
+            setTimeout(function () {
+                observer.disconnect();
+                resolve(!changed);
+            }, 200);
+        });
+    }
+
+    function scheduleGalleryReadyCheck(canvas) {
+        if (!window.__TEINVIT_GALLERY_MODE__ || !canvas) return;
+        if (galleryReadyCheckTimer) clearTimeout(galleryReadyCheckTimer);
+        window.__TEINVIT_GALLERY_READY__ = false;
+        galleryReadyCheckTimer = setTimeout(function () {
+            var root = galleryCaptureRoot();
+            var fontsPromise = (document.fonts && document.fonts.ready) ? document.fonts.ready.then(function () { return true; }).catch(function () { return false; }) : Promise.resolve(true);
+            Promise.all([
+                fontsPromise,
+                galleryWaitImages(root),
+                galleryWaitLayoutStable(root),
+                galleryWaitDomStable(root)
+            ]).then(function (values) {
+                var fontsReady = !!values[0];
+                var imagesDecoded = !!values[1];
+                var layoutStable = !!values[2];
+                var domStable = !!values[3];
+                var box = galleryBox(root);
+                var bg = galleryBackgroundState(root);
+                var expectedTheme = galleryExpectedThemeClass();
+                var actualTheme = galleryActualThemeClass(canvas);
+                var overflowCount = galleryOverflowCount(canvas);
+                var finalPassDone = window.__TEINVIT_FINAL_PASS_DONE__ === true && overflowCount === 0;
+                ensureBaptismLittlePrinceGalleryDiagnostics(canvas);
+                var state = {
+                    fonts_ready: fontsReady,
+                    background_loaded: bg.background_loaded,
+                    images_decoded: imagesDecoded,
+                    theme_applied: expectedTheme !== '' && actualTheme === expectedTheme,
+                    autofit_done: window.__TEINVIT_AUTOFIT_DONE__ === true,
+                    final_pass_done: finalPassDone,
+                    layout_stable: layoutStable,
+                    dom_stable: domStable,
+                    overflow_count: overflowCount,
+                    capture_box: box,
+                    expected_theme_key: String((galleryConfig().theme_key_internal || galleryConfig().theme_file_key || '') || ''),
+                    actual_theme_class: actualTheme,
+                    background_url: bg.background_url,
+                    background_match: bg.background_match,
+                    background_natural: bg.background_natural
+                };
+                var fixDiagnostics = galleryCurrentFixDiagnostics();
+                if (fixDiagnostics) {
+                    state.gallery_fix_diagnostics = fixDiagnostics;
+                }
+                if (window.__TEINVIT_GALLERY_MODE__ && overflowCount > 0) {
+                    state.overflow_elements = galleryOverflowElements(canvas);
+                    if (fixDiagnostics && state.overflow_elements.length > 0) {
+                        state.overflow_elements[0].gallery_fix_diagnostics = fixDiagnostics;
+                    }
+                }
+                window.__TEINVIT_GALLERY_STATE__ = state;
+                if (
+                    state.fonts_ready &&
+                    state.background_loaded &&
+                    state.images_decoded &&
+                    state.theme_applied &&
+                    state.autofit_done &&
+                    state.final_pass_done &&
+                    state.layout_stable &&
+                    state.dom_stable &&
+                    state.overflow_count === 0 &&
+                    state.capture_box.width === 559 &&
+                    state.capture_box.height === 794 &&
+                    state.background_match
+                ) {
+                    window.__TEINVIT_GALLERY_READY__ = true;
+                }
             });
         }, 0);
     }
@@ -597,7 +1002,7 @@
         protectNameSection(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
-        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+        window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
     }
 
     function finalizeBaptismPreviewLayout(canvas) {
@@ -618,9 +1023,10 @@
             distributeVerticalSpace(canvas);
         }
         protectNameSection(canvas);
+        applyBaptismLittlePrinceGalleryOverflowFix(canvas);
         window.__TEINVIT_AUTOFIT_DONE__ = true;
         window.__TEINVIT_LAST_AUTOFIT_SIG__ = window.__TEINVIT_LAYOUT_SIG__ || '';
-        window.__TEINVIT_FINAL_PASS_DONE__ = true;
+        window.__TEINVIT_FINAL_PASS_DONE__ = !hasOverflow(canvas);
     }
 
     function applyAutoFit(canvas) {
@@ -646,6 +1052,7 @@
             fitBaptismNameText(canvas, false);
             if (hasOverflow(canvas)) fitBaptismNameText(canvas, true);
         }
+        applyBaptismLittlePrinceGalleryOverflowFix(canvas);
         if (window.__TEINVIT_PDF_MODE__ || window.TEINVIT_INVITATION_DATA) {
             window.__TEINVIT_AUTOFIT_DONE__ = true;
             window.__TEINVIT_LAST_AUTOFIT_SIG__ = currentSig;
@@ -676,6 +1083,7 @@
     }
 
     function clearPrefilledCloneInputs(scope) {
+        if (isDeferredAdminPreviewContext()) return;
         qsa('[name^="wapf[field_' + REPEATABLE_ID + '_"]', scope || document).forEach(function (el) {
             var name = String(el.getAttribute('name') || '');
             var m = name.match(new RegExp('^wapf\\[field_' + REPEATABLE_ID + '_(?:clone_)?(\\d+)\\]$'));

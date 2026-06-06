@@ -507,6 +507,7 @@ $admin_child_toggle_fields = [
   const saveForm = document.getElementById('teinvit-save-form');
   const parentBooleanIds = ['fc5b530','2cac251','1aa14a1'];
   const repeatableFieldIds = ['d1fe0da'];
+  const repeatableMaxById = { d1fe0da: 4 };
   const parentChildFallbacks = {
     fc5b530: { value: '59yiz', children: ['0c45e7b','1d485ae','baee2f0','a2be7ee'] },
     '2cac251': { value: '1', children: ['4e73bc1'] },
@@ -514,6 +515,7 @@ $admin_child_toggle_fields = [
   };
   let isHydratingWapf = true;
   let saveSubmitGuardInstalled = false;
+  let repeatableAddLimitGuardInstalled = false;
   const giftsInitial = <?php echo wp_json_encode( $gift_rows_export ); ?>;
   const giftsMaxSlots = <?php echo (int) $gifts_max_slots; ?>;
   const reportUnique = <?php echo wp_json_encode( $report_unique ); ?>;
@@ -905,6 +907,61 @@ $admin_child_toggle_fields = [
     }
   }
 
+  function repeatableMax(id){
+    const max = parseInt(repeatableMaxById[id] || 0, 10);
+    return Number.isFinite(max) && max > 0 ? max : 0;
+  }
+
+  function repeatableControlText(control){
+    return lower((control && control.getAttribute ? control.getAttribute('class') : '') + ' ' + (control && control.getAttribute ? control.getAttribute('data-action') : '') + ' ' + (control && control.value ? control.value : '') + ' ' + (control && control.textContent ? control.textContent : ''));
+  }
+
+  function repeatableControls(id){
+    if (!saveForm) return [];
+    const scopes = qsa('.cloner-' + id + ', .field-' + id + ', [data-field-id="' + id + '"]', saveForm);
+    const seen = [];
+    const controls = [];
+    scopes.forEach(function(scope){
+      qsa('button,a,[role="button"],input[type="button"]', scope).forEach(function(control){
+        if (seen.indexOf(control) !== -1) return;
+        seen.push(control);
+        controls.push(control);
+      });
+    });
+    return controls;
+  }
+
+  function isRepeatableAddControl(control){
+    const text = repeatableControlText(control);
+    if (text.indexOf('delete') !== -1 || text.indexOf('remove') !== -1 || text.indexOf('unrepeat') !== -1 || text.indexOf('del') !== -1 || text.indexOf('sterge') !== -1 || text.indexOf('terge') !== -1 || text === '-') return false;
+    return (text.indexOf('add') !== -1 || text.indexOf('clone') !== -1 || text.indexOf('repeat') !== -1 || text.indexOf('adauga') !== -1 || text.indexOf('adaug') !== -1 || text === '+') && text.indexOf('delete') === -1 && text.indexOf('remove') === -1 && text.indexOf('sterge') === -1 && text.indexOf('terge') === -1;
+  }
+
+  function isRepeatableRemoveControl(control){
+    const text = repeatableControlText(control);
+    return text.indexOf('delete') !== -1 || text.indexOf('remove') !== -1 || text.indexOf('unrepeat') !== -1 || text.indexOf('sterge') !== -1 || text.indexOf('terge') !== -1 || text.indexOf('del') !== -1 || text === '-';
+  }
+
+  function setRepeatableControlState(control, visible, disabled){
+    if (!control) return;
+    control.style.display = visible ? '' : 'none';
+    if ('disabled' in control) control.disabled = !!disabled;
+    if (disabled) control.setAttribute('aria-disabled', 'true');
+    else control.removeAttribute('aria-disabled');
+  }
+
+  function syncRepeatableControls(id){
+    const max = repeatableMax(id);
+    const count = repeatableInputs(id).length;
+    repeatableControls(id).forEach(function(control){
+      if (isRepeatableAddControl(control)) {
+        setRepeatableControlState(control, !max || count < max, !!max && count >= max);
+      } else if (isRepeatableRemoveControl(control)) {
+        setRepeatableControlState(control, count > 1, count <= 1);
+      }
+    });
+  }
+
   function wapfWrapper(){
     if (!window.jQuery || !saveForm) return null;
     const wrapper = saveForm.closest('[data-product-page-preselected-id]') || saveForm;
@@ -936,6 +993,11 @@ $admin_child_toggle_fields = [
 
   function createRepeatableClone(id){
     markCloneButtonsAsNonSubmit();
+    const max = repeatableMax(id);
+    if (max && repeatableInputs(id).length >= max) {
+      syncRepeatableControls(id);
+      return false;
+    }
     const $wrapper = wapfWrapper();
     const $field = repeatableFieldElement(id);
     if (window.WAPF && window.WAPF.Util && typeof window.WAPF.Util.repeat === 'function' && $wrapper && $field && $field.length) {
@@ -949,6 +1011,7 @@ $admin_child_toggle_fields = [
       }
       markCloneButtonsAsNonSubmit();
       syncRepeatableQty(id);
+      syncRepeatableControls(id);
       return true;
     }
 
@@ -968,6 +1031,7 @@ $admin_child_toggle_fields = [
         }
         window.WAPF.Util.unrepeat($wrapper, $field, 1);
         syncRepeatableQty(id);
+        syncRepeatableControls(id);
         return true;
       } catch (e) {}
     }
@@ -977,6 +1041,7 @@ $admin_child_toggle_fields = [
     if (row && inputs.length > 1) {
       row.parentNode.removeChild(row);
       syncRepeatableQty(id);
+      syncRepeatableControls(id);
       return true;
     }
     return false;
@@ -985,7 +1050,8 @@ $admin_child_toggle_fields = [
   function ensureRepeatableInputs(id, values){
     let inputs = repeatableInputs(id);
     let guard = 0;
-    const targetCount = Math.max(1, values.length || 1);
+    const max = repeatableMax(id);
+    const targetCount = max ? Math.min(max, Math.max(1, values.length || 1)) : Math.max(1, values.length || 1);
     while (inputs.length < targetCount && guard < targetCount + 3) {
       if (!createRepeatableClone(id)) break;
       inputs = repeatableInputs(id);
@@ -998,6 +1064,7 @@ $admin_child_toggle_fields = [
       guard += 1;
     }
     syncRepeatableQty(id);
+    syncRepeatableControls(id);
     return inputs;
   }
 
@@ -1009,7 +1076,31 @@ $admin_child_toggle_fields = [
       const node = clone && clone[0] ? clone[0] : clone;
       clearNewRepeatableClone(node, id);
       syncRepeatableQty(id);
+      syncRepeatableControls(id);
     });
+  }
+
+  function installRepeatableAddLimitGuard(){
+    if (!saveForm || repeatableAddLimitGuardInstalled) return;
+    repeatableAddLimitGuardInstalled = true;
+    saveForm.addEventListener('click', function(e){
+      const control = e.target && e.target.closest ? e.target.closest('button,a,[role="button"],input[type="button"]') : null;
+      if (!control) return;
+      repeatableFieldIds.forEach(function(id){
+        const controls = repeatableControls(id);
+        if (controls.indexOf(control) === -1) return;
+        if (isRepeatableAddControl(control)) {
+          const max = repeatableMax(id);
+          if (max && repeatableInputs(id).length >= max) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            syncRepeatableControls(id);
+          }
+        } else if (isRepeatableRemoveControl(control)) {
+          window.setTimeout(function(){ syncRepeatableQty(id); syncRepeatableControls(id); }, 80);
+        }
+      });
+    }, true);
   }
 
   function applyRepeatableField(id, raw){
@@ -1154,6 +1245,7 @@ $admin_child_toggle_fields = [
       setWapfValues(map || {}, { phase: 'children', triggerEvents: false });
       flushWapfDependencies();
       serializeParentCheckedState();
+      repeatableFieldIds.forEach(syncRepeatableControls);
       isHydratingWapf = false;
       if (shouldAnnounce) {
         window.__TEINVIT_BIRTHDAY_WAPF_READY__ = true;
@@ -1198,9 +1290,11 @@ $admin_child_toggle_fields = [
   markCloneButtonsAsNonSubmit();
   installSaveSubmitGuard();
   bindManualRepeatableCloneReset();
+  installRepeatableAddLimitGuard();
 
   document.addEventListener('DOMContentLoaded', function(){
     bindManualRepeatableCloneReset();
+    installRepeatableAddLimitGuard();
 
     const deadlineCb = document.getElementById('date_confirm');
     const deadlineWrap = document.getElementById('selecteaza-data-wrap');
@@ -1235,6 +1329,7 @@ $admin_child_toggle_fields = [
       saveForm.addEventListener('input', serializeParentCheckedState);
       saveForm.addEventListener('change', serializeParentCheckedState);
       installSaveSubmitGuard();
+      repeatableFieldIds.forEach(syncRepeatableControls);
     }
   });
 

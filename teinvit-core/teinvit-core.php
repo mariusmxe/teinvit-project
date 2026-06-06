@@ -16,7 +16,7 @@ define( 'TEINVIT_CORE_VERSION', '1.0.0' );
 define( 'TEINVIT_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TEINVIT_CORE_URL', plugin_dir_url( __FILE__ ) );
 
-define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 13 );
+define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 14 );
 define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION', 'teinvit_client_admin_schema_version' );
 
 require_once TEINVIT_CORE_PATH . 'infrastructure/security.php';
@@ -38,9 +38,15 @@ require_once TEINVIT_CORE_PATH . 'infrastructure/newsman-api.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/integrations.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/marketing-subscribers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/media-seo-importer.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-themes.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-demo-payloads.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-storage.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-bulk.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-render.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/paid-order-auto-complete.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/admin-integrations.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/media-seo-admin.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/product-gallery-admin.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/token-grants.php';
 
 require_once TEINVIT_CORE_PATH . 'modules/wedding/module.php';
@@ -74,6 +80,9 @@ function teinvit_maybe_run_client_admin_schema_migrations() {
     if ( function_exists( 'teinvit_install_media_seo_imports_table' ) ) {
         teinvit_install_media_seo_imports_table();
     }
+    if ( function_exists( 'teinvit_install_product_gallery_logs_table' ) ) {
+        teinvit_install_product_gallery_logs_table();
+    }
 
     flush_rewrite_rules();
     update_option( TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION, TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION, false );
@@ -86,6 +95,7 @@ register_activation_hook( __FILE__, 'teinvit_install_email_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_token_grants_table' );
 register_activation_hook( __FILE__, 'teinvit_install_order_token_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_media_seo_imports_table' );
+register_activation_hook( __FILE__, 'teinvit_install_product_gallery_logs_table' );
 
 add_action( 'plugins_loaded', function () {
     if ( ! class_exists( 'WooCommerce' ) ) {

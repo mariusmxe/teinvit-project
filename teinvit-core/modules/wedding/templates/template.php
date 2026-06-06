@@ -11,6 +11,17 @@ $is_pdf = (
     isset( $GLOBALS['TEINVIT_RENDER_CONTEXT'] ) &&
     $GLOBALS['TEINVIT_RENDER_CONTEXT'] === 'pdf'
 );
+$is_gallery = (
+    isset( $GLOBALS['TEINVIT_RENDER_CONTEXT'] ) &&
+    $GLOBALS['TEINVIT_RENDER_CONTEXT'] === 'gallery'
+);
+$gallery_capture_attr = $is_gallery ? ' data-teinvit-gallery-capture="1"' : '';
+$gallery_config = isset( $GLOBALS['TEINVIT_GALLERY_RENDER_CONFIG'] ) && is_array( $GLOBALS['TEINVIT_GALLERY_RENDER_CONFIG'] )
+    ? $GLOBALS['TEINVIT_GALLERY_RENDER_CONFIG']
+    : [];
+$gallery_canvas_attrs = $is_gallery
+    ? ' data-teinvit-vertical="' . esc_attr( (string) ( $gallery_config['vertical'] ?? 'wedding' ) ) . '" data-teinvit-theme-key="' . esc_attr( (string) ( $gallery_config['theme_key_internal'] ?? '' ) ) . '" data-teinvit-product-id="' . esc_attr( (string) ( $gallery_config['requested_product_id'] ?? 0 ) ) . '"'
+    : '';
 
 /* =========================
    BACKGROUND IMAGE
@@ -63,7 +74,7 @@ if ( $background_url === '' ) {
 <div class="teinvit-page">
   <div class="teinvit-container">
 
-    <div class="teinvit-preview">
+    <div class="teinvit-preview"<?php echo $gallery_capture_attr . $gallery_canvas_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 
         <?php if ( $background_url ) : ?>
             <img
@@ -120,7 +131,7 @@ if ( $background_url === '' ) {
   <div class="teinvit-container">
 <?php endif; ?>
 
-    <div class="teinvit-preview">
+    <div class="teinvit-preview"<?php echo $gallery_capture_attr . $gallery_canvas_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 
         <?php if ( $background_url ) : ?>
             <img

@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "express": "^5.2.1",
-    "puppeteer-core": "^24.36.1"
+    "puppeteer-core": "^24.36.1",
+    "sharp": "0.33.5"
   }
 }
