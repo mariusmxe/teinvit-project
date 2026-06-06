@@ -147,6 +147,144 @@ document.addEventListener('DOMContentLoaded', function () {
         return true;
     }
 
+    function galleryIsRomanticFloralCanvas(canvas) {
+        return !!(
+            window.__TEINVIT_GALLERY_MODE__ &&
+            canvas &&
+            canvas.classList &&
+            canvas.classList.contains('theme-romantic-floral')
+        );
+    }
+
+    function galleryEnsureFixDiagnostics() {
+        if (!window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__) {
+            window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ = {};
+        }
+        return window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+    }
+
+    function galleryResetRomanticFloralStackFix(canvas) {
+        if (!galleryIsRomanticFloralCanvas(canvas)) return;
+        qsa('[data-teinvit-gallery-romantic-stack-fix="1"]', canvas).forEach(function (node) {
+            node.style.marginTop = '';
+            node.style.marginBottom = '';
+            node.style.lineHeight = '';
+            node.style.gap = '';
+            node.removeAttribute('data-teinvit-gallery-romantic-stack-fix');
+        });
+    }
+
+    function galleryRomanticFloralSnapshot(canvas) {
+        var nodes = [canvas].concat(qsa([
+            '.inv-names',
+            '.inv-divider',
+            '.inv-parents-wrapper',
+            '.inv-nasi',
+            '.inv-message',
+            '.inv-events',
+            '.events-row',
+            '.inv-event',
+            '.inv-event strong',
+            '.inv-event > div',
+            '.inv-event > a'
+        ].join(', '), canvas));
+        return nodes.filter(galleryIsVisibleNode).map(function (node) {
+            return {
+                selector: galleryDiagnosticSelector(node, canvas),
+                className: galleryClassName(node),
+                scrollHeight: node.scrollHeight,
+                clientHeight: node.clientHeight,
+                scrollWidth: node.scrollWidth,
+                clientWidth: node.clientWidth,
+                deltaHeight: node.scrollHeight - node.clientHeight,
+                deltaWidth: node.scrollWidth - node.clientWidth,
+                styleFontSize: node.style && node.style.fontSize ? node.style.fontSize : '',
+                styleMarginTop: node.style && node.style.marginTop ? node.style.marginTop : '',
+                styleMarginBottom: node.style && node.style.marginBottom ? node.style.marginBottom : '',
+                textSample: galleryTextSample(node)
+            };
+        });
+    }
+
+    function galleryMarkRomanticFloralNode(node) {
+        if (!node) return;
+        node.setAttribute('data-teinvit-gallery-romantic-stack-fix', '1');
+    }
+
+    function galleryApplyRomanticFloralStackCompaction(canvas) {
+        if (!galleryIsRomanticFloralCanvas(canvas)) return false;
+
+        var deltaHeight = canvas.scrollHeight - canvas.clientHeight;
+        var hasStackOverflow = canvas.clientHeight > 0 && deltaHeight > 1;
+        if (!hasStackOverflow) return false;
+
+        var diagnostics = galleryEnsureFixDiagnostics();
+        var entry = {
+            theme_match: true,
+            fix_function_called: true,
+            before: galleryRomanticFloralSnapshot(canvas),
+            after: [],
+            final: [],
+            redistributed: false,
+            font_size_steps: 0
+        };
+
+        var divider = qs('.inv-divider', canvas);
+        if (divider) {
+            divider.style.marginTop = '0.16em';
+            divider.style.marginBottom = '0.2em';
+            galleryMarkRomanticFloralNode(divider);
+        }
+
+        var parents = qs('.inv-parents-wrapper', canvas);
+        var nasi = qs('.inv-nasi', canvas);
+        var message = qs('.inv-message', canvas);
+        var events = qs('.inv-events', canvas);
+
+        [
+            { node: parents, marginTop: '0.42em' },
+            { node: nasi, marginTop: '0.42em' },
+            { node: message, marginTop: '0.42em', lineHeight: '1.42' },
+            { node: events, marginTop: '0.44em' }
+        ].forEach(function (item) {
+            if (!item.node) return;
+            item.node.style.marginTop = item.marginTop;
+            if (item.lineHeight) item.node.style.lineHeight = item.lineHeight;
+            galleryMarkRomanticFloralNode(item.node);
+        });
+
+        qsa('.events-row', canvas).forEach(function (row, index) {
+            row.style.gap = '0.82em';
+            if (index > 0) row.style.marginTop = '0.42em';
+            galleryMarkRomanticFloralNode(row);
+        });
+
+        qsa('.inv-event strong', canvas).forEach(function (node) {
+            node.style.marginBottom = '0.12em';
+            galleryMarkRomanticFloralNode(node);
+        });
+
+        qsa('.inv-event > div:nth-of-type(2), .inv-event a', canvas).forEach(function (node) {
+            node.style.marginTop = '0.12em';
+            galleryMarkRomanticFloralNode(node);
+        });
+
+        entry.after = galleryRomanticFloralSnapshot(canvas);
+
+        var currentFontSize = parseFloat(canvas.style.fontSize || '1');
+        if (!isFinite(currentFontSize) || currentFontSize <= 0) currentFontSize = 1;
+        while (canvas.clientHeight > 0 && canvas.scrollHeight > canvas.clientHeight + 1 && entry.font_size_steps < 4) {
+            currentFontSize = Math.max(0.48, currentFontSize - 0.01);
+            canvas.style.fontSize = currentFontSize.toFixed(2) + 'em';
+            entry.font_size_steps++;
+        }
+
+        entry.redistributed = entry.font_size_steps > 0 || galleryOverflowCount(canvas) === 0;
+        entry.final = galleryRomanticFloralSnapshot(canvas);
+        diagnostics.wedding_romantic_floral = entry;
+        return true;
+    }
+
     function galleryBox(node) {
         if (!node || !node.getBoundingClientRect) return { width: 0, height: 0, top: 0, left: 0 };
         var rect = node.getBoundingClientRect();
@@ -266,6 +404,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.__TEINVIT_GALLERY_MODE__ && overflowCount > 0) {
             state.overflow_elements = galleryOverflowElements(canvas);
         }
+        if (window.__TEINVIT_GALLERY_MODE__ && window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__) {
+            state.gallery_fix_diagnostics = window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__;
+        }
         window.__TEINVIT_GALLERY_STATE__ = state;
         return state;
     }
@@ -311,10 +452,15 @@ document.addEventListener('DOMContentLoaded', function () {
             galleryReadyCheckTimer = setTimeout(function runAttempt() {
                 window.__TEINVIT_AUTOFIT_DONE__ = false;
                 galleryResetNamesBoxFix(canvas);
+                galleryResetRomanticFloralStackFix(canvas);
                 applyAutoFit(canvas);
                 galleryFixNamesVerticalOverflow(canvas);
+                galleryApplyRomanticFloralStackCompaction(canvas);
                 requestAnimationFrame(function () {
                     requestAnimationFrame(function () {
+                        if (galleryIsRomanticFloralCanvas(canvas) && window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ && window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__.wedding_romantic_floral) {
+                            window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__.wedding_romantic_floral.final = galleryRomanticFloralSnapshot(canvas);
+                        }
                         var overflow = galleryOverflowCount(canvas);
                         if (overflow > 0 && galleryReadyCheckAttempts < 5) {
                             galleryReadyCheckAttempts++;
@@ -338,6 +484,7 @@ document.addEventListener('DOMContentLoaded', function () {
         galleryReadyCheckAttempts = 0;
         window.__TEINVIT_GALLERY_READY__ = false;
         window.__TEINVIT_GALLERY_FINAL_PASS_DONE__ = false;
+        window.__TEINVIT_GALLERY_FIX_DIAGNOSTICS__ = {};
 
         var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready.catch(function () {}) : Promise.resolve();
         fontsReady.then(function () {
