@@ -29,7 +29,7 @@ function teinvit_product_gallery_demo_payload( $vertical, array $theme ) {
                 'value'   => 'Prima Mega Petrecere',
                 'line'    => 'Te invită la Prima Mega Petrecere',
             ],
-            'message'           => 'Hai să sărbătorim împreună o zi plină de bucurie.',
+            'message'           => 'Ziua aceasta specială merită să fie plină de râsete, culoare și oameni frumoși. Vă invităm cu drag să sărbătorim împreună, să ne bucurăm și să creăm amintiri minunate, pline de voie bună.',
             'events'            => [
                 'party' => [
                     'enabled' => true,
@@ -53,7 +53,7 @@ function teinvit_product_gallery_demo_payload( $vertical, array $theme ) {
             'name_line_limit'  => 22,
             'headline'         => 'Marius Claudiu',
             'headline_display' => 'Marius Claudiu',
-            'message'          => 'Cu bucurie, vă invităm să fiți alături de noi la botezul lui Marius Claudiu.',
+            'message'          => 'Un suflet mic aduce în viața noastră o bucurie imensă, iar botezul lui este un moment pe care vrem să îl trăim alături de voi. Vă așteptăm cu drag, emoție, lumină și multă iubire în suflet.',
             'parents'          => [
                 'enabled' => true,
                 'title'   => 'ÎMPREUNĂ CU PĂRINȚII',
@@ -88,7 +88,7 @@ function teinvit_product_gallery_demo_payload( $vertical, array $theme ) {
     return [
         'theme'        => $theme_key !== '' ? $theme_key : 'editorial',
         'names'        => 'Ana & Matei',
-        'message'      => 'Cu bucurie, vă invităm să ne fiți alături în ziua nunții.',
+        'message'      => 'Dragostea ne-a adus aici, iar bucuria va fi deplină doar dacă ne veți fi aproape. Vă invităm să sărbătorim împreună o zi plină de emoție, iubire și momente care vor rămâne în suflet.',
         'show_parents' => true,
         'parents'      => [
             'mireasa' => 'Maria Popescu & Ion Popescu',
