@@ -2345,6 +2345,10 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
 }, 20 );
 
 add_action( 'woocommerce_order_refunded', function( $order_id, $refund_id ) {
+    if ( function_exists( 'teinvit_refund_legacy_gift_allocation_hook_enabled' ) && ! teinvit_refund_legacy_gift_allocation_hook_enabled() ) {
+        return;
+    }
+
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
         return;

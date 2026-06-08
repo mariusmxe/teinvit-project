@@ -27,6 +27,14 @@ function teinvit_order_token_tables() {
     ];
 }
 
+function teinvit_refund_tables() {
+    global $wpdb;
+
+    return [
+        'order_token_refunds' => $wpdb->prefix . 'teinvit_order_token_refunds',
+    ];
+}
+
 function teinvit_order_tokens_table() {
     $tables = teinvit_order_token_tables();
     return $tables['order_tokens'];
@@ -35,6 +43,11 @@ function teinvit_order_tokens_table() {
 function teinvit_order_token_addons_table() {
     $tables = teinvit_order_token_tables();
     return $tables['order_token_addons'];
+}
+
+function teinvit_order_token_refunds_table() {
+    $tables = teinvit_refund_tables();
+    return $tables['order_token_refunds'];
 }
 
 function teinvit_install_order_token_tables() {
@@ -97,6 +110,52 @@ function teinvit_install_order_token_tables() {
         KEY order_item_id (order_item_id),
         KEY product_id (product_id),
         KEY addon_type (addon_type),
+        KEY status (status)
+    ) $charset;" );
+}
+
+function teinvit_install_order_token_refund_tables() {
+    global $wpdb;
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $charset = $wpdb->get_charset_collate();
+    $table = teinvit_order_token_refunds_table();
+
+    dbDelta( "CREATE TABLE {$table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        ledger_key varchar(191) NOT NULL DEFAULT '',
+        refund_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        refund_item_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        order_item_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        product_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        variation_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        token varchar(191) NOT NULL DEFAULT '',
+        target_token varchar(191) NOT NULL DEFAULT '',
+        effect_type varchar(64) NOT NULL DEFAULT 'unknown',
+        status varchar(40) NOT NULL DEFAULT 'pending',
+        error_message text NULL,
+        debug_context_json longtext NULL,
+        processed_at datetime NULL,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        refunded_qty decimal(12,4) NOT NULL DEFAULT 0.0000,
+        refunded_total decimal(18,6) NOT NULL DEFAULT 0.000000,
+        granted_qty decimal(12,4) NOT NULL DEFAULT 0.0000,
+        reversed_qty decimal(12,4) NOT NULL DEFAULT 0.0000,
+        previous_state_json longtext NULL,
+        after_state_json longtext NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY ledger_key (ledger_key),
+        KEY refund_id (refund_id),
+        KEY refund_item_id (refund_item_id),
+        KEY order_id (order_id),
+        KEY order_item_id (order_item_id),
+        KEY product_id (product_id),
+        KEY token (token),
+        KEY target_token (target_token),
+        KEY effect_type (effect_type),
         KEY status (status)
     ) $charset;" );
 }
@@ -444,6 +503,41 @@ function teinvit_find_order_token_addon_ledger_id( $order_id, $order_item_id, $a
     );
 }
 
+function teinvit_get_order_token_addon_ledger_by_item( $order_id, $order_item_id, $addon_type = '' ) {
+    global $wpdb;
+
+    $order_id = max( 0, (int) $order_id );
+    $order_item_id = max( 0, (int) $order_item_id );
+    $addon_type = sanitize_key( (string) $addon_type );
+
+    if ( $order_id <= 0 || $order_item_id <= 0 || ! teinvit_database_table_exists( teinvit_order_token_addons_table() ) ) {
+        return null;
+    }
+
+    if ( $addon_type !== '' ) {
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM ' . teinvit_order_token_addons_table() . ' WHERE order_id = %d AND order_item_id = %d AND addon_type = %s ORDER BY id ASC LIMIT 1',
+                $order_id,
+                $order_item_id,
+                $addon_type
+            ),
+            ARRAY_A
+        );
+    } else {
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM ' . teinvit_order_token_addons_table() . ' WHERE order_id = %d AND order_item_id = %d ORDER BY id ASC LIMIT 1',
+                $order_id,
+                $order_item_id
+            ),
+            ARRAY_A
+        );
+    }
+
+    return is_array( $row ) ? teinvit_normalize_order_token_addon_row( $row ) : null;
+}
+
 function teinvit_upsert_order_token_addon_ledger( array $data ) {
     global $wpdb;
 
@@ -498,6 +592,301 @@ function teinvit_upsert_order_token_addon_ledger( array $data ) {
     }
 
     return (int) $wpdb->insert_id;
+}
+
+function teinvit_order_token_refund_ledger_statuses() {
+    return [ 'pending', 'processed', 'skipped', 'failed' ];
+}
+
+function teinvit_order_token_refund_json_encode( $value ) {
+    if ( is_string( $value ) ) {
+        return $value;
+    }
+
+    if ( is_null( $value ) ) {
+        return '';
+    }
+
+    $encoded = wp_json_encode( $value );
+    return is_string( $encoded ) ? $encoded : '';
+}
+
+function teinvit_order_token_refund_ledger_key( array $data ) {
+    $parts = [
+        max( 0, (int) ( $data['refund_id'] ?? 0 ) ),
+        max( 0, (int) ( $data['refund_item_id'] ?? 0 ) ),
+        max( 0, (int) ( $data['order_item_id'] ?? 0 ) ),
+        sanitize_key( (string) ( $data['effect_type'] ?? 'unknown' ) ),
+        sanitize_text_field( (string) ( $data['token'] ?? '' ) ),
+        sanitize_text_field( (string) ( $data['target_token'] ?? '' ) ),
+    ];
+
+    return md5( implode( '|', $parts ) );
+}
+
+function teinvit_normalize_order_token_refund_ledger_payload( array $data ) {
+    $status = sanitize_key( (string) ( $data['status'] ?? 'pending' ) );
+    if ( ! in_array( $status, teinvit_order_token_refund_ledger_statuses(), true ) ) {
+        $status = 'pending';
+    }
+
+    $processed_at = isset( $data['processed_at'] ) ? (string) $data['processed_at'] : null;
+    if ( $processed_at === '' ) {
+        $processed_at = null;
+    }
+    if ( ! $processed_at && $status !== 'pending' ) {
+        $processed_at = current_time( 'mysql' );
+    }
+
+    $now = current_time( 'mysql' );
+    $payload = [
+        'ledger_key' => sanitize_text_field( (string) ( $data['ledger_key'] ?? '' ) ),
+        'refund_id' => max( 0, (int) ( $data['refund_id'] ?? 0 ) ),
+        'refund_item_id' => max( 0, (int) ( $data['refund_item_id'] ?? 0 ) ),
+        'order_id' => max( 0, (int) ( $data['order_id'] ?? 0 ) ),
+        'order_item_id' => max( 0, (int) ( $data['order_item_id'] ?? 0 ) ),
+        'product_id' => max( 0, (int) ( $data['product_id'] ?? 0 ) ),
+        'variation_id' => max( 0, (int) ( $data['variation_id'] ?? 0 ) ),
+        'token' => sanitize_text_field( (string) ( $data['token'] ?? '' ) ),
+        'target_token' => sanitize_text_field( (string) ( $data['target_token'] ?? '' ) ),
+        'effect_type' => sanitize_key( (string) ( $data['effect_type'] ?? 'unknown' ) ),
+        'status' => $status,
+        'error_message' => sanitize_textarea_field( (string) ( $data['error_message'] ?? '' ) ),
+        'debug_context_json' => teinvit_order_token_refund_json_encode( $data['debug_context_json'] ?? ( $data['debug_context'] ?? '' ) ),
+        'processed_at' => $processed_at,
+        'created_at' => isset( $data['created_at'] ) && $data['created_at'] !== '' ? (string) $data['created_at'] : $now,
+        'updated_at' => $now,
+        'refunded_qty' => max( 0, (float) ( $data['refunded_qty'] ?? 0 ) ),
+        'refunded_total' => max( 0, (float) ( $data['refunded_total'] ?? 0 ) ),
+        'granted_qty' => max( 0, (float) ( $data['granted_qty'] ?? 0 ) ),
+        'reversed_qty' => max( 0, (float) ( $data['reversed_qty'] ?? 0 ) ),
+        'previous_state_json' => teinvit_order_token_refund_json_encode( $data['previous_state_json'] ?? ( $data['previous_state'] ?? '' ) ),
+        'after_state_json' => teinvit_order_token_refund_json_encode( $data['after_state_json'] ?? ( $data['after_state'] ?? '' ) ),
+    ];
+
+    if ( $payload['ledger_key'] === '' ) {
+        $payload['ledger_key'] = teinvit_order_token_refund_ledger_key( $payload );
+    }
+
+    return $payload;
+}
+
+function teinvit_order_token_refund_ledger_formats( array $payload ) {
+    $formats = [
+        'ledger_key' => '%s',
+        'refund_id' => '%d',
+        'refund_item_id' => '%d',
+        'order_id' => '%d',
+        'order_item_id' => '%d',
+        'product_id' => '%d',
+        'variation_id' => '%d',
+        'token' => '%s',
+        'target_token' => '%s',
+        'effect_type' => '%s',
+        'status' => '%s',
+        'error_message' => '%s',
+        'debug_context_json' => '%s',
+        'processed_at' => '%s',
+        'created_at' => '%s',
+        'updated_at' => '%s',
+        'refunded_qty' => '%f',
+        'refunded_total' => '%f',
+        'granted_qty' => '%f',
+        'reversed_qty' => '%f',
+        'previous_state_json' => '%s',
+        'after_state_json' => '%s',
+    ];
+
+    $out = [];
+    foreach ( array_keys( $payload ) as $key ) {
+        $out[] = $formats[ $key ] ?? '%s';
+    }
+
+    return $out;
+}
+
+function teinvit_normalize_order_token_refund_ledger_row( array $row ) {
+    $row['id'] = (int) ( $row['id'] ?? 0 );
+    $row['ledger_key'] = sanitize_text_field( (string) ( $row['ledger_key'] ?? '' ) );
+    $row['refund_id'] = max( 0, (int) ( $row['refund_id'] ?? 0 ) );
+    $row['refund_item_id'] = max( 0, (int) ( $row['refund_item_id'] ?? 0 ) );
+    $row['order_id'] = max( 0, (int) ( $row['order_id'] ?? 0 ) );
+    $row['order_item_id'] = max( 0, (int) ( $row['order_item_id'] ?? 0 ) );
+    $row['product_id'] = max( 0, (int) ( $row['product_id'] ?? 0 ) );
+    $row['variation_id'] = max( 0, (int) ( $row['variation_id'] ?? 0 ) );
+    $row['token'] = sanitize_text_field( (string) ( $row['token'] ?? '' ) );
+    $row['target_token'] = sanitize_text_field( (string) ( $row['target_token'] ?? '' ) );
+    $row['effect_type'] = sanitize_key( (string) ( $row['effect_type'] ?? 'unknown' ) );
+    $row['status'] = sanitize_key( (string) ( $row['status'] ?? 'pending' ) );
+    $row['error_message'] = sanitize_textarea_field( (string) ( $row['error_message'] ?? '' ) );
+    $row['debug_context'] = teinvit_order_token_decode_json( $row['debug_context_json'] ?? '' );
+    $row['previous_state'] = teinvit_order_token_decode_json( $row['previous_state_json'] ?? '' );
+    $row['after_state'] = teinvit_order_token_decode_json( $row['after_state_json'] ?? '' );
+    $row['refunded_qty'] = max( 0, (float) ( $row['refunded_qty'] ?? 0 ) );
+    $row['refunded_total'] = max( 0, (float) ( $row['refunded_total'] ?? 0 ) );
+    $row['granted_qty'] = max( 0, (float) ( $row['granted_qty'] ?? 0 ) );
+    $row['reversed_qty'] = max( 0, (float) ( $row['reversed_qty'] ?? 0 ) );
+
+    return $row;
+}
+
+function teinvit_get_order_token_refund_ledger_by_key( $ledger_key ) {
+    global $wpdb;
+
+    $ledger_key = sanitize_text_field( (string) $ledger_key );
+    if ( $ledger_key === '' || ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return null;
+    }
+
+    $row = $wpdb->get_row(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_token_refunds_table() . ' WHERE ledger_key = %s LIMIT 1', $ledger_key ),
+        ARRAY_A
+    );
+
+    return is_array( $row ) ? teinvit_normalize_order_token_refund_ledger_row( $row ) : null;
+}
+
+function teinvit_get_order_token_refund_ledger_by_id( $id ) {
+    global $wpdb;
+
+    $id = max( 0, (int) $id );
+    if ( $id <= 0 || ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return null;
+    }
+
+    $row = $wpdb->get_row(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_token_refunds_table() . ' WHERE id = %d LIMIT 1', $id ),
+        ARRAY_A
+    );
+
+    return is_array( $row ) ? teinvit_normalize_order_token_refund_ledger_row( $row ) : null;
+}
+
+function teinvit_get_order_token_refund_ledgers_for_refund( $refund_id ) {
+    global $wpdb;
+
+    $refund_id = max( 0, (int) $refund_id );
+    if ( $refund_id <= 0 || ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return [];
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_token_refunds_table() . ' WHERE refund_id = %d ORDER BY id ASC', $refund_id ),
+        ARRAY_A
+    );
+
+    return is_array( $rows ) ? array_map( 'teinvit_normalize_order_token_refund_ledger_row', $rows ) : [];
+}
+
+function teinvit_get_order_token_refund_ledgers_for_order( $order_id ) {
+    global $wpdb;
+
+    $order_id = max( 0, (int) $order_id );
+    if ( $order_id <= 0 || ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return [];
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_token_refunds_table() . ' WHERE order_id = %d ORDER BY id ASC', $order_id ),
+        ARRAY_A
+    );
+
+    return is_array( $rows ) ? array_map( 'teinvit_normalize_order_token_refund_ledger_row', $rows ) : [];
+}
+
+function teinvit_get_order_token_refund_ledgers_for_token( $token ) {
+    global $wpdb;
+
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' || ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return [];
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare( 'SELECT * FROM ' . teinvit_order_token_refunds_table() . ' WHERE token = %s OR target_token = %s ORDER BY id ASC', $token, $token ),
+        ARRAY_A
+    );
+
+    return is_array( $rows ) ? array_map( 'teinvit_normalize_order_token_refund_ledger_row', $rows ) : [];
+}
+
+function teinvit_upsert_order_token_refund_ledger( array $data ) {
+    global $wpdb;
+
+    if ( ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return false;
+    }
+
+    $payload = teinvit_normalize_order_token_refund_ledger_payload( $data );
+    $existing = teinvit_get_order_token_refund_ledger_by_key( $payload['ledger_key'] );
+    $formats = teinvit_order_token_refund_ledger_formats( $payload );
+
+    if ( is_array( $existing ) && ! empty( $existing['id'] ) ) {
+        $update_payload = $payload;
+        unset( $update_payload['ledger_key'], $update_payload['created_at'] );
+        $updated = $wpdb->update(
+            teinvit_order_token_refunds_table(),
+            $update_payload,
+            [ 'id' => (int) $existing['id'] ],
+            teinvit_order_token_refund_ledger_formats( $update_payload ),
+            [ '%d' ]
+        );
+
+        return $updated === false ? false : (int) $existing['id'];
+    }
+
+    $inserted = $wpdb->insert( teinvit_order_token_refunds_table(), $payload, $formats );
+    if ( $inserted === false ) {
+        return false;
+    }
+
+    return (int) $wpdb->insert_id;
+}
+
+function teinvit_update_order_token_refund_ledger_status( $id, $status, array $data = [] ) {
+    global $wpdb;
+
+    $id = max( 0, (int) $id );
+    $status = sanitize_key( (string) $status );
+    if ( $id <= 0 || ! in_array( $status, teinvit_order_token_refund_ledger_statuses(), true ) || ! teinvit_database_table_exists( teinvit_order_token_refunds_table() ) ) {
+        return false;
+    }
+
+    $update = [
+        'status' => $status,
+        'updated_at' => current_time( 'mysql' ),
+    ];
+
+    if ( $status !== 'pending' ) {
+        $update['processed_at'] = isset( $data['processed_at'] ) && $data['processed_at'] !== '' ? (string) $data['processed_at'] : current_time( 'mysql' );
+    }
+    if ( array_key_exists( 'error_message', $data ) ) {
+        $update['error_message'] = sanitize_textarea_field( (string) $data['error_message'] );
+    }
+    if ( array_key_exists( 'debug_context', $data ) || array_key_exists( 'debug_context_json', $data ) ) {
+        $update['debug_context_json'] = teinvit_order_token_refund_json_encode( $data['debug_context_json'] ?? $data['debug_context'] );
+    }
+    if ( array_key_exists( 'previous_state', $data ) || array_key_exists( 'previous_state_json', $data ) ) {
+        $update['previous_state_json'] = teinvit_order_token_refund_json_encode( $data['previous_state_json'] ?? $data['previous_state'] );
+    }
+    if ( array_key_exists( 'after_state', $data ) || array_key_exists( 'after_state_json', $data ) ) {
+        $update['after_state_json'] = teinvit_order_token_refund_json_encode( $data['after_state_json'] ?? $data['after_state'] );
+    }
+    foreach ( [ 'refunded_qty', 'refunded_total', 'granted_qty', 'reversed_qty' ] as $numeric_key ) {
+        if ( array_key_exists( $numeric_key, $data ) ) {
+            $update[ $numeric_key ] = max( 0, (float) $data[ $numeric_key ] );
+        }
+    }
+
+    $updated = $wpdb->update(
+        teinvit_order_token_refunds_table(),
+        $update,
+        [ 'id' => $id ],
+        teinvit_order_token_refund_ledger_formats( $update ),
+        [ '%d' ]
+    );
+
+    return $updated !== false;
 }
 
 function teinvit_get_order_tokens_for_order( $order_id ) {
