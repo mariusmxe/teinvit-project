@@ -261,6 +261,15 @@ function teinvit_get_order_token_row( $token ) {
     return is_array( $row ) ? teinvit_normalize_order_token_row( $row ) : null;
 }
 
+function teinvit_get_order_token_status( $token ) {
+    $row = teinvit_get_order_token_row( $token );
+    return is_array( $row ) ? sanitize_key( (string) ( $row['status'] ?? '' ) ) : '';
+}
+
+function teinvit_is_order_token_refunded( $token ) {
+    return teinvit_get_order_token_status( $token ) === 'refunded';
+}
+
 function teinvit_get_order_token_row_by_unit( $order_id, $order_item_id, $quantity_index = 1 ) {
     global $wpdb;
 
