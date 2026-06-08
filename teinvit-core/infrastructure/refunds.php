@@ -730,6 +730,853 @@ function teinvit_refund_process_invitation_item_stage2( $order, array $payload, 
     ];
 }
 
+function teinvit_refund_addon_reversal_effect_applied( $ledger ) {
+    if ( ! is_array( $ledger ) ) {
+        return false;
+    }
+
+    $after_state = is_array( $ledger['after_state'] ?? null ) ? $ledger['after_state'] : [];
+    return ! empty( $after_state['addon_refund_reversal_processed'] );
+}
+
+function teinvit_refund_addon_ledger_snapshot( $ledger ) {
+    if ( ! is_array( $ledger ) ) {
+        return [];
+    }
+
+    return [
+        'id' => max( 0, (int) ( $ledger['id'] ?? 0 ) ),
+        'target_token' => sanitize_text_field( (string) ( $ledger['target_token'] ?? '' ) ),
+        'order_id' => max( 0, (int) ( $ledger['order_id'] ?? 0 ) ),
+        'order_item_id' => max( 0, (int) ( $ledger['order_item_id'] ?? 0 ) ),
+        'product_id' => max( 0, (int) ( $ledger['product_id'] ?? 0 ) ),
+        'variation_id' => max( 0, (int) ( $ledger['variation_id'] ?? 0 ) ),
+        'addon_type' => sanitize_key( (string) ( $ledger['addon_type'] ?? '' ) ),
+        'vertical' => sanitize_key( (string) ( $ledger['vertical'] ?? '' ) ),
+        'status' => sanitize_key( (string) ( $ledger['status'] ?? '' ) ),
+        'capability_changed' => sanitize_key( (string) ( $ledger['capability_changed'] ?? '' ) ),
+        'error_message' => sanitize_textarea_field( (string) ( $ledger['error_message'] ?? '' ) ),
+        'debug_context' => is_array( $ledger['debug_context'] ?? null ) ? $ledger['debug_context'] : [],
+    ];
+}
+
+function teinvit_refund_load_invitation_config_for_token( $token, $vertical = '' ) {
+    $token = sanitize_text_field( (string) $token );
+    $vertical = sanitize_key( (string) $vertical );
+    if ( $token === '' ) {
+        return [
+            'ok' => false,
+            'reason' => 'missing_token',
+            'vertical' => $vertical,
+            'config' => [],
+        ];
+    }
+
+    if ( $vertical === '' && function_exists( 'teinvit_resolve_token_context' ) ) {
+        $context = teinvit_resolve_token_context( $token );
+        if ( is_array( $context ) ) {
+            $vertical = sanitize_key( (string) ( $context['vertical'] ?? '' ) );
+        }
+    }
+
+    $invitation = null;
+    if ( function_exists( 'teinvit_get_invitation_record' ) ) {
+        $invitation = teinvit_get_invitation_record( $token, $vertical );
+    }
+    if ( ! is_array( $invitation ) && function_exists( 'teinvit_get_invitation' ) ) {
+        $invitation = teinvit_get_invitation( $token );
+    }
+    if ( ! is_array( $invitation ) ) {
+        return [
+            'ok' => false,
+            'reason' => 'invitation_config_missing',
+            'vertical' => $vertical,
+            'config' => [],
+        ];
+    }
+
+    return [
+        'ok' => true,
+        'reason' => '',
+        'vertical' => $vertical,
+        'invitation' => $invitation,
+        'config' => is_array( $invitation['config'] ?? null ) ? $invitation['config'] : [],
+    ];
+}
+
+function teinvit_refund_save_invitation_config_for_token( $token, array $config, $vertical = '' ) {
+    $token = sanitize_text_field( (string) $token );
+    $vertical = sanitize_key( (string) $vertical );
+    if ( $token === '' ) {
+        return false;
+    }
+
+    if ( function_exists( 'teinvit_save_invitation_config_for_token' ) ) {
+        return teinvit_save_invitation_config_for_token( $token, [ 'config' => $config ], $vertical ) !== false;
+    }
+    if ( function_exists( 'teinvit_save_invitation_config' ) ) {
+        return teinvit_save_invitation_config( $token, [ 'config' => $config ] ) !== false;
+    }
+
+    return false;
+}
+
+function teinvit_refund_gift_summary_for_token( $token, array $config ) {
+    if ( function_exists( 'teinvit_token_grants_gift_summary_for_token' ) ) {
+        return teinvit_token_grants_gift_summary_for_token( $token, $config );
+    }
+    $vertical = function_exists( 'teinvit_resolve_token_vertical' ) ? sanitize_key( (string) teinvit_resolve_token_vertical( $token ) ) : '';
+    if ( $vertical === 'birthday' && function_exists( 'teinvit_birthday_build_gifts_summary_for_token' ) ) {
+        return teinvit_birthday_build_gifts_summary_for_token( $token, $config );
+    }
+    if ( $vertical === 'baptism' && function_exists( 'teinvit_baptism_build_gifts_summary_for_token' ) ) {
+        return teinvit_baptism_build_gifts_summary_for_token( $token, $config );
+    }
+    if ( function_exists( 'teinvit_build_gifts_summary_for_token' ) ) {
+        return teinvit_build_gifts_summary_for_token( $token, $config );
+    }
+
+    return [
+        'base_slots' => 0,
+        'addon_slots' => 0,
+        'admin_slots' => 0,
+        'total_slots' => 0,
+        'used_slots' => 0,
+        'available_slots' => 0,
+        'allocations' => [],
+    ];
+}
+
+function teinvit_refund_sync_gift_summary_to_config( $token, array $config ) {
+    $summary = teinvit_refund_gift_summary_for_token( $token, $config );
+    $config['gifts_allocations'] = is_array( $summary['allocations'] ?? null ) ? $summary['allocations'] : [];
+    $config['gifts_base_slots_applied'] = max( 0, (int) ( $summary['base_slots'] ?? 0 ) );
+    $config['gifts_extra_slots'] = max( 0, (int) ( $summary['addon_slots'] ?? 0 ) );
+    $config['gifts_admin_slots'] = max( 0, (int) ( $summary['admin_slots'] ?? 0 ) );
+    $config['gifts_total_slots_applied'] = max( 0, (int) ( $summary['total_slots'] ?? 0 ) );
+    $config['gifts_slots_used'] = max( 0, (int) ( $summary['used_slots'] ?? 0 ) );
+    $config['gifts_slots_available'] = max( 0, (int) ( $summary['available_slots'] ?? 0 ) );
+
+    return [ $config, $summary ];
+}
+
+function teinvit_refund_sync_legacy_gift_capacity_from_summary( $token, array $summary ) {
+    if ( function_exists( 'teinvit_get_settings' ) && function_exists( 'teinvit_update_settings' ) ) {
+        $settings = teinvit_get_settings( $token );
+        if ( is_array( $settings ) ) {
+            teinvit_update_settings( $token, [
+                'gifts_paid_capacity' => max( 0, (int) ( $summary['addon_slots'] ?? 0 ) ),
+            ] );
+        }
+    }
+}
+
+function teinvit_refund_allocation_snapshot( $allocation ) {
+    if ( ! is_array( $allocation ) ) {
+        return [];
+    }
+
+    return [
+        'allocation_key' => sanitize_text_field( (string) ( $allocation['allocation_key'] ?? '' ) ),
+        'kind' => sanitize_key( (string) ( $allocation['kind'] ?? '' ) ),
+        'order_id' => max( 0, (int) ( $allocation['order_id'] ?? 0 ) ),
+        'item_id' => max( 0, (int) ( $allocation['item_id'] ?? 0 ) ),
+        'product_id' => max( 0, (int) ( $allocation['product_id'] ?? 0 ) ),
+        'qty' => max( 0, (int) ( $allocation['qty'] ?? 0 ) ),
+        'slots_per_unit' => max( 0, (int) ( $allocation['slots_per_unit'] ?? 0 ) ),
+        'slots_total' => max( 0, (int) ( $allocation['slots_total'] ?? 0 ) ),
+        'slots_remaining' => max( 0, (int) ( $allocation['slots_remaining'] ?? 0 ) ),
+        'slots_reversed' => max( 0, (int) ( $allocation['slots_reversed'] ?? 0 ) ),
+        'status' => sanitize_key( (string) ( $allocation['status'] ?? '' ) ),
+    ];
+}
+
+function teinvit_refund_config_state_snapshot( $token, array $config ) {
+    $summary = teinvit_refund_gift_summary_for_token( $token, $config );
+    $allocations = [];
+    foreach ( (array) ( $summary['allocations'] ?? [] ) as $allocation ) {
+        $snapshot = teinvit_refund_allocation_snapshot( $allocation );
+        if ( ! empty( $snapshot ) ) {
+            $allocations[] = $snapshot;
+        }
+    }
+
+    return [
+        'target_token' => sanitize_text_field( (string) $token ),
+        'premium_upgrade_active' => ! empty( $config['premium_upgrade_active'] ) ? 1 : 0,
+        'premium_upgrade_last_order_id' => max( 0, (int) ( $config['premium_upgrade_last_order_id'] ?? 0 ) ),
+        'premium_upgrade_last_order_item_id' => max( 0, (int) ( $config['premium_upgrade_last_order_item_id'] ?? 0 ) ),
+        'premium_admin_grant_active' => ! empty( $config['premium_admin_grant_active'] ) ? 1 : 0,
+        'default_included_edits_applied' => ! empty( $config['default_included_edits_applied'] ) ? 1 : 0,
+        'default_included_edits_applied_value' => max( 0, (int) ( $config['default_included_edits_applied_value'] ?? 0 ) ),
+        'default_included_edits_applied_source' => sanitize_key( (string) ( $config['default_included_edits_applied_source'] ?? '' ) ),
+        'default_included_edits_applied_order_id' => max( 0, (int) ( $config['default_included_edits_applied_order_id'] ?? 0 ) ),
+        'edits_free_remaining' => max( 0, (int) ( $config['edits_free_remaining'] ?? 0 ) ),
+        'edits_admin_remaining' => max( 0, (int) ( $config['edits_admin_remaining'] ?? 0 ) ),
+        'edits_paid_remaining' => max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) ),
+        'gifts_base_slots_applied' => max( 0, (int) ( $config['gifts_base_slots_applied'] ?? 0 ) ),
+        'gifts_extra_slots' => max( 0, (int) ( $config['gifts_extra_slots'] ?? 0 ) ),
+        'gifts_admin_slots' => max( 0, (int) ( $config['gifts_admin_slots'] ?? 0 ) ),
+        'gifts_total_slots_applied' => max( 0, (int) ( $config['gifts_total_slots_applied'] ?? 0 ) ),
+        'gifts_slots_used' => max( 0, (int) ( $config['gifts_slots_used'] ?? 0 ) ),
+        'gifts_slots_available' => max( 0, (int) ( $config['gifts_slots_available'] ?? 0 ) ),
+        'gifts_summary' => [
+            'base_slots' => max( 0, (int) ( $summary['base_slots'] ?? 0 ) ),
+            'addon_slots' => max( 0, (int) ( $summary['addon_slots'] ?? 0 ) ),
+            'admin_slots' => max( 0, (int) ( $summary['admin_slots'] ?? 0 ) ),
+            'total_slots' => max( 0, (int) ( $summary['total_slots'] ?? 0 ) ),
+            'used_slots' => max( 0, (int) ( $summary['used_slots'] ?? 0 ) ),
+            'available_slots' => max( 0, (int) ( $summary['available_slots'] ?? 0 ) ),
+        ],
+        'gifts_allocations' => $allocations,
+    ];
+}
+
+function teinvit_refund_quantity_to_int( $value ) {
+    return max( 0, (int) round( max( 0, (float) $value ) ) );
+}
+
+function teinvit_refund_addon_ledger_reversal_status( $requested_qty, $reversed_qty ) {
+    $requested_qty = teinvit_refund_quantity_to_int( $requested_qty );
+    $reversed_qty = teinvit_refund_quantity_to_int( $reversed_qty );
+
+    if ( $requested_qty <= 0 || $reversed_qty >= $requested_qty ) {
+        return 'refunded';
+    }
+
+    return 'partially_refunded';
+}
+
+function teinvit_refund_update_addon_ledger_after_reversal( $addon_ledger, $status, array $debug_context = [], $capability_changed = '' ) {
+    if ( ! is_array( $addon_ledger ) || empty( $addon_ledger['id'] ) || ! function_exists( 'teinvit_update_order_token_addon_ledger_status' ) ) {
+        return false;
+    }
+
+    $previous_debug = is_array( $addon_ledger['debug_context'] ?? null ) ? $addon_ledger['debug_context'] : [];
+    return teinvit_update_order_token_addon_ledger_status( (int) $addon_ledger['id'], $status, [
+        'capability_changed' => $capability_changed !== '' ? $capability_changed : ( $addon_ledger['capability_changed'] ?? '' ),
+        'error_message' => '',
+        'debug_context' => array_merge( $previous_debug, [
+            'refund_reversal' => $debug_context,
+        ] ),
+    ] );
+}
+
+function teinvit_refund_reverse_premium_upgrade( array $payload, array $mapping, array $debug_context ) {
+    $target_token = sanitize_text_field( (string) ( $payload['target_token'] ?? '' ) );
+    $loaded = teinvit_refund_load_invitation_config_for_token( $target_token, $mapping['target_vertical'] ?? '' );
+    if ( empty( $loaded['ok'] ) ) {
+        return [
+            'status' => 'failed',
+            'error_message' => sanitize_key( (string) ( $loaded['reason'] ?? 'invitation_config_missing' ) ),
+            'previous_state' => [],
+            'after_state' => [],
+            'granted_qty' => max( 0, (float) ( $payload['granted_qty'] ?? 0 ) ),
+            'reversed_qty' => 0,
+        ];
+    }
+
+    $config = is_array( $loaded['config'] ?? null ) ? $loaded['config'] : [];
+    if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
+        $config = teinvit_config_ensure_edit_balance_keys( $config );
+    }
+
+    $addon_ledger = is_array( $mapping['addon_ledger'] ?? null ) ? $mapping['addon_ledger'] : [];
+    $previous_state = [
+        'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $addon_ledger ),
+        'config' => teinvit_refund_config_state_snapshot( $target_token, $config ),
+    ];
+    $ledger_key = sanitize_text_field( (string) ( $payload['ledger_key'] ?? '' ) );
+    $recorded_reversals = is_array( $config['premium_upgrade_refund_reversals'] ?? null ) ? $config['premium_upgrade_refund_reversals'] : [];
+    if ( $ledger_key !== '' && isset( $recorded_reversals[ $ledger_key ] ) && is_array( $recorded_reversals[ $ledger_key ] ) ) {
+        $recorded = $recorded_reversals[ $ledger_key ];
+        return [
+            'status' => 'processed',
+            'error_message' => '',
+            'previous_state' => $previous_state,
+            'after_state' => [
+                'addon_refund_reversal_processed' => 1,
+                'effect_type' => 'premium_upgrade_refund',
+                'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $addon_ledger ),
+                'config' => teinvit_refund_config_state_snapshot( $target_token, $config ),
+                'already_recorded_in_config' => 1,
+            ],
+            'granted_qty' => max( 0, (float) ( $recorded['granted_qty'] ?? 0 ) ),
+            'reversed_qty' => max( 0, (float) ( $recorded['reversed_qty'] ?? 0 ) ),
+        ];
+    }
+
+    $marker_source = sanitize_key( (string) ( $config['default_included_edits_applied_source'] ?? '' ) );
+    $marker_order_id = max( 0, (int) ( $config['default_included_edits_applied_order_id'] ?? 0 ) );
+    $last_order_item_id = max( 0, (int) ( $config['premium_upgrade_last_order_item_id'] ?? 0 ) );
+    $payload_order_id = max( 0, (int) ( $payload['order_id'] ?? 0 ) );
+    $payload_order_item_id = max( 0, (int) ( $payload['order_item_id'] ?? 0 ) );
+    $markers_match = $marker_source === 'woo_upgrade'
+        && ( $marker_order_id <= 0 || $marker_order_id === $payload_order_id )
+        && ( $last_order_item_id <= 0 || $last_order_item_id === $payload_order_item_id );
+    $granted_qty = $markers_match ? teinvit_refund_quantity_to_int( $config['default_included_edits_applied_value'] ?? ( $payload['granted_qty'] ?? 0 ) ) : 0;
+    $current_free = max( 0, (int) ( $config['edits_free_remaining'] ?? 0 ) );
+    $reversed_qty = $markers_match ? min( $current_free, $granted_qty ) : 0;
+
+    $config['premium_upgrade_active'] = 0;
+    $config['premium_upgrade_refunded_at'] = current_time( 'mysql' );
+    $config['premium_upgrade_refund_id'] = max( 0, (int) ( $payload['refund_id'] ?? 0 ) );
+    $config['premium_upgrade_refund_order_item_id'] = $payload_order_item_id;
+    if ( $ledger_key !== '' ) {
+        $recorded_reversals[ $ledger_key ] = [
+            'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+            'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+            'order_item_id' => $payload_order_item_id,
+            'granted_qty' => $granted_qty,
+            'reversed_qty' => $reversed_qty,
+            'applied_at' => current_time( 'mysql' ),
+        ];
+        $config['premium_upgrade_refund_reversals'] = $recorded_reversals;
+    }
+    if ( $markers_match ) {
+        $config['edits_free_remaining'] = max( 0, $current_free - $reversed_qty );
+        $config['default_included_edits_last_reversed_value'] = $reversed_qty;
+        $config['default_included_edits_last_reversed_refund_id'] = max( 0, (int) ( $payload['refund_id'] ?? 0 ) );
+        $config['default_included_edits_last_reversed_at'] = current_time( 'mysql' );
+        unset( $config['default_included_edits_applied'] );
+        unset( $config['default_included_edits_applied_value'] );
+        unset( $config['default_included_edits_applied_source'] );
+        unset( $config['default_included_edits_applied_order_id'] );
+    }
+
+    $saved = teinvit_refund_save_invitation_config_for_token( $target_token, $config, $loaded['vertical'] ?? '' );
+    if ( ! $saved ) {
+        return [
+            'status' => 'failed',
+            'error_message' => 'premium_upgrade_config_save_failed',
+            'previous_state' => $previous_state,
+            'after_state' => [],
+            'granted_qty' => $granted_qty,
+            'reversed_qty' => 0,
+        ];
+    }
+    if ( function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $target_token, $config );
+    }
+
+    teinvit_refund_update_addon_ledger_after_reversal( $addon_ledger, 'refunded', [
+        'effect_type' => 'premium_upgrade_refund',
+        'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+        'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+        'reversed_qty' => $reversed_qty,
+        'markers_match' => $markers_match ? 1 : 0,
+    ], 'premium_upgrade_refunded' );
+
+    $after_loaded = teinvit_refund_load_invitation_config_for_token( $target_token, $loaded['vertical'] ?? '' );
+    $after_config = ! empty( $after_loaded['ok'] ) && is_array( $after_loaded['config'] ?? null ) ? $after_loaded['config'] : $config;
+    $after_ledger = ! empty( $addon_ledger['id'] ) && function_exists( 'teinvit_get_order_token_addon_ledger_by_item' )
+        ? teinvit_get_order_token_addon_ledger_by_item( (int) ( $addon_ledger['order_id'] ?? 0 ), (int) ( $addon_ledger['order_item_id'] ?? 0 ), 'premium_upgrade' )
+        : $addon_ledger;
+
+    return [
+        'status' => 'processed',
+        'error_message' => '',
+        'previous_state' => $previous_state,
+        'after_state' => [
+            'addon_refund_reversal_processed' => 1,
+            'effect_type' => 'premium_upgrade_refund',
+            'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $after_ledger ),
+            'config' => teinvit_refund_config_state_snapshot( $target_token, $after_config ),
+            'premium_capability_disabled' => 1,
+            'included_edits_markers_matched' => $markers_match ? 1 : 0,
+        ],
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ];
+}
+
+function teinvit_refund_reverse_extra_edits( array $payload, array $mapping, array $debug_context ) {
+    $target_token = sanitize_text_field( (string) ( $payload['target_token'] ?? '' ) );
+    $loaded = teinvit_refund_load_invitation_config_for_token( $target_token, $mapping['target_vertical'] ?? '' );
+    if ( empty( $loaded['ok'] ) ) {
+        return [
+            'status' => 'failed',
+            'error_message' => sanitize_key( (string) ( $loaded['reason'] ?? 'invitation_config_missing' ) ),
+            'previous_state' => [],
+            'after_state' => [],
+            'granted_qty' => max( 0, (float) ( $payload['granted_qty'] ?? 0 ) ),
+            'reversed_qty' => 0,
+        ];
+    }
+
+    $config = is_array( $loaded['config'] ?? null ) ? $loaded['config'] : [];
+    if ( function_exists( 'teinvit_config_ensure_edit_balance_keys' ) ) {
+        $config = teinvit_config_ensure_edit_balance_keys( $config );
+    }
+
+    $addon_ledger = is_array( $mapping['addon_ledger'] ?? null ) ? $mapping['addon_ledger'] : [];
+    $previous_state = [
+        'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $addon_ledger ),
+        'config' => teinvit_refund_config_state_snapshot( $target_token, $config ),
+    ];
+    $ledger_key = sanitize_text_field( (string) ( $payload['ledger_key'] ?? '' ) );
+    $recorded_reversals = is_array( $config['edits_paid_refund_reversals'] ?? null ) ? $config['edits_paid_refund_reversals'] : [];
+    if ( $ledger_key !== '' && isset( $recorded_reversals[ $ledger_key ] ) && is_array( $recorded_reversals[ $ledger_key ] ) ) {
+        $recorded = $recorded_reversals[ $ledger_key ];
+        return [
+            'status' => 'processed',
+            'error_message' => '',
+            'previous_state' => $previous_state,
+            'after_state' => [
+                'addon_refund_reversal_processed' => 1,
+                'effect_type' => 'extra_edits_refund',
+                'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $addon_ledger ),
+                'config' => teinvit_refund_config_state_snapshot( $target_token, $config ),
+                'already_recorded_in_config' => 1,
+            ],
+            'granted_qty' => max( 0, (float) ( $recorded['granted_qty'] ?? 0 ) ),
+            'reversed_qty' => max( 0, (float) ( $recorded['reversed_qty'] ?? 0 ) ),
+        ];
+    }
+
+    $granted_qty = teinvit_refund_quantity_to_int( $payload['granted_qty'] ?? ( $mapping['granted_qty'] ?? 0 ) );
+    $current_paid = max( 0, (int) ( $config['edits_paid_remaining'] ?? 0 ) );
+    $reversed_qty = min( $current_paid, $granted_qty );
+    $config['edits_paid_remaining'] = max( 0, $current_paid - $reversed_qty );
+    if ( $ledger_key !== '' ) {
+        $recorded_reversals[ $ledger_key ] = [
+            'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+            'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+            'order_item_id' => max( 0, (int) ( $payload['order_item_id'] ?? 0 ) ),
+            'granted_qty' => $granted_qty,
+            'reversed_qty' => $reversed_qty,
+            'applied_at' => current_time( 'mysql' ),
+        ];
+        $config['edits_paid_refund_reversals'] = $recorded_reversals;
+    }
+
+    $saved = teinvit_refund_save_invitation_config_for_token( $target_token, $config, $loaded['vertical'] ?? '' );
+    if ( ! $saved ) {
+        return [
+            'status' => 'failed',
+            'error_message' => 'extra_edits_config_save_failed',
+            'previous_state' => $previous_state,
+            'after_state' => [],
+            'granted_qty' => $granted_qty,
+            'reversed_qty' => 0,
+        ];
+    }
+    if ( function_exists( 'teinvit_sync_legacy_edit_balance_from_config' ) ) {
+        teinvit_sync_legacy_edit_balance_from_config( $target_token, $config );
+    }
+
+    $addon_status = teinvit_refund_addon_ledger_reversal_status( $granted_qty, $reversed_qty );
+    teinvit_refund_update_addon_ledger_after_reversal( $addon_ledger, $addon_status, [
+        'effect_type' => 'extra_edits_refund',
+        'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+        'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ], $addon_status === 'refunded' ? 'extra_edits_refunded' : 'extra_edits_partially_refunded' );
+
+    $after_loaded = teinvit_refund_load_invitation_config_for_token( $target_token, $loaded['vertical'] ?? '' );
+    $after_config = ! empty( $after_loaded['ok'] ) && is_array( $after_loaded['config'] ?? null ) ? $after_loaded['config'] : $config;
+    $after_ledger = ! empty( $addon_ledger['id'] ) && function_exists( 'teinvit_get_order_token_addon_ledger_by_item' )
+        ? teinvit_get_order_token_addon_ledger_by_item( (int) ( $addon_ledger['order_id'] ?? 0 ), (int) ( $addon_ledger['order_item_id'] ?? 0 ), 'extra_edits' )
+        : $addon_ledger;
+
+    return [
+        'status' => 'processed',
+        'error_message' => '',
+        'previous_state' => $previous_state,
+        'after_state' => [
+            'addon_refund_reversal_processed' => 1,
+            'effect_type' => 'extra_edits_refund',
+            'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $after_ledger ),
+            'config' => teinvit_refund_config_state_snapshot( $target_token, $after_config ),
+        ],
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ];
+}
+
+function teinvit_refund_reverse_extra_gifts( array $payload, array $mapping, array $debug_context ) {
+    $target_token = sanitize_text_field( (string) ( $payload['target_token'] ?? '' ) );
+    $grant_context = is_array( $mapping['grant_context'] ?? null ) ? $mapping['grant_context'] : [];
+    if ( empty( $grant_context['safe'] ) ) {
+        return [
+            'status' => 'skipped',
+            'error_message' => 'manual_review_extra_gifts_grant_unknown',
+            'previous_state' => [],
+            'after_state' => [],
+            'granted_qty' => 0,
+            'reversed_qty' => 0,
+        ];
+    }
+
+    $loaded = teinvit_refund_load_invitation_config_for_token( $target_token, $mapping['target_vertical'] ?? '' );
+    if ( empty( $loaded['ok'] ) ) {
+        return [
+            'status' => 'failed',
+            'error_message' => sanitize_key( (string) ( $loaded['reason'] ?? 'invitation_config_missing' ) ),
+            'previous_state' => [],
+            'after_state' => [],
+            'granted_qty' => max( 0, (float) ( $payload['granted_qty'] ?? 0 ) ),
+            'reversed_qty' => 0,
+        ];
+    }
+
+    $config = is_array( $loaded['config'] ?? null ) ? $loaded['config'] : [];
+    list( $config, $summary_before ) = teinvit_refund_sync_gift_summary_to_config( $target_token, $config );
+    $addon_ledger = is_array( $mapping['addon_ledger'] ?? null ) ? $mapping['addon_ledger'] : [];
+    $previous_state = [
+        'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $addon_ledger ),
+        'config' => teinvit_refund_config_state_snapshot( $target_token, $config ),
+    ];
+    $ledger_key = sanitize_text_field( (string) ( $payload['ledger_key'] ?? '' ) );
+    $recorded_reversals = is_array( $config['gifts_refund_reversals'] ?? null ) ? $config['gifts_refund_reversals'] : [];
+    if ( $ledger_key !== '' && isset( $recorded_reversals[ $ledger_key ] ) && is_array( $recorded_reversals[ $ledger_key ] ) ) {
+        $recorded = $recorded_reversals[ $ledger_key ];
+        return [
+            'status' => 'processed',
+            'error_message' => '',
+            'previous_state' => $previous_state,
+            'after_state' => [
+                'addon_refund_reversal_processed' => 1,
+                'effect_type' => 'extra_gifts_refund',
+                'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $addon_ledger ),
+                'config' => teinvit_refund_config_state_snapshot( $target_token, $config ),
+                'allocation_key' => sanitize_text_field( (string) ( $recorded['allocation_key'] ?? '' ) ),
+                'already_recorded_in_config' => 1,
+            ],
+            'granted_qty' => max( 0, (float) ( $recorded['granted_qty'] ?? 0 ) ),
+            'reversed_qty' => max( 0, (float) ( $recorded['reversed_qty'] ?? 0 ) ),
+        ];
+    }
+
+    $allocation_key = sanitize_text_field( (string) ( $grant_context['allocation_key'] ?? '' ) );
+    $summary_allocation = null;
+    foreach ( (array) ( $summary_before['allocations'] ?? [] ) as $candidate ) {
+        if ( is_array( $candidate ) && sanitize_text_field( (string) ( $candidate['allocation_key'] ?? '' ) ) === $allocation_key ) {
+            $summary_allocation = $candidate;
+            break;
+        }
+    }
+
+    if ( ! is_array( $summary_allocation ) ) {
+        return [
+            'status' => 'skipped',
+            'error_message' => 'manual_review_extra_gifts_allocation_missing',
+            'previous_state' => $previous_state,
+            'after_state' => [],
+            'granted_qty' => teinvit_refund_quantity_to_int( $payload['granted_qty'] ?? 0 ),
+            'reversed_qty' => 0,
+        ];
+    }
+
+    $granted_qty = teinvit_refund_quantity_to_int( $payload['granted_qty'] ?? ( $mapping['granted_qty'] ?? 0 ) );
+    $unused_slots = ( sanitize_key( (string) ( $summary_allocation['status'] ?? '' ) ) === 'applied' )
+        ? max( 0, (int) ( $summary_allocation['slots_remaining'] ?? 0 ) )
+        : 0;
+    $reversed_qty = min( $unused_slots, $granted_qty );
+
+    $allocations = is_array( $config['gifts_allocations'] ?? null ) ? $config['gifts_allocations'] : [];
+    $changed = false;
+    foreach ( $allocations as &$allocation ) {
+        if ( ! is_array( $allocation ) ) {
+            continue;
+        }
+        if ( sanitize_text_field( (string) ( $allocation['allocation_key'] ?? '' ) ) !== $allocation_key ) {
+            continue;
+        }
+
+        if ( $reversed_qty > 0 ) {
+            $old_total = max( 0, (int) ( $summary_allocation['slots_total'] ?? ( $allocation['slots_total'] ?? 0 ) ) );
+            $new_total = max( 0, $old_total - $reversed_qty );
+            $allocation['slots_reversed'] = max( 0, (int) ( $allocation['slots_reversed'] ?? 0 ) ) + $reversed_qty;
+            $allocation['last_refund_id'] = max( 0, (int) ( $payload['refund_id'] ?? 0 ) );
+            $allocation['last_refund_item_id'] = max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) );
+            $allocation['last_refunded_at'] = current_time( 'mysql' );
+            if ( $new_total <= 0 ) {
+                $allocation['status'] = 'reverted';
+                $allocation['reverted_at'] = current_time( 'mysql' );
+                $allocation['reverted_by_refund_id'] = max( 0, (int) ( $payload['refund_id'] ?? 0 ) );
+                $allocation['slots_total_before_refund'] = $old_total;
+                $allocation['slots_total'] = $old_total;
+                $allocation['slots_remaining'] = 0;
+            } else {
+                $allocation['status'] = 'applied';
+                $allocation['slots_total_before_last_refund'] = $old_total;
+                $allocation['slots_total'] = $new_total;
+                $allocation['slots_remaining'] = max( 0, (int) ( $summary_allocation['slots_remaining'] ?? 0 ) - $reversed_qty );
+            }
+            $changed = true;
+        }
+        break;
+    }
+    unset( $allocation );
+
+    if ( $changed ) {
+        if ( $ledger_key !== '' ) {
+            $recorded_reversals[ $ledger_key ] = [
+                'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+                'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+                'order_item_id' => max( 0, (int) ( $payload['order_item_id'] ?? 0 ) ),
+                'allocation_key' => $allocation_key,
+                'granted_qty' => $granted_qty,
+                'reversed_qty' => $reversed_qty,
+                'applied_at' => current_time( 'mysql' ),
+            ];
+            $config['gifts_refund_reversals'] = $recorded_reversals;
+        }
+        $config['gifts_allocations'] = array_values( $allocations );
+        list( $config, $summary_after ) = teinvit_refund_sync_gift_summary_to_config( $target_token, $config );
+    } else {
+        if ( $ledger_key !== '' ) {
+            $recorded_reversals[ $ledger_key ] = [
+                'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+                'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+                'order_item_id' => max( 0, (int) ( $payload['order_item_id'] ?? 0 ) ),
+                'allocation_key' => $allocation_key,
+                'granted_qty' => $granted_qty,
+                'reversed_qty' => 0,
+                'applied_at' => current_time( 'mysql' ),
+            ];
+            $config['gifts_refund_reversals'] = $recorded_reversals;
+        }
+        $summary_after = $summary_before;
+    }
+
+    $saved = teinvit_refund_save_invitation_config_for_token( $target_token, $config, $loaded['vertical'] ?? '' );
+    if ( ! $saved ) {
+        return [
+            'status' => 'failed',
+            'error_message' => 'extra_gifts_config_save_failed',
+            'previous_state' => $previous_state,
+            'after_state' => [],
+            'granted_qty' => $granted_qty,
+            'reversed_qty' => 0,
+        ];
+    }
+    teinvit_refund_sync_legacy_gift_capacity_from_summary( $target_token, $summary_after );
+
+    $addon_status = teinvit_refund_addon_ledger_reversal_status( $granted_qty, $reversed_qty );
+    teinvit_refund_update_addon_ledger_after_reversal( $addon_ledger, $addon_status, [
+        'effect_type' => 'extra_gifts_refund',
+        'refund_id' => max( 0, (int) ( $payload['refund_id'] ?? 0 ) ),
+        'refund_item_id' => max( 0, (int) ( $payload['refund_item_id'] ?? 0 ) ),
+        'allocation_key' => $allocation_key,
+        'unused_slots_before_refund' => $unused_slots,
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ], $addon_status === 'refunded' ? 'extra_gifts_refunded' : 'extra_gifts_partially_refunded' );
+
+    $after_loaded = teinvit_refund_load_invitation_config_for_token( $target_token, $loaded['vertical'] ?? '' );
+    $after_config = ! empty( $after_loaded['ok'] ) && is_array( $after_loaded['config'] ?? null ) ? $after_loaded['config'] : $config;
+    $after_ledger = ! empty( $addon_ledger['id'] ) && function_exists( 'teinvit_get_order_token_addon_ledger_by_item' )
+        ? teinvit_get_order_token_addon_ledger_by_item( (int) ( $addon_ledger['order_id'] ?? 0 ), (int) ( $addon_ledger['order_item_id'] ?? 0 ), 'extra_gifts' )
+        : $addon_ledger;
+
+    return [
+        'status' => 'processed',
+        'error_message' => '',
+        'previous_state' => $previous_state,
+        'after_state' => [
+            'addon_refund_reversal_processed' => 1,
+            'effect_type' => 'extra_gifts_refund',
+            'addon_ledger' => teinvit_refund_addon_ledger_snapshot( $after_ledger ),
+            'config' => teinvit_refund_config_state_snapshot( $target_token, $after_config ),
+            'allocation_key' => $allocation_key,
+            'summary_after' => [
+                'addon_slots' => max( 0, (int) ( $summary_after['addon_slots'] ?? 0 ) ),
+                'used_slots' => max( 0, (int) ( $summary_after['used_slots'] ?? 0 ) ),
+                'available_slots' => max( 0, (int) ( $summary_after['available_slots'] ?? 0 ) ),
+                'total_slots' => max( 0, (int) ( $summary_after['total_slots'] ?? 0 ) ),
+            ],
+        ],
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ];
+}
+
+function teinvit_refund_addon_reversal_note( array $payload, $effect_type, $status, $error_message, $reversed_qty ) {
+    $effect_type = sanitize_key( (string) $effect_type );
+    $target_token = sanitize_text_field( (string) ( $payload['target_token'] ?? '' ) );
+    $refund_id = (int) ( $payload['refund_id'] ?? 0 );
+    $refund_item_id = (int) ( $payload['refund_item_id'] ?? 0 );
+
+    if ( $status === 'skipped' || $status === 'failed' ) {
+        return sprintf(
+            '[TeInvit Refund] Addon refund %s: refund #%d item #%d, target token %s, effect=%s, reason=%s.',
+            $status === 'failed' ? 'failed' : 'skipped/manual review',
+            $refund_id,
+            $refund_item_id,
+            $target_token !== '' ? $target_token : 'n/a',
+            $effect_type,
+            sanitize_key( (string) $error_message )
+        );
+    }
+
+    $payload['ledger_key'] = $ledger_key;
+
+    if ( $effect_type === 'premium_upgrade_refund' ) {
+        return sprintf(
+            '[TeInvit Refund] Premium upgrade refund applied: refund #%d, item #%d, target token %s, premium capability disabled, included edits reversed %d.',
+            $refund_id,
+            $refund_item_id,
+            $target_token,
+            (int) $reversed_qty
+        );
+    }
+
+    if ( $effect_type === 'extra_edits_refund' ) {
+        return sprintf(
+            '[TeInvit Refund] Extra edits refund applied: refund #%d, item #%d, target token %s, reversed edits %d.',
+            $refund_id,
+            $refund_item_id,
+            $target_token,
+            (int) $reversed_qty
+        );
+    }
+
+    if ( $effect_type === 'extra_gifts_refund' && (int) $reversed_qty <= 0 ) {
+        return sprintf(
+            '[TeInvit Refund] Extra gifts refund processed with no available unused slots to reverse: refund #%d, item #%d, target token %s.',
+            $refund_id,
+            $refund_item_id,
+            $target_token
+        );
+    }
+
+    if ( $effect_type === 'extra_gifts_refund' ) {
+        return sprintf(
+            '[TeInvit Refund] Extra gifts refund applied: refund #%d, item #%d, target token %s, reversed gift slots %d.',
+            $refund_id,
+            $refund_item_id,
+            $target_token,
+            (int) $reversed_qty
+        );
+    }
+
+    return sprintf(
+        '[TeInvit Refund] Addon refund processed: refund #%d, item #%d, target token %s, effect=%s, reversed qty %d.',
+        $refund_id,
+        $refund_item_id,
+        $target_token,
+        $effect_type,
+        (int) $reversed_qty
+    );
+}
+
+function teinvit_refund_process_addon_item_reversal( $order, array $payload, array $mapping, array $debug_context ) {
+    $effect_type = sanitize_key( (string) ( $payload['effect_type'] ?? 'unknown_addon_refund' ) );
+    $debug_context['phase'] = 'stage6_8_addon_refund_reversal';
+    $debug_context['dry_run'] = false;
+    $debug_context['commercial_effect'] = 'addon_refund_reversal';
+
+    list( $ledger_id, $existing_ledger, $ledger_key ) = teinvit_refund_get_or_create_ledger_id( $payload, $debug_context );
+    if ( $ledger_id <= 0 ) {
+        teinvit_refund_add_order_note_once(
+            $order,
+            teinvit_refund_addon_reversal_note( $payload, $effect_type, 'failed', 'ledger_unavailable', 0 ),
+            'addon_reversal|ledger_unavailable|' . md5( wp_json_encode( $payload ) )
+        );
+        return [
+            'ok' => false,
+            'status' => 'failed',
+            'reason' => 'ledger_unavailable',
+        ];
+    }
+
+    if ( teinvit_refund_addon_reversal_effect_applied( $existing_ledger ) ) {
+        return [
+            'ok' => true,
+            'status' => 'processed',
+            'already_processed' => true,
+        ];
+    }
+
+    if ( empty( $mapping['mapped'] ) || empty( $payload['target_token'] ) ) {
+        $reason = sanitize_key( (string) ( $mapping['reason'] ?? 'addon_mapping_missing' ) );
+        if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
+            teinvit_update_order_token_refund_ledger_status( $ledger_id, 'skipped', [
+                'error_message' => $reason,
+                'debug_context' => $debug_context,
+                'refunded_qty' => $payload['refunded_qty'] ?? 0,
+                'refunded_total' => $payload['refunded_total'] ?? 0,
+                'granted_qty' => $payload['granted_qty'] ?? 0,
+                'reversed_qty' => 0,
+            ] );
+        }
+        teinvit_refund_add_order_note_once(
+            $order,
+            teinvit_refund_addon_reversal_note( $payload, $effect_type, 'skipped', $reason, 0 ),
+            'addon_reversal|' . $ledger_key . '|skipped|' . $reason
+        );
+        return [
+            'ok' => true,
+            'status' => 'skipped',
+            'reason' => $reason,
+        ];
+    }
+
+    if ( $effect_type === 'premium_upgrade_refund' ) {
+        $result = teinvit_refund_reverse_premium_upgrade( $payload, $mapping, $debug_context );
+    } elseif ( $effect_type === 'extra_edits_refund' ) {
+        $result = teinvit_refund_reverse_extra_edits( $payload, $mapping, $debug_context );
+    } elseif ( $effect_type === 'extra_gifts_refund' ) {
+        $result = teinvit_refund_reverse_extra_gifts( $payload, $mapping, $debug_context );
+    } else {
+        $result = [
+            'status' => 'skipped',
+            'error_message' => 'unknown_addon_refund',
+            'previous_state' => [],
+            'after_state' => [],
+            'granted_qty' => $payload['granted_qty'] ?? 0,
+            'reversed_qty' => 0,
+        ];
+    }
+
+    $status = sanitize_key( (string) ( $result['status'] ?? 'failed' ) );
+    if ( ! in_array( $status, [ 'processed', 'skipped', 'failed' ], true ) ) {
+        $status = 'failed';
+    }
+    $error_message = sanitize_key( (string) ( $result['error_message'] ?? '' ) );
+    $previous_state = is_array( $result['previous_state'] ?? null ) ? $result['previous_state'] : [];
+    $after_state = is_array( $result['after_state'] ?? null ) ? $result['after_state'] : [];
+    $granted_qty = max( 0, (float) ( $result['granted_qty'] ?? ( $payload['granted_qty'] ?? 0 ) ) );
+    $reversed_qty = max( 0, (float) ( $result['reversed_qty'] ?? 0 ) );
+    $debug_context['mapping'] = $mapping;
+    $debug_context['handler_result'] = [
+        'status' => $status,
+        'error_message' => $error_message,
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ];
+
+    if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
+        teinvit_update_order_token_refund_ledger_status( $ledger_id, $status, [
+            'error_message' => $error_message,
+            'debug_context' => $debug_context,
+            'previous_state' => $previous_state,
+            'after_state' => $after_state,
+            'refunded_qty' => $payload['refunded_qty'] ?? 0,
+            'refunded_total' => $payload['refunded_total'] ?? 0,
+            'granted_qty' => $granted_qty,
+            'reversed_qty' => $reversed_qty,
+        ] );
+    }
+
+    teinvit_refund_add_order_note_once(
+        $order,
+        teinvit_refund_addon_reversal_note( $payload, $effect_type, $status, $error_message, $reversed_qty ),
+        'addon_reversal|' . $ledger_key . '|' . $status . '|' . $effect_type
+    );
+
+    return [
+        'ok' => $status !== 'failed',
+        'status' => $status,
+        'reason' => $error_message,
+        'granted_qty' => $granted_qty,
+        'reversed_qty' => $reversed_qty,
+    ];
+}
+
 function teinvit_refund_process_unmapped_item( $order, array $refund_context, $reason ) {
     $payload = [
         'refund_id' => (int) ( $refund_context['refund_id'] ?? 0 ),
@@ -852,7 +1699,7 @@ function teinvit_refund_process_order_refunded( $order_id, $refund_id, $dry_run 
                 'mapping' => $mapping,
             ];
             if ( ! empty( $mapping['mapped'] ) ) {
-                teinvit_refund_record_ledger( $order, $payload, 'processed', '', $debug, $mapping['addon_ledger'] ?? [] );
+                teinvit_refund_process_addon_item_reversal( $order, $payload, $mapping, $debug );
             } else {
                 teinvit_refund_record_ledger( $order, $payload, 'skipped', $mapping['reason'] ?? 'addon_mapping_missing', $debug );
             }

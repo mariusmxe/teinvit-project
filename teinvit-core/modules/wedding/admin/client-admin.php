@@ -296,6 +296,13 @@ function teinvit_token_has_premium_upgrade_addon( $token ) {
         }
     }
 
+    if ( function_exists( 'teinvit_order_token_addon_active_premium_upgrade_state' ) ) {
+        $addon_ledger_state = teinvit_order_token_addon_active_premium_upgrade_state( $token );
+        if ( $addon_ledger_state !== null ) {
+            return (bool) $addon_ledger_state;
+        }
+    }
+
     $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
     $upgrade_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
     if ( empty( $upgrade_ids ) ) {

@@ -455,8 +455,62 @@ function teinvit_get_order_token_addons( $token ) {
     return array_map( 'teinvit_normalize_order_token_addon_row', $rows );
 }
 
+function teinvit_order_token_addon_active_premium_upgrade_state( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' ) {
+        return null;
+    }
+
+    $has_config_refund_reversal = false;
+    if ( function_exists( 'teinvit_get_invitation' ) ) {
+        $invitation = teinvit_get_invitation( $token );
+        $config = is_array( $invitation['config'] ?? null ) ? $invitation['config'] : [];
+        $has_config_refund_reversal = empty( $config['premium_upgrade_active'] ) && ! empty( $config['premium_upgrade_refund_reversals'] );
+    }
+
+    $refunded_upgrade_item_ids = [];
+    $has_processed_refund_reversal = false;
+    if ( function_exists( 'teinvit_get_order_token_refund_ledgers_for_token' ) ) {
+        foreach ( teinvit_get_order_token_refund_ledgers_for_token( $token ) as $ledger ) {
+            if ( sanitize_key( (string) ( $ledger['effect_type'] ?? '' ) ) !== 'premium_upgrade_refund' ) {
+                continue;
+            }
+            if ( sanitize_key( (string) ( $ledger['status'] ?? '' ) ) !== 'processed' ) {
+                continue;
+            }
+            $after_state = is_array( $ledger['after_state'] ?? null ) ? $ledger['after_state'] : [];
+            if ( empty( $after_state['addon_refund_reversal_processed'] ) ) {
+                continue;
+            }
+            $has_processed_refund_reversal = true;
+            $order_item_id = max( 0, (int) ( $ledger['order_item_id'] ?? 0 ) );
+            if ( $order_item_id > 0 ) {
+                $refunded_upgrade_item_ids[ $order_item_id ] = true;
+            }
+        }
+    }
+
+    $seen_premium_addon = false;
+    foreach ( teinvit_get_order_token_addons( $token ) as $addon ) {
+        if ( sanitize_key( (string) ( $addon['addon_type'] ?? '' ) ) !== 'premium_upgrade' ) {
+            continue;
+        }
+        $seen_premium_addon = true;
+        $order_item_id = max( 0, (int) ( $addon['order_item_id'] ?? 0 ) );
+        if ( sanitize_key( (string) ( $addon['status'] ?? '' ) ) === 'applied' && empty( $refunded_upgrade_item_ids[ $order_item_id ] ) ) {
+            return true;
+        }
+    }
+
+    if ( $seen_premium_addon || $has_processed_refund_reversal || $has_config_refund_reversal ) {
+        return false;
+    }
+
+    return null;
+}
+
 function teinvit_order_token_addon_ledger_statuses() {
-    return [ 'pending', 'applied', 'blocked', 'failed' ];
+    return [ 'pending', 'applied', 'blocked', 'failed', 'refunded', 'partially_refunded' ];
 }
 
 function teinvit_normalize_order_token_addon_ledger_payload( array $data ) {
@@ -615,6 +669,49 @@ function teinvit_upsert_order_token_addon_ledger( array $data ) {
     }
 
     return (int) $wpdb->insert_id;
+}
+
+function teinvit_update_order_token_addon_ledger_status( $id, $status, array $data = [] ) {
+    global $wpdb;
+
+    $id = max( 0, (int) $id );
+    $status = sanitize_key( (string) $status );
+    if ( $id <= 0 || ! in_array( $status, teinvit_order_token_addon_ledger_statuses(), true ) || ! teinvit_database_table_exists( teinvit_order_token_addons_table() ) ) {
+        return false;
+    }
+
+    $update = [
+        'status' => $status,
+        'updated_at' => current_time( 'mysql' ),
+    ];
+    $formats = [ '%s', '%s' ];
+
+    if ( array_key_exists( 'capability_changed', $data ) ) {
+        $update['capability_changed'] = sanitize_key( (string) $data['capability_changed'] );
+        $formats[] = '%s';
+    }
+    if ( array_key_exists( 'error_message', $data ) ) {
+        $update['error_message'] = sanitize_textarea_field( (string) $data['error_message'] );
+        $formats[] = '%s';
+    }
+    if ( array_key_exists( 'debug_context', $data ) || array_key_exists( 'debug_context_json', $data ) ) {
+        $debug_context = $data['debug_context_json'] ?? $data['debug_context'];
+        if ( is_array( $debug_context ) ) {
+            $debug_context = wp_json_encode( $debug_context );
+        }
+        $update['debug_context_json'] = is_string( $debug_context ) ? $debug_context : '';
+        $formats[] = '%s';
+    }
+
+    $updated = $wpdb->update(
+        teinvit_order_token_addons_table(),
+        $update,
+        [ 'id' => $id ],
+        $formats,
+        [ '%d' ]
+    );
+
+    return $updated !== false;
 }
 
 function teinvit_order_token_refund_ledger_statuses() {
