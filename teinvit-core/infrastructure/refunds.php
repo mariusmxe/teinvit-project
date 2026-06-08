@@ -515,6 +515,221 @@ function teinvit_refund_record_ledger( $order, array $payload, $final_status, $e
     ];
 }
 
+function teinvit_refund_order_token_state_snapshot( array $row ) {
+    return [
+        'order_token_id' => max( 0, (int) ( $row['id'] ?? 0 ) ),
+        'token' => sanitize_text_field( (string) ( $row['token'] ?? '' ) ),
+        'order_id' => max( 0, (int) ( $row['order_id'] ?? 0 ) ),
+        'order_item_id' => max( 0, (int) ( $row['order_item_id'] ?? 0 ) ),
+        'quantity_index' => max( 1, (int) ( $row['quantity_index'] ?? 1 ) ),
+        'order_tokens_status' => sanitize_key( (string) ( $row['status'] ?? '' ) ),
+        'pdf_status' => sanitize_key( (string) ( $row['pdf_status'] ?? '' ) ),
+        'vertical' => sanitize_key( (string) ( $row['vertical'] ?? '' ) ),
+        'package_type' => sanitize_key( (string) ( $row['package_type'] ?? '' ) ),
+        'legacy' => ! empty( $row['legacy'] ) ? 1 : 0,
+    ];
+}
+
+function teinvit_refund_invitation_ledger_effect_applied( $ledger ) {
+    if ( ! is_array( $ledger ) ) {
+        return false;
+    }
+
+    $after_state = is_array( $ledger['after_state'] ?? null ) ? $ledger['after_state'] : [];
+    return sanitize_key( (string) ( $after_state['order_tokens_status'] ?? '' ) ) === 'refunded';
+}
+
+function teinvit_refund_get_or_create_ledger_id( array $payload, array $debug_context = [] ) {
+    if ( ! function_exists( 'teinvit_order_token_refund_ledger_key' ) || ! function_exists( 'teinvit_get_order_token_refund_ledger_by_key' ) || ! function_exists( 'teinvit_upsert_order_token_refund_ledger' ) ) {
+        return [ 0, null, '' ];
+    }
+
+    $payload['ledger_key'] = teinvit_order_token_refund_ledger_key( $payload );
+    $existing = teinvit_get_order_token_refund_ledger_by_key( $payload['ledger_key'] );
+    if ( is_array( $existing ) && ! empty( $existing['id'] ) ) {
+        return [ (int) $existing['id'], $existing, $payload['ledger_key'] ];
+    }
+
+    $payload['status'] = 'pending';
+    $payload['debug_context'] = $debug_context;
+    $ledger_id = teinvit_upsert_order_token_refund_ledger( $payload );
+    if ( ! $ledger_id ) {
+        return [ 0, null, $payload['ledger_key'] ];
+    }
+
+    $created = teinvit_get_order_token_refund_ledger_by_key( $payload['ledger_key'] );
+    return [ (int) $ledger_id, $created, $payload['ledger_key'] ];
+}
+
+function teinvit_refund_stage2_note( array $payload, array $previous_state, array $after_state, $mode, $reason = '' ) {
+    $mode = sanitize_key( (string) $mode );
+    if ( $mode === 'skipped' ) {
+        return sprintf(
+            '[TeInvit Refund Etapa 2] Refund skipped: refund #%d, item #%d, order item #%d, token %s, motiv %s.',
+            (int) ( $payload['refund_id'] ?? 0 ),
+            (int) ( $payload['refund_item_id'] ?? 0 ),
+            (int) ( $payload['order_item_id'] ?? 0 ),
+            sanitize_text_field( (string) ( $payload['token'] ?? '' ) ),
+            sanitize_key( (string) $reason )
+        );
+    }
+
+    if ( $mode === 'already_applied' ) {
+        return sprintf(
+            '[TeInvit Refund Etapa 2] Token refund already applied: refund #%d, item #%d, order item #%d, token %s, status %s.',
+            (int) ( $payload['refund_id'] ?? 0 ),
+            (int) ( $payload['refund_item_id'] ?? 0 ),
+            (int) ( $payload['order_item_id'] ?? 0 ),
+            sanitize_text_field( (string) ( $payload['token'] ?? '' ) ),
+            sanitize_key( (string) ( $after_state['order_tokens_status'] ?? '' ) )
+        );
+    }
+
+    return sprintf(
+        '[TeInvit Refund Etapa 2] Token refund applied: refund #%d, item #%d, order item #%d, token %s, status %s -> %s.',
+        (int) ( $payload['refund_id'] ?? 0 ),
+        (int) ( $payload['refund_item_id'] ?? 0 ),
+        (int) ( $payload['order_item_id'] ?? 0 ),
+        sanitize_text_field( (string) ( $payload['token'] ?? '' ) ),
+        sanitize_key( (string) ( $previous_state['order_tokens_status'] ?? '' ) ),
+        sanitize_key( (string) ( $after_state['order_tokens_status'] ?? '' ) )
+    );
+}
+
+function teinvit_refund_process_invitation_item_stage2( $order, array $payload, array $mapping, array $debug_context ) {
+    $debug_context['phase'] = 'stage2_invitation_refund';
+    $debug_context['dry_run'] = false;
+    $debug_context['commercial_effect'] = 'order_tokens_status_refunded';
+
+    list( $ledger_id, $existing_ledger, $ledger_key ) = teinvit_refund_get_or_create_ledger_id( $payload, $debug_context );
+    if ( $ledger_id <= 0 ) {
+        teinvit_refund_add_order_note_once(
+            $order,
+            teinvit_refund_stage2_note( $payload, [], [], 'skipped', 'ledger_unavailable' ),
+            'stage2|ledger_unavailable|' . md5( wp_json_encode( $payload ) )
+        );
+        return [
+            'ok' => false,
+            'status' => 'failed',
+            'reason' => 'ledger_unavailable',
+        ];
+    }
+
+    $order_token_row = is_array( $mapping['order_token_row'] ?? null ) ? $mapping['order_token_row'] : [];
+    if ( empty( $order_token_row ) || ! empty( $order_token_row['legacy'] ) || empty( $order_token_row['id'] ) ) {
+        $reason = sanitize_key( (string) ( $mapping['reason'] ?? '' ) );
+        if ( $reason === '' ) {
+            $reason = ! empty( $mapping['legacy'] ) ? 'legacy_no_order_tokens_row' : 'order_tokens_row_missing';
+        }
+        $debug_context['mapping'] = $mapping;
+        if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
+            teinvit_update_order_token_refund_ledger_status( $ledger_id, 'skipped', [
+                'error_message' => $reason,
+                'debug_context' => $debug_context,
+                'previous_state' => [],
+                'after_state' => [],
+                'refunded_qty' => $payload['refunded_qty'] ?? 0,
+                'refunded_total' => $payload['refunded_total'] ?? 0,
+            ] );
+        }
+        teinvit_refund_add_order_note_once(
+            $order,
+            teinvit_refund_stage2_note( $payload, [], [], 'skipped', $reason ),
+            'stage2|' . $ledger_key . '|skipped|' . $reason
+        );
+        return [
+            'ok' => true,
+            'status' => 'skipped',
+            'reason' => $reason,
+        ];
+    }
+
+    $current_row = function_exists( 'teinvit_get_order_token_row' )
+        ? teinvit_get_order_token_row( (string) $order_token_row['token'] )
+        : $order_token_row;
+    if ( ! is_array( $current_row ) ) {
+        $current_row = $order_token_row;
+    }
+
+    $previous_state = teinvit_refund_order_token_state_snapshot( $current_row );
+    if ( teinvit_refund_invitation_ledger_effect_applied( $existing_ledger ) && sanitize_key( (string) ( $current_row['status'] ?? '' ) ) === 'refunded' ) {
+        return [
+            'ok' => true,
+            'status' => 'processed',
+            'already_processed' => true,
+        ];
+    }
+
+    $updated = true;
+    if ( sanitize_key( (string) ( $current_row['status'] ?? '' ) ) !== 'refunded' ) {
+        $updated = function_exists( 'teinvit_update_order_token_row' )
+            ? teinvit_update_order_token_row( (int) $current_row['id'], [ 'status' => 'refunded' ] )
+            : false;
+    }
+
+    if ( ! $updated ) {
+        $debug_context['mapping'] = $mapping;
+        $debug_context['previous_state'] = $previous_state;
+        if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
+            teinvit_update_order_token_refund_ledger_status( $ledger_id, 'failed', [
+                'error_message' => 'order_token_status_update_failed',
+                'debug_context' => $debug_context,
+                'previous_state' => $previous_state,
+                'after_state' => [],
+                'refunded_qty' => $payload['refunded_qty'] ?? 0,
+                'refunded_total' => $payload['refunded_total'] ?? 0,
+            ] );
+        }
+        teinvit_refund_add_order_note_once(
+            $order,
+            teinvit_refund_stage2_note( $payload, $previous_state, [], 'skipped', 'order_token_status_update_failed' ),
+            'stage2|' . $ledger_key . '|failed'
+        );
+        return [
+            'ok' => false,
+            'status' => 'failed',
+            'reason' => 'order_token_status_update_failed',
+        ];
+    }
+
+    $after_row = function_exists( 'teinvit_get_order_token_row' )
+        ? teinvit_get_order_token_row( (string) $order_token_row['token'] )
+        : null;
+    if ( ! is_array( $after_row ) ) {
+        $after_row = array_merge( $current_row, [ 'status' => 'refunded' ] );
+    }
+    $after_state = teinvit_refund_order_token_state_snapshot( $after_row );
+    $debug_context['mapping'] = $mapping;
+    $debug_context['previous_state'] = $previous_state;
+    $debug_context['after_state'] = $after_state;
+    $debug_context['already_refunded_before_stage2'] = $previous_state['order_tokens_status'] === 'refunded' ? 1 : 0;
+
+    if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
+        teinvit_update_order_token_refund_ledger_status( $ledger_id, 'processed', [
+            'error_message' => '',
+            'debug_context' => $debug_context,
+            'previous_state' => $previous_state,
+            'after_state' => $after_state,
+            'refunded_qty' => $payload['refunded_qty'] ?? 0,
+            'refunded_total' => $payload['refunded_total'] ?? 0,
+            'reversed_qty' => 1,
+        ] );
+    }
+
+    $note_mode = $previous_state['order_tokens_status'] === 'refunded' ? 'already_applied' : 'applied';
+    teinvit_refund_add_order_note_once(
+        $order,
+        teinvit_refund_stage2_note( $payload, $previous_state, $after_state, $note_mode ),
+        'stage2|' . $ledger_key . '|' . $note_mode
+    );
+
+    return [
+        'ok' => true,
+        'status' => 'processed',
+        'already_processed' => $note_mode === 'already_applied',
+    ];
+}
+
 function teinvit_refund_process_unmapped_item( $order, array $refund_context, $reason ) {
     $payload = [
         'refund_id' => (int) ( $refund_context['refund_id'] ?? 0 ),
@@ -615,11 +830,7 @@ function teinvit_refund_process_order_refunded( $order_id, $refund_id, $dry_run 
                 'invitation_context' => $classification['invitation_context'] ?? [],
                 'mapping' => $mapping,
             ];
-            if ( ! empty( $mapping['mapped'] ) ) {
-                teinvit_refund_record_ledger( $order, $payload, 'processed', '', $debug, $mapping['order_token_row'] ?? [] );
-            } else {
-                teinvit_refund_record_ledger( $order, $payload, 'skipped', $mapping['reason'] ?? 'token_mapping_missing', $debug );
-            }
+            teinvit_refund_process_invitation_item_stage2( $order, $payload, $mapping, $debug );
             continue;
         }
 

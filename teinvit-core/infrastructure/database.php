@@ -387,6 +387,20 @@ function teinvit_update_order_token_row( $id, array $data ) {
         return true;
     }
 
+    if ( array_key_exists( 'status', $filtered ) ) {
+        $requested_status = sanitize_key( (string) $filtered['status'] );
+        $current_status = sanitize_key( (string) $wpdb->get_var(
+            $wpdb->prepare( 'SELECT status FROM ' . teinvit_order_tokens_table() . ' WHERE id = %d LIMIT 1', $id )
+        ) );
+        if ( $current_status === 'refunded' && $requested_status !== 'refunded' ) {
+            unset( $filtered['status'] );
+        }
+    }
+
+    if ( empty( $filtered ) ) {
+        return true;
+    }
+
     $prepared = teinvit_prepare_order_token_payload( array_merge( [ 'token' => 'placeholder', 'order_id' => 1, 'order_item_id' => 1 ], $filtered ) );
     $update = [];
     $formats = [];

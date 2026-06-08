@@ -644,6 +644,10 @@ function teinvit_seed_order_token_context( WC_Order $order, array $context, arra
     ] );
 
     $previous_status = sanitize_key( (string) ( $row['status'] ?? '' ) );
+    if ( $previous_status === 'refunded' ) {
+        return true;
+    }
+
     $seeded = function_exists( 'teinvit_seed_invitation_if_missing' )
         ? teinvit_seed_invitation_if_missing( $token, (int) $order->get_id(), $seed_context )
         : null;
