@@ -1048,6 +1048,8 @@ function teinvit_pdf_cleanup_collect_candidates( array $args = [] ) {
             $plan['summary']['by_vertical'][ $vertical ]['tokens']++;
 
             $order_token_row = function_exists( 'teinvit_get_order_token_row' ) ? teinvit_get_order_token_row( $token ) : null;
+            $order_token_status = is_array( $order_token_row ) ? sanitize_key( (string) ( $order_token_row['status'] ?? '' ) ) : '';
+            $is_refunded_order_token = is_array( $order_token_row ) && $order_token_status === 'refunded';
             $token_key = $vertical . ':' . $token;
             $plan['tokens'][ $token_key ] = [
                 'vertical' => $vertical,
@@ -1057,12 +1059,21 @@ function teinvit_pdf_cleanup_collect_candidates( array $args = [] ) {
                 'invitations_table' => $invitations_table,
                 'has_order_token' => is_array( $order_token_row ),
                 'legacy_order_token' => is_array( $order_token_row ) && ! empty( $order_token_row['legacy'] ),
+                'order_token_status' => $order_token_status,
                 'eligible' => false,
                 'eligibility' => [],
                 'versions' => [],
             ];
 
-            $eligibility = teinvit_pdf_cleanup_eligibility( [ 'order_id' => $order_id ], $versions );
+            $eligibility = $is_refunded_order_token
+                ? [
+                    'mode' => 'order_token_refunded',
+                    'max_event_ts' => 0,
+                    'delete_from_ts' => $now,
+                    'source' => 'order_tokens_status_refunded',
+                    'order_token_status' => $order_token_status,
+                ]
+                : teinvit_pdf_cleanup_eligibility( [ 'order_id' => $order_id ], $versions );
             $delete_from_ts = (int) ( $eligibility['delete_from_ts'] ?? 0 );
             $is_due = $delete_from_ts > 0 && $now >= $delete_from_ts;
             $plan['tokens'][ $token_key ]['eligible'] = $is_due;
@@ -1092,6 +1103,7 @@ function teinvit_pdf_cleanup_collect_candidates( array $args = [] ) {
                     'max_event_ts' => (int) ( $eligibility['max_event_ts'] ?? 0 ),
                     'has_order_token' => is_array( $order_token_row ),
                     'legacy_order_token' => is_array( $order_token_row ) && ! empty( $order_token_row['legacy'] ),
+                    'order_token_status' => $order_token_status,
                     'token_context_source' => is_array( $token_context ) ? (string) ( $token_context['source'] ?? '' ) : '',
                     'eligible' => false,
                     'skip_reason' => '',
