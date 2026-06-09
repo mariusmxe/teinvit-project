@@ -240,6 +240,84 @@ function teinvit_catalog_first_extra_gifts_slots( array $catalog, $default_slots
     return teinvit_catalog_extra_gifts_slots_for_product( $catalog, $first_id, $default_slots );
 }
 
+function teinvit_gifts_default_base_slots_for_token( $token, array $config = [] ) {
+    $configured = array_key_exists( 'gifts_base_slots_applied', $config )
+        ? max( 0, (int) $config['gifts_base_slots_applied'] )
+        : null;
+    if ( $configured !== null && $configured > 0 ) {
+        return $configured;
+    }
+
+    $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : [];
+    $catalog_slots = max( 0, (int) ( $catalog['default_free_gift_slots'] ?? 20 ) );
+    if ( $catalog_slots > 0 ) {
+        return $catalog_slots;
+    }
+
+    return $configured !== null ? $configured : 20;
+}
+
+function teinvit_gifts_ensure_base_and_legacy_allocations( $token, array $config, array $allocations ) {
+    $token = sanitize_text_field( (string) $token );
+    $has_base = false;
+    $has_addon = false;
+
+    foreach ( $allocations as $allocation ) {
+        if ( ! is_array( $allocation ) ) {
+            continue;
+        }
+        $slots_total = max( 0, (int) ( $allocation['slots_total'] ?? 0 ) );
+        if ( $slots_total <= 0 ) {
+            continue;
+        }
+
+        $kind = sanitize_key( (string) ( $allocation['kind'] ?? 'addon' ) );
+        if ( $kind === 'base' ) {
+            $has_base = true;
+        } elseif ( $kind !== 'admin_grant' ) {
+            $has_addon = true;
+        }
+    }
+
+    if ( ! $has_base ) {
+        $base_slots = teinvit_gifts_default_base_slots_for_token( $token, $config );
+        if ( $base_slots > 0 ) {
+            $context = function_exists( 'teinvit_resolve_token_context' ) ? teinvit_resolve_token_context( $token ) : [];
+            $allocations[] = [
+                'allocation_key' => 'legacy-base',
+                'kind' => 'base',
+                'order_id' => is_array( $context ) ? max( 0, (int) ( $context['order_id'] ?? 0 ) ) : 0,
+                'item_id' => is_array( $context ) ? max( 0, (int) ( $context['order_item_id'] ?? 0 ) ) : 0,
+                'product_id' => is_array( $context ) ? max( 0, (int) ( $context['product_id'] ?? 0 ) ) : 0,
+                'qty' => 1,
+                'slots_per_unit' => $base_slots,
+                'slots_total' => $base_slots,
+                'slots_remaining' => $base_slots,
+                'status' => 'applied',
+                'applied_at' => '',
+            ];
+        }
+    }
+
+    if ( ! $has_addon ) {
+        $addon_slots = max( 0, (int) ( $config['gifts_extra_slots'] ?? 0 ) );
+        if ( $addon_slots > 0 ) {
+            $allocations[] = [
+                'allocation_key' => 'legacy-addon',
+                'kind' => 'addon',
+                'order_id' => 0,
+                'item_id' => 0,
+                'slots_total' => $addon_slots,
+                'slots_remaining' => $addon_slots,
+                'status' => 'applied',
+                'applied_at' => '',
+            ];
+        }
+    }
+
+    return array_values( $allocations );
+}
+
 function teinvit_normalize_custom_product_catalog_entry( $entry ) {
     $defaults = teinvit_custom_product_defaults();
     $entry = is_array( $entry ) ? $entry : [];
