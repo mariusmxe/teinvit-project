@@ -32,7 +32,7 @@ function teinvit_vertical_semantics_registry() {
         'wedding' => [
             'label' => 'Nuntă',
             'basic_copy' => [
-                'notice' => 'Pachet Basic activ. Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul Pachet Premium.',
+                'notice' => 'Pachet Basic activ. Fă upgrade la Premium și oferă invitaților o experiență completă: o pagină dedicată unde pot vedea invitația, confirma participarea, răspunde la întrebările alese de tine și alege un cadou disponibil din lista publicată. În plus, îți poți edita informațiile din invitație, administra cadouri și urmări răspunsurile într-un raport dedicat.',
                 'deadline_locked' => 'Publicarea datei limită pe pagina invitaților este disponibilă după upgrade la Premium.',
                 'publish_locked' => 'Publicarea de versiuni este disponibilă după upgrade la Premium.',
                 'guest_page_locked' => 'Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.',
@@ -84,7 +84,7 @@ function teinvit_vertical_semantics_registry() {
         'birthday' => [
             'label' => 'Aniversare',
             'basic_copy' => [
-                'notice' => 'Pachet Basic activ. Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul Pachet Premium.',
+                'notice' => 'Pachet Basic activ. Fă upgrade la Premium și oferă invitaților o experiență completă: o pagină dedicată unde pot vedea invitația, confirma participarea, răspunde la întrebările alese de tine și alege un cadou disponibil din lista publicată. În plus, îți poți edita informațiile din invitație, administra cadouri și urmări răspunsurile într-un raport dedicat.',
                 'deadline_locked' => 'Informațiile pot fi publicate pe pagina invitaților doar după upgrade la Premium.',
                 'publish_locked' => 'Publicarea de versiuni este disponibilă după upgrade la Premium.',
                 'guest_page_locked' => 'Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.',
@@ -154,7 +154,7 @@ function teinvit_vertical_semantics_registry() {
         'baptism' => [
             'label' => 'Botez',
             'basic_copy' => [
-                'notice' => 'Pachet Basic activ. Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul Pachet Premium.',
+                'notice' => 'Pachet Basic activ. Fă upgrade la Premium și oferă invitaților o experiență completă: o pagină dedicată unde pot vedea invitația, confirma participarea, răspunde la întrebările alese de tine și alege un cadou disponibil din lista publicată. În plus, îți poți edita informațiile din invitație, administra cadouri și urmări răspunsurile într-un raport dedicat.',
                 'deadline_locked' => 'Publicarea datei limită pe pagina invitaților este disponibilă după upgrade la Premium.',
                 'publish_locked' => 'Publicarea de versiuni este disponibilă după upgrade la Premium.',
                 'guest_page_locked' => 'Pagina personalizată a invitaților tăi este disponibilă după upgrade la Premium.',

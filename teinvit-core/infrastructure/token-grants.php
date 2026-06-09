@@ -273,6 +273,13 @@ function teinvit_token_has_premium_woo_upgrade( $token ) {
         return true;
     }
 
+    if ( function_exists( 'teinvit_order_token_addon_active_premium_upgrade_state' ) ) {
+        $addon_ledger_state = teinvit_order_token_addon_active_premium_upgrade_state( $token );
+        if ( $addon_ledger_state !== null ) {
+            return (bool) $addon_ledger_state;
+        }
+    }
+
     $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : [];
     $upgrade_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
     if ( empty( $upgrade_ids ) ) {
@@ -346,6 +353,49 @@ function teinvit_token_grants_gift_summary_for_token( $token, $config = null ) {
         return teinvit_build_gifts_summary_for_token( $token, $config );
     }
     return [ 'base_slots' => 0, 'addon_slots' => 0, 'admin_slots' => 0, 'total_slots' => 0, 'used_slots' => 0, 'available_slots' => 0, 'allocations' => [] ];
+}
+
+function teinvit_rebuild_gifts_summary_config_for_token( $token, $vertical = '' ) {
+    $token = teinvit_token_grants_normalize_token( $token );
+    if ( $token === '' ) {
+        return new WP_Error( 'invalid_token', 'Token invalid.' );
+    }
+
+    $vertical = sanitize_key( (string) $vertical );
+    if ( $vertical === '' && function_exists( 'teinvit_resolve_token_vertical' ) ) {
+        $vertical = sanitize_key( (string) teinvit_resolve_token_vertical( $token ) );
+    }
+
+    $invitation = function_exists( 'teinvit_get_invitation_record' )
+        ? teinvit_get_invitation_record( $token, $vertical )
+        : ( function_exists( 'teinvit_get_invitation' ) ? teinvit_get_invitation( $token ) : null );
+    if ( ! is_array( $invitation ) ) {
+        return new WP_Error( 'missing_invitation', 'Configuratia invitatiei nu a fost gasita.' );
+    }
+
+    $config = is_array( $invitation['config'] ?? null ) ? $invitation['config'] : [];
+    $summary = teinvit_token_grants_gift_summary_for_token( $token, $config );
+    $config['gifts_allocations'] = is_array( $summary['allocations'] ?? null ) ? $summary['allocations'] : [];
+    $config['gifts_base_slots_applied'] = max( 0, (int) ( $summary['base_slots'] ?? 0 ) );
+    $config['gifts_extra_slots'] = max( 0, (int) ( $summary['addon_slots'] ?? 0 ) );
+    $config['gifts_admin_slots'] = max( 0, (int) ( $summary['admin_slots'] ?? 0 ) );
+    $config['gifts_total_slots_applied'] = max( 0, (int) ( $summary['total_slots'] ?? 0 ) );
+    $config['gifts_slots_used'] = max( 0, (int) ( $summary['used_slots'] ?? 0 ) );
+    $config['gifts_slots_available'] = max( 0, (int) ( $summary['available_slots'] ?? 0 ) );
+
+    $saved = function_exists( 'teinvit_save_invitation_config_for_token' )
+        ? teinvit_save_invitation_config_for_token( $token, [ 'config' => $config ], $vertical )
+        : false;
+    if ( $saved === false && function_exists( 'teinvit_save_invitation_config' ) ) {
+        $saved = teinvit_save_invitation_config( $token, [ 'config' => $config ] );
+    }
+
+    return [
+        'token' => $token,
+        'vertical' => $vertical,
+        'saved' => $saved !== false,
+        'summary' => $summary,
+    ];
 }
 
 function teinvit_token_grants_normalize_gift_summary( array $summary ) {

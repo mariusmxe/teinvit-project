@@ -296,6 +296,13 @@ function teinvit_token_has_premium_upgrade_addon( $token ) {
         }
     }
 
+    if ( function_exists( 'teinvit_order_token_addon_active_premium_upgrade_state' ) ) {
+        $addon_ledger_state = teinvit_order_token_addon_active_premium_upgrade_state( $token );
+        if ( $addon_ledger_state !== null ) {
+            return (bool) $addon_ledger_state;
+        }
+    }
+
     $catalog = function_exists( 'teinvit_get_catalog_for_token' ) ? teinvit_get_catalog_for_token( $token ) : ( function_exists( 'teinvit_get_custom_product_ids' ) ? teinvit_get_custom_product_ids() : [] );
     $upgrade_ids = function_exists( 'teinvit_catalog_role_ids' ) ? teinvit_catalog_role_ids( $catalog, 'premium_upgrade_addon_ids' ) : [];
     if ( empty( $upgrade_ids ) ) {
@@ -499,9 +506,10 @@ function teinvit_build_gifts_summary_for_token( $token, $config = null ) {
         $normalized[] = $allocation;
     }
 
-    if ( empty( $normalized ) ) {
+    if ( function_exists( 'teinvit_gifts_ensure_base_and_legacy_allocations' ) ) {
+        $normalized = teinvit_gifts_ensure_base_and_legacy_allocations( $token, $config, $normalized );
+    } elseif ( empty( $normalized ) ) {
         $base_slots = isset( $config['gifts_base_slots_applied'] ) ? max( 0, (int) $config['gifts_base_slots_applied'] ) : 20;
-        $addon_slots = isset( $config['gifts_extra_slots'] ) ? max( 0, (int) $config['gifts_extra_slots'] ) : 0;
         if ( $base_slots > 0 ) {
             $normalized[] = [
                 'allocation_key' => 'legacy-base',
@@ -510,18 +518,6 @@ function teinvit_build_gifts_summary_for_token( $token, $config = null ) {
                 'item_id' => 0,
                 'slots_total' => $base_slots,
                 'slots_remaining' => $base_slots,
-                'status' => 'applied',
-                'applied_at' => '',
-            ];
-        }
-        if ( $addon_slots > 0 ) {
-            $normalized[] = [
-                'allocation_key' => 'legacy-addon',
-                'kind' => 'addon',
-                'order_id' => 0,
-                'item_id' => 0,
-                'slots_total' => $addon_slots,
-                'slots_remaining' => $addon_slots,
                 'status' => 'applied',
                 'applied_at' => '',
             ];
@@ -2345,6 +2341,10 @@ add_action( 'woocommerce_order_status_completed', function( $order_id ) {
 }, 20 );
 
 add_action( 'woocommerce_order_refunded', function( $order_id, $refund_id ) {
+    if ( function_exists( 'teinvit_refund_legacy_gift_allocation_hook_enabled' ) && ! teinvit_refund_legacy_gift_allocation_hook_enabled() ) {
+        return;
+    }
+
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
         return;

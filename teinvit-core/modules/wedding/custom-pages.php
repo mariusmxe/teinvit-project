@@ -720,10 +720,35 @@ function teinvit_token_access_context( $token ) {
     return [ $order_id, $order, is_array( $token_context ) ? $token_context : [] ];
 }
 
+function teinvit_refunded_token_unavailable_message() {
+    return 'Invitația nu mai este disponibilă sau a expirat.';
+}
+
+function teinvit_render_refunded_token_unavailable_page() {
+    $message = teinvit_refunded_token_unavailable_message();
+    status_header( 200 );
+    nocache_headers();
+    echo '<!doctype html><html ' . get_language_attributes() . '><head><meta charset="' . esc_attr( get_bloginfo( 'charset' ) ) . '"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' . esc_html( $message ) . '</title></head><body><p>' . esc_html( $message ) . '</p></body></html>';
+}
+
+function teinvit_refunded_token_route_guard( $token ) {
+    $token = sanitize_text_field( (string) $token );
+    if ( $token === '' || ! function_exists( 'teinvit_is_order_token_refunded' ) || ! teinvit_is_order_token_refunded( $token ) ) {
+        return false;
+    }
+
+    teinvit_render_refunded_token_unavailable_page();
+    return true;
+}
+
 add_action( 'template_redirect', function() {
-    $token = get_query_var( 'teinvit_admin_client_token' );
+    $token = sanitize_text_field( (string) get_query_var( 'teinvit_admin_client_token' ) );
     if ( ! $token ) {
         return;
+    }
+
+    if ( teinvit_refunded_token_route_guard( $token ) ) {
+        exit;
     }
 
     $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';
@@ -760,9 +785,13 @@ add_action( 'template_redirect', function() {
 }, 2 );
 
 add_action( 'template_redirect', function() {
-    $token = get_query_var( 'teinvit_invitati_token' );
+    $token = sanitize_text_field( (string) get_query_var( 'teinvit_invitati_token' ) );
     if ( ! $token ) {
         return;
+    }
+
+    if ( teinvit_refunded_token_route_guard( $token ) ) {
+        exit;
     }
 
     $vertical_key = function_exists( 'teinvit_resolve_token_vertical' ) ? teinvit_resolve_token_vertical( $token ) : 'wedding';

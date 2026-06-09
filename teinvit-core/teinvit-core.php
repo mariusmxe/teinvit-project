@@ -16,13 +16,14 @@ define( 'TEINVIT_CORE_VERSION', '1.0.0' );
 define( 'TEINVIT_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TEINVIT_CORE_URL', plugin_dir_url( __FILE__ ) );
 
-define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 14 );
+define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_VERSION', 15 );
 define( 'TEINVIT_CLIENT_ADMIN_SCHEMA_OPTION', 'teinvit_client_admin_schema_version' );
 
 require_once TEINVIT_CORE_PATH . 'infrastructure/security.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/helpers.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/database.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/tokens.php';
+require_once TEINVIT_CORE_PATH . 'infrastructure/refunds.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/product-description.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/verticals.php';
 require_once TEINVIT_CORE_PATH . 'infrastructure/vertical-runtime.php';
@@ -77,6 +78,9 @@ function teinvit_maybe_run_client_admin_schema_migrations() {
     if ( function_exists( 'teinvit_install_order_token_tables' ) ) {
         teinvit_install_order_token_tables();
     }
+    if ( function_exists( 'teinvit_install_order_token_refund_tables' ) ) {
+        teinvit_install_order_token_refund_tables();
+    }
     if ( function_exists( 'teinvit_install_media_seo_imports_table' ) ) {
         teinvit_install_media_seo_imports_table();
     }
@@ -94,6 +98,7 @@ register_activation_hook( __FILE__, 'teinvit_install_vertical_storage_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_email_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_token_grants_table' );
 register_activation_hook( __FILE__, 'teinvit_install_order_token_tables' );
+register_activation_hook( __FILE__, 'teinvit_install_order_token_refund_tables' );
 register_activation_hook( __FILE__, 'teinvit_install_media_seo_imports_table' );
 register_activation_hook( __FILE__, 'teinvit_install_product_gallery_logs_table' );
 
