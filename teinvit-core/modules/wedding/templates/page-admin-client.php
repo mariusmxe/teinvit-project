@@ -533,7 +533,7 @@ $global_admin_content = function_exists( 'teinvit_render_admin_client_global_con
 
   <?php if ( $token_state === 'basic_pure' ) : ?>
   <div class="notice notice-warning" style="padding:10px;">
-    <p><strong>Pachet Basic activ.</strong> Pentru funcționalități premium (editări nelimitate, configurare RSVP avansată și administrare cadouri), cumpără addon-ul <em>Pachet Premium</em>.</p>
+    <p><strong>Pachet Basic activ.</strong> Fă upgrade la Premium și oferă invitaților o experiență completă: o pagină dedicată unde pot vedea invitația, confirma participarea, răspunde la întrebările alese de tine și alege un cadou disponibil din lista publicată. În plus, îți poți edita informațiile din invitație, administra cadouri și urmări răspunsurile într-un raport dedicat.</p>
     <?php if ( ! empty( $capabilities['can_buy_premium_upgrade'] ) ) : ?>
       <p><a href="<?php echo esc_url( $buy_premium_upgrade_url ); ?>" class="button button-primary">Upgrade la Premium</a></p>
     <?php endif; ?>
