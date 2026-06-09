@@ -36,6 +36,28 @@ function teinvit_refund_add_order_note_once( $order, $note, $key ) {
     return true;
 }
 
+function teinvit_refund_skipped_requires_manual_review( array $payload, $reason = '' ) {
+    $effect_type = sanitize_key( (string) ( $payload['effect_type'] ?? '' ) );
+    if ( $effect_type === 'non_teinvit_item' ) {
+        return false;
+    }
+
+    return true;
+}
+
+function teinvit_refund_debug_with_manual_review( array $debug_context, array $payload, $reason ) {
+    if ( ! teinvit_refund_skipped_requires_manual_review( $payload, $reason ) ) {
+        return $debug_context;
+    }
+
+    $debug_context['manual_review'] = 1;
+    $debug_context['manual_review_reason'] = sanitize_key( (string) $reason );
+    $debug_context['commercial_effect_applied'] = 0;
+    $debug_context['manual_review_instruction'] = 'Verificati refundul in WooCommerce; TeInvit nu a aplicat efecte comerciale automate pentru acest rand.';
+
+    return $debug_context;
+}
+
 function teinvit_refund_get_original_order_item_id( $refund_item ) {
     if ( ! is_object( $refund_item ) || ! method_exists( $refund_item, 'get_meta' ) ) {
         return 0;
@@ -423,15 +445,23 @@ function teinvit_refund_ledger_note( array $payload, $status, $error_message = '
     $subject = $target_token !== '' ? 'target_token=' . $target_token : ( $token !== '' ? 'token=' . $token : 'token=n/a' );
 
     if ( $status === 'skipped' ) {
+        $manual_review = teinvit_refund_skipped_requires_manual_review( $payload, $error_message );
+        $prefix = $manual_review ? '[TeInvit Refund Etapa 9] Manual review' : '[TeInvit Refund Etapa 1] Skipped mapping';
+        $suffix = $manual_review
+            ? 'Nu s-au aplicat efecte comerciale automat; verificati manual refundul si mappingul line item-ului in WooCommerce.'
+            : 'Nu s-au aplicat efecte comerciale.';
+
         return sprintf(
-            '[TeInvit Refund Etapa 1] Skipped mapping: refund #%d item #%d -> order item #%d product #%d effect=%s %s reason=%s. Nu s-au aplicat efecte comerciale.',
+            '%s: refund #%d item #%d -> order item #%d product #%d effect=%s %s reason=%s. %s',
+            $prefix,
             (int) ( $payload['refund_id'] ?? 0 ),
             (int) ( $payload['refund_item_id'] ?? 0 ),
             (int) ( $payload['order_item_id'] ?? 0 ),
             (int) ( $payload['product_id'] ?? 0 ),
             $effect_type,
             $subject,
-            sanitize_key( (string) $error_message )
+            sanitize_key( (string) $error_message ),
+            $suffix
         );
     }
 
@@ -455,6 +485,10 @@ function teinvit_refund_record_ledger( $order, array $payload, $final_status, $e
             'ledger_id' => 0,
             'error' => 'ledger_helpers_missing',
         ];
+    }
+
+    if ( sanitize_key( (string) $final_status ) === 'skipped' ) {
+        $debug_context = teinvit_refund_debug_with_manual_review( $debug_context, $payload, $error_message );
     }
 
     $payload['status'] = 'pending';
@@ -565,7 +599,7 @@ function teinvit_refund_stage2_note( array $payload, array $previous_state, arra
     $mode = sanitize_key( (string) $mode );
     if ( $mode === 'skipped' ) {
         return sprintf(
-            '[TeInvit Refund Etapa 2] Refund skipped: refund #%d, item #%d, order item #%d, token %s, motiv %s.',
+            '[TeInvit Refund Etapa 9] Manual review: invitation refund #%d item #%d order item #%d token %s skipped, motiv %s. Nu s-a modificat automat statusul tokenului; verificati manual mappingul legacy/order_tokens.',
             (int) ( $payload['refund_id'] ?? 0 ),
             (int) ( $payload['refund_item_id'] ?? 0 ),
             (int) ( $payload['order_item_id'] ?? 0 ),
@@ -622,6 +656,7 @@ function teinvit_refund_process_invitation_item_stage2( $order, array $payload, 
             $reason = ! empty( $mapping['legacy'] ) ? 'legacy_no_order_tokens_row' : 'order_tokens_row_missing';
         }
         $debug_context['mapping'] = $mapping;
+        $debug_context = teinvit_refund_debug_with_manual_review( $debug_context, $payload, $reason );
         if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
             teinvit_update_order_token_refund_ledger_status( $ledger_id, 'skipped', [
                 'error_message' => $reason,
@@ -1400,10 +1435,9 @@ function teinvit_refund_addon_reversal_note( array $payload, $effect_type, $stat
     $refund_id = (int) ( $payload['refund_id'] ?? 0 );
     $refund_item_id = (int) ( $payload['refund_item_id'] ?? 0 );
 
-    if ( $status === 'skipped' || $status === 'failed' ) {
+    if ( $status === 'skipped' ) {
         return sprintf(
-            '[TeInvit Refund] Addon refund %s: refund #%d item #%d, target token %s, effect=%s, reason=%s.',
-            $status === 'failed' ? 'failed' : 'skipped/manual review',
+            '[TeInvit Refund Etapa 9] Manual review addon refund: refund #%d item #%d, target token %s, effect=%s, reason=%s. Nu s-au modificat automat Premium, editarile, sloturile de cadouri sau addon ledgerul; verificati manual mappingul addonului.',
             $refund_id,
             $refund_item_id,
             $target_token !== '' ? $target_token : 'n/a',
@@ -1412,7 +1446,16 @@ function teinvit_refund_addon_reversal_note( array $payload, $effect_type, $stat
         );
     }
 
-    $payload['ledger_key'] = $ledger_key;
+    if ( $status === 'failed' ) {
+        return sprintf(
+            '[TeInvit Refund] Addon refund failed: refund #%d item #%d, target token %s, effect=%s, reason=%s.',
+            $refund_id,
+            $refund_item_id,
+            $target_token !== '' ? $target_token : 'n/a',
+            $effect_type,
+            sanitize_key( (string) $error_message )
+        );
+    }
 
     if ( $effect_type === 'premium_upgrade_refund' ) {
         return sprintf(
@@ -1483,6 +1526,8 @@ function teinvit_refund_process_addon_item_reversal( $order, array $payload, arr
         ];
     }
 
+    $payload['ledger_key'] = $ledger_key;
+
     if ( teinvit_refund_addon_reversal_effect_applied( $existing_ledger ) ) {
         return [
             'ok' => true,
@@ -1493,6 +1538,7 @@ function teinvit_refund_process_addon_item_reversal( $order, array $payload, arr
 
     if ( empty( $mapping['mapped'] ) || empty( $payload['target_token'] ) ) {
         $reason = sanitize_key( (string) ( $mapping['reason'] ?? 'addon_mapping_missing' ) );
+        $debug_context = teinvit_refund_debug_with_manual_review( $debug_context, $payload, $reason );
         if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
             teinvit_update_order_token_refund_ledger_status( $ledger_id, 'skipped', [
                 'error_message' => $reason,
@@ -1548,6 +1594,9 @@ function teinvit_refund_process_addon_item_reversal( $order, array $payload, arr
         'granted_qty' => $granted_qty,
         'reversed_qty' => $reversed_qty,
     ];
+    if ( $status === 'skipped' ) {
+        $debug_context = teinvit_refund_debug_with_manual_review( $debug_context, $payload, $error_message );
+    }
 
     if ( function_exists( 'teinvit_update_order_token_refund_ledger_status' ) ) {
         teinvit_update_order_token_refund_ledger_status( $ledger_id, $status, [
@@ -1751,7 +1800,7 @@ function teinvit_refund_note_manual_review_for_refund_change( $refund_id, $chang
         }
         teinvit_refund_add_order_note_once(
             $order,
-            sprintf( '[TeInvit Refund Etapa 1] Refund #%d a fost %s dupa procesarea ledgerului TeInvit. Nu se reactiveaza automat nimic; necesita manual review.', $refund_id, $change_type ),
+            sprintf( '[TeInvit Refund Etapa 9] Manual review: refund #%d a fost %s dupa procesarea ledgerului TeInvit. Nu s-au reactivat automat tokenuri, Premium, editari, sloturi de cadouri sau addonuri; verificati manual in WooCommerce daca este necesara o reactivare separata.', $refund_id, $change_type ),
             'refund_change|' . $change_type . '|' . $refund_id
         );
     }
