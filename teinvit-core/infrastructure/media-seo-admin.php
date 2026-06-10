@@ -86,6 +86,14 @@ function teinvit_media_seo_admin_error_label( $code ) {
     return $labels[ $code ] ?? 'A aparut o eroare in fluxul Media SEO.';
 }
 
+function teinvit_media_seo_report_copy_to_gallery_enabled( array $report ) {
+    if ( array_key_exists( 'copy_to_gallery', $report ) ) {
+        return ! empty( $report['copy_to_gallery'] );
+    }
+
+    return ! empty( $report['summary']['copy_to_gallery'] );
+}
+
 function teinvit_media_seo_render_intro_section() {
     echo '<p>Aceasta pagina actualizeaza metadata SEO pentru imaginile din WordPress Media Library: ALT text, Title, Caption si Description.</p>';
     echo '<p><strong>Important:</strong> importul lucreaza pe attachment-uri imagine. Nu modifica produse WooCommerce, SKU-uri, galerii, preview-uri, PDF-uri, comenzi sau rute publice TeInvit.</p>';
@@ -108,7 +116,13 @@ function teinvit_media_seo_render_upload_section() {
     wp_nonce_field( 'teinvit_media_seo_dry_run', 'teinvit_media_seo_dry_run_nonce' );
     echo '<p><input type="file" name="teinvit_media_seo_csv" accept=".csv,text/csv" required></p>';
     echo '<p class="description">Limita initiala: ' . esc_html( (string) teinvit_media_seo_max_rows() ) . ' randuri si ' . esc_html( size_format( teinvit_media_seo_max_file_size() ) ) . ' per fisier.</p>';
-    submit_button( 'Ruleaza verificare / Dry-run', 'primary', 'teinvit_media_seo_submit' );
+    echo '<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:12px;">';
+    echo '<div>';
+    submit_button( 'Ruleaza verificare / Dry-run', 'primary', 'teinvit_media_seo_submit', false );
+    echo '</div>';
+    echo '<label style="max-width:720px;margin-top:4px;"><input type="checkbox" name="teinvit_media_seo_copy_to_gallery" value="1"> <strong>Copiaza datele si pe imaginile din galerie</strong>';
+    echo '<span class="description" style="display:block;margin-top:4px;">Daca este bifat, metadatele importate pentru fiecare attachment_id vor fi copiate si pe imaginile din galeria produselor care folosesc acea imagine ca imagine principala sau background TeInvit.</span></label>';
+    echo '</div>';
     echo '</form>';
 }
 
@@ -132,6 +146,7 @@ function teinvit_media_seo_render_current_job_section( array $record, array $rep
     echo '<h3>Summary dry-run</h3>';
     teinvit_media_seo_render_dry_run_summary( $report['summary'] ?? [] );
     teinvit_media_seo_render_report_rows_table( $report );
+    teinvit_media_seo_render_gallery_conflicts_section( $report );
 
     if ( $status === 'dry_run' ) {
         teinvit_media_seo_render_apply_confirmation( $record, $report );
@@ -139,6 +154,7 @@ function teinvit_media_seo_render_current_job_section( array $record, array $rep
 }
 
 function teinvit_media_seo_render_dry_run_summary( array $summary ) {
+    $copy_to_gallery = ! empty( $summary['copy_to_gallery'] );
     $labels = [
         'total_rows'              => 'Randuri citite',
         'valid_rows'              => 'Randuri valide',
@@ -154,8 +170,28 @@ function teinvit_media_seo_render_dry_run_summary( array $summary ) {
     ];
 
     echo '<table class="widefat striped" style="max-width:720px;"><tbody>';
+    echo '<tr><th>Copiere pe galerie</th><td>' . esc_html( $copy_to_gallery ? 'activ' : 'inactiv' ) . '</td></tr>';
     foreach ( $labels as $key => $label ) {
         echo '<tr><th>' . esc_html( $label ) . '</th><td>' . esc_html( (string) (int) ( $summary[ $key ] ?? 0 ) ) . '</td></tr>';
+    }
+    if ( $copy_to_gallery ) {
+        $gallery_labels = [
+            'gallery_product_thumbnail_matches' => 'Produse gasite prin _thumbnail_id',
+            'gallery_product_background_matches' => 'Produse gasite prin _teinvit_background_image_id',
+            'gallery_products_affected' => 'Produse afectate unice',
+            'gallery_images_total_found' => 'Imagini galerie gasite',
+            'gallery_images_unique' => 'Imagini galerie unice',
+            'gallery_duplicates_removed' => 'Duplicate galerie eliminate',
+            'gallery_conflicts' => 'Conflicte galerie',
+            'gallery_would_update' => 'Imagini galerie would update',
+            'gallery_unchanged' => 'Imagini galerie unchanged',
+            'gallery_skipped' => 'Imagini galerie skipped',
+            'products_without_gallery' => 'Produse fara galerie',
+            'warnings' => 'Warnings',
+        ];
+        foreach ( $gallery_labels as $key => $label ) {
+            echo '<tr><th>' . esc_html( $label ) . '</th><td>' . esc_html( (string) (int) ( $summary[ $key ] ?? 0 ) ) . '</td></tr>';
+        }
     }
     echo '</tbody></table>';
 }
@@ -173,6 +209,18 @@ function teinvit_media_seo_render_apply_summary( array $summary ) {
     foreach ( $labels as $key => $label ) {
         echo '<tr><th>' . esc_html( $label ) . '</th><td>' . esc_html( (string) (int) ( $summary[ $key ] ?? 0 ) ) . '</td></tr>';
     }
+    if ( ! empty( $summary['gallery_processed'] ) ) {
+        $gallery_labels = [
+            'gallery_processed' => 'Galerie procesate',
+            'gallery_updated'   => 'Galerie updated',
+            'gallery_unchanged' => 'Galerie unchanged',
+            'gallery_skipped'   => 'Galerie skipped',
+            'gallery_errors'    => 'Galerie errors',
+        ];
+        foreach ( $gallery_labels as $key => $label ) {
+            echo '<tr><th>' . esc_html( $label ) . '</th><td>' . esc_html( (string) (int) ( $summary[ $key ] ?? 0 ) ) . '</td></tr>';
+        }
+    }
     echo '</tbody></table>';
 }
 
@@ -186,7 +234,12 @@ function teinvit_media_seo_render_report_rows_table( array $report ) {
     echo '<div style="max-width:100%;overflow:auto;">';
     echo '<table class="widefat striped">';
     echo '<thead><tr>';
-    foreach ( [ 'Rand', 'Attachment ID', 'Vertical', 'Product family', 'SKU-uri', 'Produse', 'Status', 'Motiv', 'Campuri modificate' ] as $heading ) {
+    $headings = [ 'Rand', 'Attachment ID', 'Vertical', 'Product family', 'SKU-uri', 'Produse', 'Status', 'Motiv', 'Campuri modificate' ];
+    $copy_to_gallery = teinvit_media_seo_report_copy_to_gallery_enabled( $report );
+    if ( $copy_to_gallery ) {
+        $headings[] = 'Galerie';
+    }
+    foreach ( $headings as $heading ) {
         echo '<th>' . esc_html( $heading ) . '</th>';
     }
     echo '</tr></thead><tbody>';
@@ -207,6 +260,9 @@ function teinvit_media_seo_render_report_rows_table( array $report ) {
         echo '<td><code>' . esc_html( $status ) . '</code></td>';
         echo '<td>' . esc_html( (string) ( $row['apply_reason'] ?? $row['reason'] ?? '' ) ) . '</td>';
         echo '<td>' . teinvit_media_seo_render_changes_cell( $row['changes'] ?? [] ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        if ( $copy_to_gallery ) {
+            echo '<td>' . teinvit_media_seo_render_gallery_cell( $row ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
         echo '</tr>';
     }
 
@@ -238,6 +294,172 @@ function teinvit_media_seo_render_changes_cell( $changes ) {
     return $html;
 }
 
+function teinvit_media_seo_render_simple_list( $values ) {
+    if ( empty( $values ) || ! is_array( $values ) ) {
+        return '&mdash;';
+    }
+
+    $out = [];
+    foreach ( $values as $value ) {
+        if ( is_array( $value ) ) {
+            $attachment_id = isset( $value['attachment_id'] ) ? absint( $value['attachment_id'] ) : 0;
+            $reason = isset( $value['reason'] ) ? sanitize_key( (string) $value['reason'] ) : '';
+            $out[] = trim( ( $attachment_id > 0 ? '#' . $attachment_id : '' ) . ( $reason !== '' ? ' ' . $reason : '' ) );
+        } else {
+            $out[] = (string) $value;
+        }
+    }
+
+    $out = array_values( array_filter( $out, static function( $value ) {
+        return trim( (string) $value ) !== '';
+    } ) );
+
+    return ! empty( $out ) ? esc_html( implode( ', ', $out ) ) : '&mdash;';
+}
+
+function teinvit_media_seo_render_metadata_cell( $metadata ) {
+    if ( empty( $metadata ) || ! is_array( $metadata ) ) {
+        return '&mdash;';
+    }
+
+    $labels = teinvit_media_seo_update_columns();
+    $html = '<table class="widefat striped" style="margin-top:8px;"><tbody>';
+    foreach ( $labels as $column => $meta ) {
+        if ( ! array_key_exists( $column, $metadata ) ) {
+            continue;
+        }
+        $html .= '<tr><th>' . esc_html( (string) ( $meta['label'] ?? $column ) ) . '</th><td>' . esc_html( teinvit_media_seo_excerpt( (string) $metadata[ $column ] ) ) . '</td></tr>';
+    }
+    $html .= '</tbody></table>';
+
+    return $html;
+}
+
+function teinvit_media_seo_render_gallery_products_table( array $products ) {
+    if ( empty( $products ) ) {
+        return '<p><em>Nu au fost gasite produse.</em></p>';
+    }
+
+    $html = '<table class="widefat striped" style="margin-top:8px;"><thead><tr><th>Product ID</th><th>Nume</th><th>Sursa</th><th>Nr. galerie</th><th>Galerie</th><th>Invalide</th></tr></thead><tbody>';
+    foreach ( $products as $product ) {
+        $sources = isset( $product['match_sources'] ) && is_array( $product['match_sources'] ) ? $product['match_sources'] : [];
+        $gallery_ids = isset( $product['gallery_image_ids'] ) && is_array( $product['gallery_image_ids'] ) ? $product['gallery_image_ids'] : [];
+        $invalid_ids = isset( $product['invalid_gallery_image_ids'] ) && is_array( $product['invalid_gallery_image_ids'] ) ? $product['invalid_gallery_image_ids'] : [];
+
+        $html .= '<tr>';
+        $html .= '<td>' . esc_html( (string) absint( $product['product_id'] ?? 0 ) ) . '</td>';
+        $html .= '<td>' . esc_html( (string) ( $product['product_name'] ?? '' ) ) . '</td>';
+        $html .= '<td>' . esc_html( implode( ', ', array_map( 'sanitize_key', $sources ) ) ) . '</td>';
+        $html .= '<td>' . esc_html( (string) (int) ( $product['gallery_count'] ?? 0 ) ) . '</td>';
+        $html .= '<td>' . teinvit_media_seo_render_simple_list( $gallery_ids ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        $html .= '<td>' . teinvit_media_seo_render_simple_list( $invalid_ids ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        $html .= '</tr>';
+    }
+    $html .= '</tbody></table>';
+
+    return $html;
+}
+
+function teinvit_media_seo_render_gallery_cell( array $row ) {
+    $gallery = isset( $row['gallery'] ) && is_array( $row['gallery'] ) ? $row['gallery'] : [];
+    if ( empty( $gallery ) ) {
+        return '&mdash;';
+    }
+
+    $status = sanitize_key( (string) ( $gallery['status'] ?? 'skipped' ) );
+    $products_count = (int) ( $gallery['products_count'] ?? 0 );
+    $image_count = (int) ( $gallery['gallery_image_count'] ?? 0 );
+    $will_update = isset( $gallery['will_update_attachment_ids'] ) && is_array( $gallery['will_update_attachment_ids'] ) ? $gallery['will_update_attachment_ids'] : [];
+    $unchanged = isset( $gallery['unchanged_attachment_ids'] ) && is_array( $gallery['unchanged_attachment_ids'] ) ? $gallery['unchanged_attachment_ids'] : [];
+    $skipped = isset( $gallery['skipped_attachment_ids'] ) && is_array( $gallery['skipped_attachment_ids'] ) ? $gallery['skipped_attachment_ids'] : [];
+    $conflicts = isset( $gallery['conflict_attachment_ids'] ) && is_array( $gallery['conflict_attachment_ids'] ) ? $gallery['conflict_attachment_ids'] : [];
+    $warnings = isset( $gallery['warnings'] ) && is_array( $gallery['warnings'] ) ? $gallery['warnings'] : [];
+
+    $summary = '<code>' . esc_html( $status ) . '</code> ';
+    $summary .= esc_html( 'Produse: ' . $products_count . ', imagini unice: ' . $image_count . ', update: ' . count( $will_update ) . ', conflicte: ' . count( $conflicts ) );
+
+    $html = '<details><summary>' . $summary . '</summary>';
+    $html .= '<p><strong>Status imagine principala:</strong> ' . esc_html( (string) ( $row['primary_attachment_status'] ?? '' ) ) . '</p>';
+    $html .= '<p><strong>Metadata propusa:</strong></p>';
+    $html .= teinvit_media_seo_render_metadata_cell( $row['proposed_metadata'] ?? [] );
+    $html .= '<p><strong>Produse gasite:</strong></p>';
+    $html .= teinvit_media_seo_render_gallery_products_table( isset( $gallery['products'] ) && is_array( $gallery['products'] ) ? $gallery['products'] : [] );
+    $html .= '<p><strong>Imagini galerie unice:</strong> ' . teinvit_media_seo_render_simple_list( $gallery['gallery_image_ids'] ?? [] ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $html .= '<p><strong>Duplicate eliminate pe rand:</strong> ' . esc_html( (string) (int) ( $gallery['duplicates_removed'] ?? 0 ) ) . '</p>';
+    $html .= '<p><strong>Would update:</strong> ' . teinvit_media_seo_render_simple_list( $will_update ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $html .= '<p><strong>Unchanged:</strong> ' . teinvit_media_seo_render_simple_list( $unchanged ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $html .= '<p><strong>Skipped:</strong> ' . teinvit_media_seo_render_simple_list( $skipped ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $html .= '<p><strong>Conflicte:</strong> ' . teinvit_media_seo_render_simple_list( $conflicts ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    if ( ! empty( $warnings ) ) {
+        $html .= '<p><strong>Warnings:</strong> ' . esc_html( implode( ', ', array_map( 'sanitize_key', $warnings ) ) ) . '</p>';
+    }
+    $html .= '</details>';
+
+    return $html;
+}
+
+function teinvit_media_seo_render_conflict_differences( $differences ) {
+    if ( empty( $differences ) || ! is_array( $differences ) ) {
+        return '&mdash;';
+    }
+
+    $labels = teinvit_media_seo_update_columns();
+    $html = '<details><summary>Diferente metadata</summary>';
+    foreach ( $differences as $column => $rows ) {
+        $label = isset( $labels[ $column ]['label'] ) ? (string) $labels[ $column ]['label'] : (string) $column;
+        $html .= '<h4>' . esc_html( $label ) . '</h4>';
+        $html .= '<table class="widefat striped"><thead><tr><th>Rand CSV</th><th>Attachment sursa</th><th>Valoare</th></tr></thead><tbody>';
+        foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+            $html .= '<tr>';
+            $html .= '<td>' . esc_html( (string) (int) ( $row['line_number'] ?? 0 ) ) . '</td>';
+            $html .= '<td>' . esc_html( (string) absint( $row['source_attachment_id'] ?? 0 ) ) . '</td>';
+            $html .= '<td>' . esc_html( teinvit_media_seo_excerpt( (string) ( $row['value'] ?? '' ) ) ) . '</td>';
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table>';
+    }
+    $html .= '</details>';
+
+    return $html;
+}
+
+function teinvit_media_seo_render_gallery_conflicts_section( array $report ) {
+    if ( ! teinvit_media_seo_report_copy_to_gallery_enabled( $report ) ) {
+        return;
+    }
+
+    $gallery = isset( $report['gallery'] ) && is_array( $report['gallery'] ) ? $report['gallery'] : [];
+    $conflicts = isset( $gallery['conflicts'] ) && is_array( $gallery['conflicts'] ) ? $gallery['conflicts'] : [];
+
+    echo '<h3>Conflicte galerie</h3>';
+    if ( empty( $conflicts ) ) {
+        echo '<p>Nu au fost detectate conflicte pentru imaginile de galerie.</p>';
+        return;
+    }
+
+    echo '<div style="max-width:100%;overflow:auto;">';
+    echo '<table class="widefat striped">';
+    echo '<thead><tr><th>Attachment galerie</th><th>Motiv</th><th>Randuri CSV</th><th>Attachment-uri sursa</th><th>Produse</th><th>Diferente</th></tr></thead><tbody>';
+    foreach ( $conflicts as $conflict ) {
+        $products = isset( $conflict['products'] ) && is_array( $conflict['products'] ) ? $conflict['products'] : [];
+        $product_labels = [];
+        foreach ( $products as $product ) {
+            $product_labels[] = '#' . absint( $product['product_id'] ?? 0 ) . ' ' . (string) ( $product['product_name'] ?? '' );
+        }
+
+        echo '<tr>';
+        echo '<td>' . esc_html( (string) absint( $conflict['target_attachment_id'] ?? 0 ) ) . '</td>';
+        echo '<td><code>' . esc_html( sanitize_key( (string) ( $conflict['reason'] ?? '' ) ) ) . '</code></td>';
+        echo '<td>' . teinvit_media_seo_render_simple_list( $conflict['source_line_numbers'] ?? [] ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '<td>' . teinvit_media_seo_render_simple_list( $conflict['source_attachment_ids'] ?? [] ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '<td>' . esc_html( implode( '; ', $product_labels ) ) . '</td>';
+        echo '<td>' . teinvit_media_seo_render_conflict_differences( $conflict['differences'] ?? [] ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    echo '</div>';
+}
+
 function teinvit_media_seo_excerpt( $value, $length = 140 ) {
     $value = trim( (string) $value );
     if ( $value === '' ) {
@@ -249,7 +471,7 @@ function teinvit_media_seo_excerpt( $value, $length = 140 ) {
 
 function teinvit_media_seo_render_apply_confirmation( array $record, array $report ) {
     $summary = isset( $report['summary'] ) && is_array( $report['summary'] ) ? $report['summary'] : [];
-    $would_update = (int) ( $summary['would_update'] ?? 0 );
+    $would_update = (int) ( $summary['would_update'] ?? 0 ) + (int) ( $summary['gallery_would_update'] ?? 0 );
 
     echo '<h3>Confirmare import</h3>';
     if ( $would_update <= 0 ) {
@@ -267,6 +489,23 @@ function teinvit_media_seo_render_apply_confirmation( array $record, array $repo
     echo '</form>';
 }
 
+function teinvit_media_seo_history_gallery_label( array $record ) {
+    $report = teinvit_media_seo_report_json_decode( $record['report_json'] ?? '' );
+    if ( ! teinvit_media_seo_report_copy_to_gallery_enabled( $report ) ) {
+        return 'Galerie: inactiv';
+    }
+
+    $summary = isset( $report['summary'] ) && is_array( $report['summary'] ) ? $report['summary'] : [];
+    $apply_summary = isset( $report['apply']['summary'] ) && is_array( $report['apply']['summary'] ) ? $report['apply']['summary'] : [];
+    $updated = (int) ( $apply_summary['gallery_updated'] ?? 0 );
+    $planned = (int) ( $summary['gallery_would_update'] ?? 0 );
+    $display_update = ! empty( $apply_summary ) ? $updated : $planned;
+    $conflicts = (int) ( $summary['gallery_conflicts'] ?? 0 );
+    $skipped = (int) ( $apply_summary['gallery_skipped'] ?? ( $summary['gallery_skipped'] ?? 0 ) );
+
+    return 'Galerie: activ | update ' . $display_update . ' | conflicte ' . $conflicts . ' | skipped ' . $skipped;
+}
+
 function teinvit_media_seo_render_history_section() {
     $history = teinvit_media_seo_get_import_history( 30 );
 
@@ -280,7 +519,7 @@ function teinvit_media_seo_render_history_section() {
     echo '<div style="max-width:100%;overflow:auto;">';
     echo '<table class="widefat striped">';
     echo '<thead><tr>';
-    foreach ( [ 'Data', 'Utilizator', 'Verticala', 'Fisier', 'Status', 'Randuri', 'Updated', 'Unchanged', 'Skipped', 'Errors', 'Actiuni' ] as $heading ) {
+    foreach ( [ 'Data', 'Utilizator', 'Verticala', 'Fisier', 'Status', 'Galerie', 'Randuri', 'Updated', 'Unchanged', 'Skipped', 'Errors', 'Actiuni' ] as $heading ) {
         echo '<th>' . esc_html( $heading ) . '</th>';
     }
     echo '</tr></thead><tbody>';
@@ -296,6 +535,7 @@ function teinvit_media_seo_render_history_section() {
         echo '<td>' . esc_html( (string) ( $row['vertical'] ?? '' ) ) . '</td>';
         echo '<td>' . esc_html( (string) ( $row['original_filename'] ?? '' ) ) . '</td>';
         echo '<td><code>' . esc_html( teinvit_media_seo_display_status( $row ) ) . '</code></td>';
+        echo '<td>' . esc_html( teinvit_media_seo_history_gallery_label( $row ) ) . '</td>';
         echo '<td>' . esc_html( (string) (int) ( $row['total_rows'] ?? 0 ) ) . '</td>';
         echo '<td>' . esc_html( (string) (int) ( $row['updated_count'] ?? 0 ) ) . '</td>';
         echo '<td>' . esc_html( (string) (int) ( $row['unchanged_count'] ?? 0 ) ) . '</td>';
@@ -362,7 +602,8 @@ function teinvit_media_seo_handle_dry_run() {
         exit;
     }
 
-    $report = teinvit_media_seo_build_dry_run_report( $stored['stored_path'] );
+    $copy_to_gallery = ! empty( $_POST['teinvit_media_seo_copy_to_gallery'] );
+    $report = teinvit_media_seo_build_dry_run_report( $stored['stored_path'], $copy_to_gallery );
     $status = ! empty( $report['fatal_error'] ) ? 'failed' : 'dry_run';
     $created = teinvit_media_seo_create_import_record(
         [
