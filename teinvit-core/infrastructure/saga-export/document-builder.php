@@ -41,6 +41,9 @@ class TeInvit_Saga_Document_Builder {
             if ( $document ) {
                 $documents[] = $document;
                 $this->diagnostics->exported_document();
+                if ( $export_type === 'invoices' ) {
+                    $this->add_invoice_export_diagnostic( $document );
+                }
             }
         }
 
@@ -126,7 +129,7 @@ class TeInvit_Saga_Document_Builder {
             [
                 'number' => $invoice['invoice_number'],
                 'date' => $invoice['invoice_date'],
-                'due_date' => $invoice['due_date'],
+                'due_date' => '',
                 'currency' => $invoice['currency'],
             ]
         );
@@ -159,6 +162,7 @@ class TeInvit_Saga_Document_Builder {
     }
 
     private function build_document_array( $type, WC_Order $order, array $lines, array $document_meta ) {
+        $lines = $this->normalize_monetary_lines( $lines );
         $summary = $this->summarize_lines( $lines );
 
         return [
@@ -357,18 +361,118 @@ class TeInvit_Saga_Document_Builder {
     }
 
     private function summarize_lines( array $lines ) {
-        $net = 0.0;
-        $tax = 0.0;
+        $net_cents = 0;
+        $tax_cents = 0;
         foreach ( $lines as $line ) {
-            $net += (float) $line['value'];
-            $tax += (float) $line['vat'];
+            $net_cents += $this->money_to_cents( $line['value'] );
+            $tax_cents += $this->money_to_cents( $line['vat'] );
         }
 
         return [
-            'total_value' => $net,
-            'total_vat' => $tax,
-            'total' => $net + $tax,
+            'total_value' => $net_cents / 100,
+            'total_vat' => $tax_cents / 100,
+            'total' => ( $net_cents + $tax_cents ) / 100,
         ];
+    }
+
+    private function normalize_monetary_lines( array $lines ) {
+        if ( empty( $lines ) ) {
+            return $lines;
+        }
+
+        $target_value = 0.0;
+        $target_vat = 0.0;
+        foreach ( $lines as $line ) {
+            $target_value += (float) $line['value'];
+            $target_vat += (float) $line['vat'];
+        }
+        $target_value_cents = $this->money_to_cents( $target_value );
+        $target_vat_cents = $this->money_to_cents( $target_vat );
+
+        $rounded_value_cents = 0;
+        $rounded_vat_cents = 0;
+        foreach ( $lines as &$line ) {
+            $line['value'] = $this->money_to_cents( $line['value'] ) / 100;
+            $line['vat'] = $this->money_to_cents( $line['vat'] ) / 100;
+            $line['price'] = $this->money_to_cents( $line['price'] ) / 100;
+            $rounded_value_cents += $this->money_to_cents( $line['value'] );
+            $rounded_vat_cents += $this->money_to_cents( $line['vat'] );
+        }
+        unset( $line );
+
+        $adjust_index = $this->last_rounding_adjustment_index( $lines );
+        if ( $adjust_index !== null ) {
+            $value_diff_cents = $target_value_cents - $rounded_value_cents;
+            $vat_diff_cents = $target_vat_cents - $rounded_vat_cents;
+
+            if ( $value_diff_cents !== 0 || $vat_diff_cents !== 0 ) {
+                $lines[ $adjust_index ]['value'] = ( $this->money_to_cents( $lines[ $adjust_index ]['value'] ) + $value_diff_cents ) / 100;
+                $lines[ $adjust_index ]['vat'] = ( $this->money_to_cents( $lines[ $adjust_index ]['vat'] ) + $vat_diff_cents ) / 100;
+            }
+        }
+
+        foreach ( $lines as &$line ) {
+            $line['price'] = $this->line_price_from_rounded_totals( $line );
+        }
+        unset( $line );
+
+        return $lines;
+    }
+
+    private function last_rounding_adjustment_index( array $lines ) {
+        for ( $i = count( $lines ) - 1; $i >= 0; $i-- ) {
+            if ( isset( $lines[ $i ] ) ) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    private function line_price_from_rounded_totals( array $line ) {
+        $total = (float) $line['value'] + (float) $line['vat'];
+        if ( ( $line['kind'] ?? '' ) === 'discount' ) {
+            return abs( $total );
+        }
+
+        $quantity = (float) ( $line['quantity'] ?? 0 );
+        if ( $quantity !== 0.0 ) {
+            return $total / $quantity;
+        }
+
+        return $total;
+    }
+
+    private function money_to_cents( $amount ) {
+        return (int) round( (float) $amount * 100 );
+    }
+
+    private function add_invoice_export_diagnostic( array $document ) {
+        $line_totals = $this->summarize_lines( $document['lines'] );
+        $summary = $document['summary'];
+        $diff_value = $this->money_to_cents( $line_totals['total_value'] ) - $this->money_to_cents( $summary['total_value'] );
+        $diff_vat = $this->money_to_cents( $line_totals['total_vat'] ) - $this->money_to_cents( $summary['total_vat'] );
+        $diff_total = $this->money_to_cents( $line_totals['total'] ) - $this->money_to_cents( $summary['total'] );
+
+        $this->diagnostics->add(
+            'info',
+            'invoice_exported_totals',
+            'Factura exportata cu totaluri verificate.',
+            [
+                'FacturaNumar' => $document['number'],
+                'FacturaData' => $document['date'],
+                'FacturaScadenta' => $document['due_date'],
+                'TotalValoare' => number_format( (float) $summary['total_value'], 2, '.', '' ),
+                'TotalTVA' => number_format( (float) $summary['total_vat'], 2, '.', '' ),
+                'Total' => number_format( (float) $summary['total'], 2, '.', '' ),
+                'LiniiValoare' => number_format( (float) $line_totals['total_value'], 2, '.', '' ),
+                'LiniiTVA' => number_format( (float) $line_totals['total_vat'], 2, '.', '' ),
+                'LiniiTotal' => number_format( (float) $line_totals['total'], 2, '.', '' ),
+                'DiferentaValoare' => number_format( $diff_value / 100, 2, '.', '' ),
+                'DiferentaTVA' => number_format( $diff_vat / 100, 2, '.', '' ),
+                'DiferentaTotal' => number_format( $diff_total / 100, 2, '.', '' ),
+            ]
+        );
     }
 
     private function supplier_data() {

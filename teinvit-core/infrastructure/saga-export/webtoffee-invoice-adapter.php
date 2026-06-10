@@ -39,7 +39,7 @@ class TeInvit_Saga_WebToffee_Invoice_Adapter {
             'invoice_date_raw' => $invoice_date_raw,
             'invoice_timestamp' => $invoice_timestamp,
             'invoice_date' => $invoice_timestamp ? $this->format_date( $invoice_timestamp ) : '',
-            'due_date' => $invoice_timestamp ? $this->format_date( $invoice_timestamp ) : '',
+            'due_date' => '',
             'currency' => $order->get_currency(),
             'order_id' => $order->get_id(),
         ];
@@ -62,14 +62,16 @@ class TeInvit_Saga_WebToffee_Invoice_Adapter {
         $timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
         $formats = [ 'Y-m-d', 'Y-m-d H:i:s', 'd.m.Y', 'd.m.Y H:i:s' ];
         foreach ( $formats as $format ) {
-            $date = DateTimeImmutable::createFromFormat( $format, $value, $timezone );
-            if ( $date instanceof DateTimeImmutable ) {
+            $date = DateTimeImmutable::createFromFormat( '!' . $format, $value, $timezone );
+            $errors = DateTimeImmutable::getLastErrors();
+            $is_valid = $date instanceof DateTimeImmutable
+                && ( $errors === false || ( (int) $errors['warning_count'] === 0 && (int) $errors['error_count'] === 0 ) );
+            if ( $is_valid ) {
                 return $date->setTime( 0, 0, 0 )->getTimestamp();
             }
         }
 
-        $timestamp = strtotime( $value );
-        return $timestamp ? $timestamp : null;
+        return null;
     }
 
     public function format_date( $timestamp ) {

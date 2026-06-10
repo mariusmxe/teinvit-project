@@ -46,7 +46,7 @@ class TeInvit_Saga_Download_Handler {
             $content_type = 'text/csv; charset=UTF-8';
         }
 
-        $filename = self::filename( $result['export_type'], $extension );
+        $filename = self::filename( $result, $extension );
 
         nocache_headers();
         header( 'Content-Type: ' . $content_type );
@@ -133,8 +133,26 @@ class TeInvit_Saga_Download_Handler {
         return 'teinvit_saga_export_diag_' . get_current_user_id();
     }
 
-    private static function filename( $export_type, $extension ) {
+    private static function filename( array $result, $extension ) {
+        $export_type = $result['export_type'];
+        if ( $export_type === 'invoices' && $extension === 'xml' ) {
+            $settings = is_array( $result['settings'] ?? null ) ? $result['settings'] : [];
+            $supplier = is_array( $settings['supplier'] ?? null ) ? $settings['supplier'] : [];
+            $cif = self::filename_segment( $supplier['cif'] ?? '', 'FURNIZOR' );
+            $documents = is_array( $result['documents'] ?? null ) ? $result['documents'] : [];
+            $reference = ! empty( $documents[0]['number'] ) ? $documents[0]['number'] : 'EXPORT';
+            $reference = self::filename_segment( $reference, 'EXPORT' );
+            $timestamp = function_exists( 'wp_date' ) ? wp_date( 'Y-m-dH_i_s' ) : gmdate( 'Y-m-dH_i_s' );
+
+            return 'F_' . $cif . '_' . $timestamp . '_' . $reference . '.xml';
+        }
+
         $type = $export_type === 'invoices' ? 'facturi' : 'comenzi';
         return 'teinvit-saga-' . $type . '-' . gmdate( 'Ymd-His' ) . '.' . $extension;
+    }
+
+    private static function filename_segment( $value, $fallback ) {
+        $value = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $value );
+        return $value !== '' ? $value : $fallback;
     }
 }

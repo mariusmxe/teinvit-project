@@ -176,8 +176,7 @@ class TeInvit_Saga_XML_Writer {
     }
 
     private function format_amount( $value ) {
-        $formatted = number_format( round( (float) $value, 2 ), 2, '.', '' );
-        return rtrim( rtrim( $formatted, '0' ), '.' );
+        return number_format( round( (float) $value, 2 ), 2, '.', '' );
     }
 
     private function format_quantity( $value ) {
