@@ -738,7 +738,24 @@
     }
 
     function galleryNormalizeUrl(url) {
-        return String(url || '').replace(/#.*$/, '');
+        var raw = String(url || '').trim();
+        if (!raw) return '';
+
+        try {
+            var base = (typeof window !== 'undefined' && window.location && window.location.href)
+                ? window.location.href
+                : 'https://www.teinvit.com/';
+            var parsed = new URL(raw, base);
+            parsed.hash = '';
+            return parsed.href.replace(/%[0-9a-f]{2}/gi, function (seq) { return seq.toUpperCase(); });
+        } catch (err) {
+            var withoutHash = raw.replace(/#.*$/, '');
+            try {
+                return decodeURI(withoutHash);
+            } catch (decodeErr) {
+                return withoutHash;
+            }
+        }
     }
 
     function galleryBackgroundState(root) {
