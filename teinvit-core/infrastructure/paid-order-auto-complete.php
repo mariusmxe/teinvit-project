@@ -291,12 +291,8 @@ function teinvit_paid_order_auto_complete_is_scheduled( $order_id ) {
     }
 
     $args = [ 'order_id' => $order_id ];
-    if ( function_exists( 'as_has_scheduled_action' ) ) {
-        return (bool) as_has_scheduled_action( TEINVIT_PAID_ORDER_AUTO_COMPLETE_ACTION, $args, TEINVIT_PAID_ORDER_AUTO_COMPLETE_GROUP );
-    }
-
-    if ( function_exists( 'as_next_scheduled_action' ) ) {
-        return (bool) as_next_scheduled_action( TEINVIT_PAID_ORDER_AUTO_COMPLETE_ACTION, $args, TEINVIT_PAID_ORDER_AUTO_COMPLETE_GROUP );
+    if ( function_exists( 'wp_next_scheduled' ) ) {
+        return (bool) wp_next_scheduled( TEINVIT_PAID_ORDER_AUTO_COMPLETE_ACTION, $args );
     }
 
     return false;
@@ -359,37 +355,44 @@ function teinvit_paid_order_auto_complete_maybe_schedule( $order_id, $source = '
         return teinvit_paid_order_auto_complete_skip( 'ineligible_scope', [ 'order_id' => $order_id, 'scope' => $settings['scope'], 'trigger_source' => $source ] );
     }
 
-    if ( ! function_exists( 'as_schedule_single_action' ) ) {
-        return teinvit_paid_order_auto_complete_skip( 'action_scheduler_unavailable', [ 'order_id' => $order_id, 'trigger_source' => $source ], 'error' );
+    if ( ! function_exists( 'wp_schedule_single_event' ) || ! function_exists( 'wp_next_scheduled' ) ) {
+        return teinvit_paid_order_auto_complete_skip( 'wp_cron_unavailable', [ 'order_id' => $order_id, 'trigger_source' => $source ], 'error' );
     }
 
     if ( teinvit_paid_order_auto_complete_is_scheduled( $order_id ) ) {
-        return teinvit_paid_order_auto_complete_skip( 'already_scheduled', [ 'order_id' => $order_id, 'trigger_source' => $source ] );
+        return teinvit_paid_order_auto_complete_skip( 'already_scheduled', [ 'order_id' => $order_id, 'scheduler' => 'wp_cron', 'trigger_source' => $source ] );
     }
 
     $timestamp = time() + max( 1, (int) $settings['delay'] );
-    $scheduled = as_schedule_single_action(
-        $timestamp,
-        TEINVIT_PAID_ORDER_AUTO_COMPLETE_ACTION,
-        [ 'order_id' => $order_id ],
-        TEINVIT_PAID_ORDER_AUTO_COMPLETE_GROUP,
-        true
-    );
+    $args = [ 'order_id' => $order_id ];
+    $scheduled = wp_schedule_single_event( $timestamp, TEINVIT_PAID_ORDER_AUTO_COMPLETE_ACTION, $args, true );
 
     if ( is_wp_error( $scheduled ) ) {
+        if ( $scheduled->get_error_code() === 'duplicate_event' ) {
+            return teinvit_paid_order_auto_complete_skip(
+                'already_scheduled',
+                [
+                    'order_id'       => $order_id,
+                    'scheduler'      => 'wp_cron',
+                    'trigger_source' => $source,
+                ]
+            );
+        }
+
         return teinvit_paid_order_auto_complete_skip(
             'schedule_failed',
             [
                 'order_id'       => $order_id,
                 'error_message'  => $scheduled->get_error_message(),
+                'scheduler'      => 'wp_cron',
                 'trigger_source' => $source,
             ],
             'error'
         );
     }
 
-    if ( empty( $scheduled ) ) {
-        return teinvit_paid_order_auto_complete_skip( 'schedule_failed', [ 'order_id' => $order_id, 'trigger_source' => $source ], 'error' );
+    if ( false === $scheduled ) {
+        return teinvit_paid_order_auto_complete_skip( 'schedule_failed', [ 'order_id' => $order_id, 'scheduler' => 'wp_cron', 'trigger_source' => $source ], 'error' );
     }
 
     teinvit_paid_order_auto_complete_log(
@@ -397,14 +400,15 @@ function teinvit_paid_order_auto_complete_maybe_schedule( $order_id, $source = '
         'scheduled',
         [
             'order_id'       => $order_id,
-            'action_id'      => (int) $scheduled,
+            'scheduler'      => 'wp_cron',
             'delay'          => (int) $settings['delay'],
             'run_at_gmt'     => gmdate( 'Y-m-d H:i:s', $timestamp ),
+            'timestamp'      => $timestamp,
             'trigger_source' => $source,
         ]
     );
 
-    return (int) $scheduled;
+    return true;
 }
 
 function teinvit_paid_order_auto_complete_lock_option_name( $order_id ) {
@@ -456,6 +460,8 @@ function teinvit_paid_order_auto_complete_run_job( $order_id ) {
     if ( empty( $settings['enabled'] ) ) {
         return teinvit_paid_order_auto_complete_skip( 'disabled', [ 'order_id' => $order_id ] );
     }
+
+    teinvit_paid_order_auto_complete_log( 'info', 'run_started', [ 'order_id' => $order_id, 'scheduler' => 'wp_cron' ] );
 
     if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
         return teinvit_paid_order_auto_complete_skip( 'missing_order', [ 'order_id' => $order_id ], 'warning' );
